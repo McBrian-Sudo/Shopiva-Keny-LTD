@@ -1,2 +1,2 @@
-# Shopiva-Keny-LTD
+# Shopiva-Kenya-LTD
 Online market
