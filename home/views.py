@@ -2,14 +2,17 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.contrib.auth.decorators import login_required
+
 from .forms import CustomerRegistrationForm
 from .models import Order, OrderItem, Product
+
+
 def customer_register(request):
     if request.user.is_authenticated:
         return redirect("customer_dashboard")
@@ -20,32 +23,43 @@ def customer_register(request):
         if form.is_valid():
             user = form.save()
             auth_login(request, user)
-
-            messages.success(
-                request,
-                f"Welcome to Shopiva, {user.username}!"
-            )
-
+            messages.success(request, f"Welcome to Shopiva, {user.username}!")
             return redirect("customer_dashboard")
     else:
         form = CustomerRegistrationForm()
 
-    return render(
-        request,
-        "accounts/register.html",
-        {"form": form},
-    )
+    return render(request, "accounts/register.html", {"form": form})
+
+
+def customer_login(request):
+    if request.user.is_authenticated:
+        return redirect("customer_dashboard")
+
+    if request.method == "POST":
+        form = AuthenticationForm(request, data=request.POST)
+
+        if form.is_valid():
+            user = form.get_user()
+            auth_login(request, user)
+            messages.success(request, f"Welcome back, {user.username}!")
+            return redirect("customer_dashboard")
+    else:
+        form = AuthenticationForm()
+
+    return render(request, "accounts/login.html", {"form": form})
+
+
+def customer_logout(request):
+    auth_logout(request)
+    messages.success(request, "You have been signed out of Shopiva.")
+    return redirect("customer_login")
+
 
 @login_required(login_url="customer_login")
 def customer_dashboard(request):
-    return render(
-        request,
-        "accounts/dashboard.html",
-    )
+    return render(request, "accounts/dashboard.html")
 
 
-def home(request):
-def home(request):
 def home(request):
     products = Product.objects.filter(is_active=True).order_by("-id")
     featured_products = products.filter(is_featured=True)
@@ -129,8 +143,9 @@ def cart(request):
     cart_data = request.session.get("cart", {})
     items, total = _cart_items(cart_data)
 
-    # Keep session quantities aligned with available stock.
-    request.session["cart"] = {str(item["product"].id): item["quantity"] for item in items}
+    request.session["cart"] = {
+        str(item["product"].id): item["quantity"] for item in items
+    }
     request.session.modified = True
 
     return render(request, "cart.html", {"items": items, "total": total})
