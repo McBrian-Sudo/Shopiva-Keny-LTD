@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Shopiva Kenya - Categories</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            color: #222;
+        }
+
+        nav {
+            background: #111827;
+            padding: 16px 20px;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            color: white;
+            text-decoration: none;
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .logo span {
+            color: #22c55e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .nav-links a:hover {
+            background: #374151;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .heading {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .heading h1 {
+            font-size: 34px;
+            margin-bottom: 10px;
+        }
+
+        .heading p {
+            color: #666;
+        }
+
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .category {
+            background: white;
+            border-radius: 14px;
+            padding: 30px 20px;
+            text-align: center;
+            text-decoration: none;
+            color: #111827;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .category:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+        }
+
+        .category-icon {
+            font-size: 42px;
+            margin-bottom: 15px;
+        }
+
+        .category h2 {
+            margin: 0 0 8px;
+            font-size: 21px;
+        }
+
+        .category p {
+            margin: 0;
+            color: #666;
+        }
+
+        .empty {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+        }
+
+        footer {
+            margin-top: 60px;
+            background: #111827;
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+
+        @media (max-width: 600px) {
+            .nav-container {
+                flex-direction: column;
+            }
+
+            .heading h1 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<nav>
+    <div class="nav-container">
+
+        <a href="/" class="logo">
+            Shopiva<span>Kenya</span>
+        </a>
+
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/products/">Products</a>
+            <a href="/categories/">Categories</a>
+            <a href="/cart/">Cart</a>
+        </div>
+
+    </div>
+</nav>
+
+<main class="container">
+
+    <div class="heading">
+        <h1>Shop by Category</h1>
+        <p>Find products quickly by choosing a category.</p>
+    </div>
+
+    {% if categories %}
+
+    <div class="categories">
+
+        {% for category in categories %}
+
+        <a class="category"
+           href="/products/?category={{ category|urlencode }}">
+
+            <div class="category-icon">🛍️</div>
+
+            <h2>{{ category }}</h2>
+
+            <p>Explore {{ category }} products</p>
+
+        </a>
+
+        {% endfor %}
+
+    </div>
+
+    {% else %}
+
+    <div class="empty">
+        <h2>No categories available yet.</h2>
+        <p>Products added through the Admin dashboard will appear here.</p>
+    </div>
+
+    {% endif %}
+
+</main>
+
+<footer>
+    <p>© 2026 Shopiva Kenya LTD. All rights reserved.</p>
+</footer>
+
+</body>
+</html>
