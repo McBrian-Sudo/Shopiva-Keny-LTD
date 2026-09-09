@@ -8,6 +8,8 @@ from home.views import (
     cart,
     categories,
     checkout,
+    customer_dashboard,
+    customer_register,
     home,
     order_success,
     product_detail,
@@ -15,19 +17,54 @@ from home.views import (
 )
 
 urlpatterns = [
-    # Shopiva Market
+    # =========================
+    # SHOPIVA MARKET
+    # =========================
     path("", home, name="home"),
     path("products/", products, name="products"),
     path("categories/", categories, name="categories"),
     path("product/<int:product_id>/", product_detail, name="product_detail"),
+
+    # Cart
     path("cart/", cart, name="cart"),
     path("cart/add/<int:product_id>/", add_to_cart, name="add_to_cart"),
-    path("checkout/", checkout, name="checkout"),
-    path("order-success/<int:order_id>/", order_success, name="order_success"),
 
-    # Shopiva Admin Control Center
-    path("admin/", shopiva_admin_site.urls),
+    # Checkout
+    path("checkout/", checkout, name="checkout"),
+    path(
+        "order-success/<int:order_id>/",
+        order_success,
+        name="order_success",
+    ),
+
+    # =========================
+    # CUSTOMER ACCOUNT
+    # =========================
+    path(
+        "customer/register/",
+        customer_register,
+        name="customer_register",
+    ),
+    path(
+        "account/",
+        customer_dashboard,
+        name="customer_dashboard",
+    ),
+
+    # =========================
+    # SHOPIVA ADMIN
+    # =========================
+    path(
+        "admin/",
+        shopiva_admin_site.urls,
+    ),
 ]
 
+# =========================
+# DEVELOPMENT MEDIA
+# =========================
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT,
+    )
