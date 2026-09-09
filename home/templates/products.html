@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products | Shopiva Kenya</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f8fafc;
+            color: #111827;
+        }
+
+        nav {
+            background: #111827;
+            color: white;
+            padding: 18px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 18px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 35px 20px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .hero h1 {
+            font-size: clamp(30px, 5vw, 46px);
+            margin-bottom: 8px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            max-width: 800px;
+            margin: 25px auto;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .search-box button {
+            padding: 14px 22px;
+            border: 0;
+            border-radius: 10px;
+            background: #111827;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 35px;
+        }
+
+        .category {
+            display: inline-block;
+            padding: 9px 15px;
+            border-radius: 999px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            color: #111827;
+            text-decoration: none;
+        }
+
+        .category.active {
+            background: #111827;
+            color: white;
+        }
+
+        .results {
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .image {
+            height: 230px;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .placeholder {
+            font-size: 65px;
+        }
+
+        .body {
+            padding: 17px;
+        }
+
+        .discount {
+            display: inline-block;
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #111827;
+            color: white;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .body h3 {
+            margin: 5px 0 8px;
+        }
+
+        .description {
+            color: #6b7280;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .price {
+            margin: 14px 0;
+        }
+
+        .current-price {
+            font-size: 21px;
+            font-weight: 900;
+        }
+
+        .old-price {
+            margin-left: 8px;
+            color: #9ca3af;
+        }
+
+        .promo {
+            margin: 10px 0;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .stock {
+            margin-bottom: 14px;
+            font-size: 14px;
+        }
+
+        .available {
+            font-weight: 700;
+        }
+
+        .unavailable {
+            font-weight: 700;
+        }
+
+        .view-button {
+            display: block;
+            text-align: center;
+            padding: 11px;
+            border-radius: 10px;
+            background: #111827;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 70px 20px;
+            background: white;
+            border-radius: 18px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 35px;
+        }
+
+        .pagination a {
+            padding: 10px 14px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #111827;
+        }
+
+        @media (max-width: 950px) {
+            .grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<nav>
+    <strong>Shopiva Kenya</strong>
+
+    <div>
+        <a href="/">Home</a>
+        <a href="/products/">Products</a>
+        <a href="/cart/">Cart</a>
+    </div>
+</nav>
+
+<div class="container">
+
+    <div class="hero">
+        <h1>Shopiva Products</h1>
+        <p>Discover products, special offers and great deals.</p>
+    </div>
+
+    <form method="get" class="search-box">
+        <input
+            type="search"
+            name="q"
+            value="{{ query }}"
+            placeholder="Search products..."
+            aria-label="Search products"
+        >
+        {% if selected_category %}
+            <input type="hidden" name="category" value="{{ selected_category }}">
+        {% endif %}
+        <button type="submit">Search</button>
+    </form>
+
+    {% if categories %}
+    <div class="categories">
+        <a
+            href="{% if query %}/products/?q={{ query|urlencode }}{% else %}/products/{% endif %}"
+            class="category {% if not selected_category %}active{% endif %}"
+        >
+            All
+        </a>
+
+        {% for category in categories %}
+            {% if category %}
+            <a
+                href="/products/?category={{ category|urlencode }}{% if query %}&q={{ query|urlencode }}{% endif %}"
+                class="category {% if selected_category|lower == category|lower %}active{% endif %}"
+            >
+                {{ category }}
+            </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if query %}
+        <div class="results">
+            Search results for "{{ query }}"
+        </div>
+    {% endif %}
+
+    {% if products %}
+    <div class="grid">
+
+        {% for product in products %}
+        <article class="card">
+
+            <div class="image">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% else %}
+                    <div class="placeholder">🛍️</div>
+                {% endif %}
+            </div>
+
+            <div class="body">
+
+                {% if product.discount_percent %}
+                    <span class="discount">
+                        🔥 {{ product.discount_percent }}% OFF
+                    </span>
+                {% endif %}
+
+                <h3>{{ product.name }}</h3>
+
+                <div class="description">
+                    {{ product.description|truncatechars:90 }}
+                </div>
+
+                <div class="price">
+                    {% if product.has_discount %}
+                        <span class="current-price">
+                            KSh {{ product.discounted_price|floatformat:2 }}
+                        </span>
+                        <del class="old-price">
+                            KSh {{ product.price|floatformat:2 }}
+                        </del>
+                    {% else %}
+                        <span class="current-price">
+                            KSh {{ product.price|floatformat:2 }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if product.promo_text %}
+                    <div class="promo">
+                        🎁 {{ product.promo_text }}
+                    </div>
+                {% endif %}
+
+                <div class="stock">
+                    {% if product.is_active and product.stock_quantity > 0 %}
+                        <span class="available">
+                            ✓ In stock
+                        </span>
+                    {% else %}
+                        <span class="unavailable">
+                            Currently unavailable
+                        </span>
+                    {% endif %}
+                </div>
+
+                <a
+                    href="{% url 'product_detail' product.id %}"
+                    class="view-button"
+                >
+                    View Product
+                </a>
+
+            </div>
+        </article>
+        {% endfor %}
+
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if selected_category %}&category={{ selected_category|urlencode }}{% endif %}">
+                ← Previous
+            </a>
+        {% endif %}
+
+        <span class="category">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if selected_category %}&category={{ selected_category|urlencode }}{% endif %}">
+                Next →
+            </a>
+        {% endif %}
+
+    </div>
+    {% endif %}
+
+    {% else %}
+        <div class="empty">
+            <h2>No products found</h2>
+            <p>Products will appear here as inventory is added to Shopiva.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | Shopiva Kenya</title>
+</head>
+<body>
+    <h1>Shopiva Checkout</h1>
+
+    {% if error %}
+        <p><strong>{{ error }}</strong></p>
+    {% endif %}
+
+    <h2>Order Summary</h2>
+
+    {% if items %}
+        {% for item in items %}
+            <p>
+                {{ item.product.name }} × {{ item.quantity }}
+                — KES {{ item.subtotal }}
+            </p>
+        {% endfor %}
+
+        <h2>Total: KES {{ total }}</h2>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <p>
+                <label>Full Name</label><br>
+                <input type="text" name="customer_name" required>
+            </p>
+
+            <p>
+                <label>Email</label><br>
+                <input type="email" name="email" required>
+            </p>
+
+            <p>
+                <label>Phone</label><br>
+                <input type="tel" name="phone" required>
+            </p>
+
+            <p>
+                <label>Delivery Address</label><br>
+                <textarea name="address" rows="4" required></textarea>
+            </p>
+
+            <button type="submit">Place Order</button>
+        </form>
+
+        <p><a href="{% url 'cart' %}">Back to Cart</a></p>
+    {% else %}
+        <p>Your cart is empty.</p>
+        <a href="{% url 'home' %}">Continue Shopping</a>
+    {% endif %}
+</body>
+</html>
