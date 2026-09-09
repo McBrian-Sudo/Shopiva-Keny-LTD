@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Account | Shopiva Kenya</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f8f6;
+            color: #17211d;
+        }
+
+        .topbar {
+            background: #087f5b;
+            color: white;
+            padding: 18px 24px;
+        }
+
+        .topbar-inner {
+            max-width: 1100px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .logo {
+            color: white;
+            text-decoration: none;
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .logo span {
+            color: #d8ffe9;
+        }
+
+        .logout {
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .welcome {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.07);
+        }
+
+        .welcome h1 {
+            margin: 0 0 8px;
+            font-size: 32px;
+        }
+
+        .welcome p {
+            margin: 0;
+            color: #68736f;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 24px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.09);
+        }
+
+        .icon {
+            font-size: 30px;
+            margin-bottom: 14px;
+        }
+
+        .card h2 {
+            font-size: 19px;
+            margin: 0 0 8px;
+        }
+
+        .card p {
+            color: #6d7873;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .back-shop {
+            display: inline-block;
+            margin-top: 28px;
+            color: #087f5b;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        @media (max-width: 900px) {
+            .cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 560px) {
+            .topbar-inner {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            .welcome h1 {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <div class="topbar-inner">
+        <a href="/" class="logo">
+            Shopiva<span>Kenya</span>
+        </a>
+
+        <a href="{% url 'customer_logout' %}" class="logout">
+            Sign out
+        </a>
+    </div>
+</header>
+
+<main class="container">
+
+    <section class="welcome">
+        <h1>Welcome, {{ request.user.username }} 👋</h1>
+        <p>Your Shopiva customer account is ready.</p>
+    </section>
+
+    <section class="cards">
+
+        <a href="{% url 'customer_orders' %}" class="card">
+            <div class="icon">📦</div>
+            <h2>My Orders</h2>
+            <p>View your purchases and order status.</p>
+        </a>
+
+        <a href="{% url 'customer_profile' %}" class="card">
+            <div class="icon">👤</div>
+            <h2>My Profile</h2>
+            <p>Manage your personal account information.</p>
+        </a>
+
+        <a href="{% url 'customer_addresses' %}" class="card">
+            <div class="icon">📍</div>
+            <h2>Saved Addresses</h2>
+            <p>Manage your delivery addresses.</p>
+        </a>
+
+        <a href="{% url 'customer_wishlist' %}" class="card">
+            <div class="icon">❤️</div>
+            <h2>Wishlist</h2>
+            <p>Keep products you want to buy later.</p>
+        </a>
+
+    </section>
+
+    <a href="/" class="back-shop">
+        ← Continue shopping
+    </a>
+
+</main>
+
+</body>
+</html>
