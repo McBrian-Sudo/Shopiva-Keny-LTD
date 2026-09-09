@@ -9,6 +9,8 @@ from home.views import (
     categories,
     checkout,
     customer_dashboard,
+    customer_login,
+    customer_logout,
     customer_register,
     home,
     order_success,
@@ -44,6 +46,16 @@ urlpatterns = [
         "customer/register/",
         customer_register,
         name="customer_register",
+    ),
+    path(
+        "customer/login/",
+        customer_login,
+        name="customer_login",
+    ),
+    path(
+        "customer/logout/",
+        customer_logout,
+        name="customer_logout",
     ),
     path(
         "account/",
