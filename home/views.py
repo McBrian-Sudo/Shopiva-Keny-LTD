@@ -10,7 +10,34 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import CustomerRegistrationForm
 from .models import Order, OrderItem, Product
+def customer_register(request):
+    if request.user.is_authenticated:
+        return redirect("customer_dashboard")
 
+    if request.method == "POST":
+        form = CustomerRegistrationForm(request.POST)
+
+        if form.is_valid():
+            user = form.save()
+            auth_login(request, user)
+
+            messages.success(
+                request,
+                f"Welcome to Shopiva, {user.username}!"
+            )
+
+            return redirect("customer_dashboard")
+    else:
+        form = CustomerRegistrationForm()
+
+    return render(
+        request,
+        "accounts/register.html",
+        {"form": form},
+    )
+
+
+def home(request):
 def home(request):
     products = Product.objects.filter(is_active=True).order_by("-id")
     featured_products = products.filter(is_featured=True)
