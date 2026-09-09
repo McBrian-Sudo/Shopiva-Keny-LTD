@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart | Shopiva Kenya</title>
+</head>
+<body>
+    <h1>Your Shopping Cart</h1>
+
+    {% if items %}
+        {% for item in items %}
+            <div>
+                <h2>{{ item.product.name }}</h2>
+
+                {% if item.product.image %}
+                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width:150px;">
+                {% endif %}
+
+                <p>Quantity: {{ item.quantity }}</p>
+                <p>Subtotal: KES {{ item.subtotal }}</p>
+            </div>
+            <hr>
+        {% endfor %}
+
+        <h2>Total: KES {{ total }}</h2>
+
+        <a href="{% url 'home' %}">Continue Shopping</a><br><br>
+<a href="{% url 'checkout' %}"><button type="button">Proceed to Checkout</button></a>
+    {% else %}
+        <p>Your cart is empty.</p>
+        <a href="{% url 'home' %}">Start Shopping</a>
+    {% endif %}
+</body>
+</html>

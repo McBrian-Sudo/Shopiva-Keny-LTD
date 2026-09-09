@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} | Shopiva Kenya</title>
+</head>
+<body>
+    <h1>{{ product.name }}</h1>
+
+    {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" style="max-width:400px;">
+    {% endif %}
+
+    <p><strong>Category:</strong> {{ product.category }}</p>
+    <p>{{ product.description }}</p>
+    <h2>KES {{ product.price }}</h2>
+
+    <a href="{% url 'add_to_cart' product.id %}">
+        <button type="button">Add to Cart</button>
+    </a>
+
+    <p>
+        <a href="{% url 'cart' %}">View Cart</a>
+        |
+        <a href="{% url 'home' %}">Continue Shopping</a>
+    </p>
+</body>
+</html>
