@@ -1,17 +1,17 @@
 import os
+
 import dj_database_url
 from dotenv import load_dotenv
+
 load_dotenv()
-"""
-Django settings for shopiva project.
-"""
+
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "django-insecure-pk3d4dfjz$lx8ej(lpv7_3_atqs#w*l%8ud8(ed8%g+s&g25k)"
 DEBUG = True
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -52,7 +52,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "shopiva.wsgi.application"
 
-DATABASES = {"default": dj_database_url.parse(os.environ["DATABASE_URL"], conn_max_age=600)}
+DATABASES = {
+    "default": dj_database_url.parse(
+        os.environ["DATABASE_URL"],
+        conn_max_age=600,
+    )
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -68,6 +73,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 MAILERS = {
     "default": {
