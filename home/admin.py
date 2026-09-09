@@ -4,8 +4,7 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group, User
-from django.db import ProtectedError
-from django.db.models import Sum
+from django.db.models import ProtectedError, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
@@ -150,7 +149,6 @@ class ShopivaAdminSite(admin.AdminSite):
             try:
                 product.delete()
             except ProtectedError:
-                # Preserve historical order records. Hide the product instead of breaking deletion.
                 product.is_active = False
                 product.save(update_fields=["is_active"])
             return redirect("shopiva_admin:product_manager")
