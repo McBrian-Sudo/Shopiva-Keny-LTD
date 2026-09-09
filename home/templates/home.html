@@ -53,7 +53,43 @@
         .logo span {
             color: #111827;
         }
+.search-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    max-width: 420px;
+}
 
+.search-form input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    outline: none;
+    font-size: 14px;
+    background: #ffffff;
+}
+
+.search-form input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+.search-form button {
+    border: none;
+    background: #2563eb;
+    color: #ffffff;
+    padding: 11px 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.search-form button:hover {
+    opacity: 0.9;
+}
         .nav-links {
             display: flex;
             align-items: center;
@@ -381,14 +417,28 @@
 
 <nav class="navbar">
     <div class="nav-container">
-        <a href="/" class="logo">Shopiva<span> Kenya</span></a>
+
+        <a href="/" class="logo">
+            Shopiva<span>Kenya</span>
+        </a>
+
+        <form action="/products/" method="get" class="search-form">
+            <input
+                type="search"
+                name="q"
+                placeholder="Search products..."
+                aria-label="Search products"
+            >
+            <button type="submit">🔎 Search</button>
+        </form>
 
         <div class="nav-links">
             <a href="/">Home</a>
-            <a href="#products">Products</a>
-            <a href="#categories">Categories</a>
+            <a href="/products/">🛍️ Products</a>
+            <a href="/categories/">🗂️ Categories</a>
             <a href="/cart/" class="cart-btn">🛒 Cart</a>
         </div>
+
     </div>
 </nav>
 
