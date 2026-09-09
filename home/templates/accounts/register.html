@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Create Account | Shopiva Kenya</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #f4f7f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .register-container {
+            width: 100%;
+            max-width: 1000px;
+            min-height: 620px;
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .brand-panel {
+            background: linear-gradient(135deg, #087f5b, #0b9f70);
+            color: white;
+            padding: 55px 45px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .brand {
+            font-size: 34px;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .brand span {
+            color: #d8ffe9;
+        }
+
+        .brand-panel h1 {
+            font-size: 42px;
+            line-height: 1.1;
+            margin: 0 0 20px;
+        }
+
+        .brand-panel p {
+            font-size: 17px;
+            line-height: 1.7;
+            opacity: 0.95;
+            max-width: 420px;
+        }
+
+        .benefits {
+            margin-top: 25px;
+        }
+
+        .benefit {
+            margin: 13px 0;
+            font-size: 15px;
+        }
+
+        .form-panel {
+            padding: 45px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .form-panel h2 {
+            margin: 0 0 8px;
+            font-size: 30px;
+            color: #17211d;
+        }
+
+        .subtitle {
+            color: #6b7772;
+            margin: 0 0 28px;
+        }
+
+        .form-group {
+            margin-bottom: 17px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: 600;
+            color: #27332f;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 15px;
+            border: 1px solid #d7dfdb;
+            border-radius: 11px;
+            font-size: 15px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        input:focus {
+            border-color: #087f5b;
+            box-shadow: 0 0 0 3px rgba(8, 127, 91, 0.10);
+        }
+
+        .password-help {
+            font-size: 12px;
+            color: #7a8580;
+            margin-top: 6px;
+        }
+
+        .error-box {
+            background: #fff1f1;
+            border: 1px solid #ffcaca;
+            color: #a33a3a;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            font-size: 14px;
+        }
+
+        .error-box ul {
+            margin: 5px 0 0;
+            padding-left: 20px;
+        }
+
+        .register-button {
+            width: 100%;
+            border: none;
+            border-radius: 11px;
+            padding: 15px;
+            background: #087f5b;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .register-button:hover {
+            background: #066c4d;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 22px;
+            color: #68736f;
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: #087f5b;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .back-home {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .back-home a {
+            color: #59655f;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        @media (max-width: 760px) {
+            body {
+                padding: 12px;
+            }
+
+            .register-container {
+                grid-template-columns: 1fr;
+            }
+
+            .brand-panel {
+                padding: 35px 25px;
+            }
+
+            .brand-panel h1 {
+                font-size: 32px;
+            }
+
+            .form-panel {
+                padding: 30px 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="register-container">
+
+    <section class="brand-panel">
+        <div class="brand">
+            Shopiva<span>Kenya</span>
+        </div>
+
+        <h1>Shop smarter.<br>Live better.</h1>
+
+        <p>
+            Create your Shopiva account and unlock a smarter,
+            faster and more personal shopping experience built
+            for Kenya.
+        </p>
+
+        <div class="benefits">
+            <div class="benefit">🛍️ Discover products from trusted sellers</div>
+            <div class="benefit">📦 Track your orders in one place</div>
+            <div class="benefit">❤️ Save your favourite products</div>
+            <div class="benefit">🎁 Unlock future Shopiva rewards</div>
+        </div>
+    </section>
+
+    <section class="form-panel">
+
+        <h2>Create your account</h2>
+
+        <p class="subtitle">
+            Join Shopiva Kenya today.
+        </p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="error-box">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if form.errors %}
+            <div class="error-box">
+                <strong>Please correct the following:</strong>
+
+                {{ form.non_field_errors }}
+
+                <ul>
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="id_username">Username</label>
+
+                <input
+                    type="text"
+                    name="username"
+                    id="id_username"
+                    value="{{ form.username.value|default:'' }}"
+                    placeholder="Choose a username"
+                    autocomplete="username"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="id_email">Email address</label>
+
+                <input
+                    type="email"
+                    name="email"
+                    id="id_email"
+                    value="{{ form.email.value|default:'' }}"
+                    placeholder="you@example.com"
+                    autocomplete="email"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="id_password1">Password</label>
+
+                <input
+                    type="password"
+                    name="password1"
+                    id="id_password1"
+                    placeholder="Create a strong password"
+                    autocomplete="new-password"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="id_password2">Confirm password</label>
+
+                <input
+                    type="password"
+                    name="password2"
+                    id="id_password2"
+                    placeholder="Enter your password again"
+                    autocomplete="new-password"
+                    required
+                >
+
+                <div class="password-help">
+                    Use at least 8 characters and avoid common passwords.
+                </div>
+            </div>
+
+            <button type="submit" class="register-button">
+                Create Shopiva Account
+            </button>
+        </form>
+
+        <div class="login-link">
+            Already have an account?
+            <a href="{% url 'customer_login' %}">Sign in</a>
+        </div>
+
+        <div class="back-home">
+            <a href="/">← Back to Shopiva</a>
+        </div>
+
+    </section>
+
+</div>
+
+</body>
+</html>
