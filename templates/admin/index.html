@@ -1,0 +1,92 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    :root { --shopiva-blue:#2563eb; --shopiva-dark:#111827; --shopiva-bg:#f4f7fb; --shopiva-card:#fff; --shopiva-muted:#64748b; --shopiva-border:#e2e8f0; --shopiva-green:#16a34a; --shopiva-orange:#ea580c; --shopiva-red:#dc2626; }
+    body { background:var(--shopiva-bg); }
+    #content { padding:0 24px 40px; max-width:1500px; margin:auto; }
+    .shopiva-shell { font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .shopiva-hero { margin:8px 0 22px; padding:26px 28px; border-radius:20px; background:linear-gradient(135deg,#111827,#1e3a8a); color:#fff; display:flex; justify-content:space-between; align-items:center; gap:20px; box-shadow:0 14px 35px rgba(15,23,42,.15); }
+    .shopiva-hero h1 { margin:0 0 6px; font-size:30px; color:#fff; }
+    .shopiva-hero p { margin:0; color:#dbeafe; font-size:14px; }
+    .shopiva-badge { padding:9px 13px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1); border-radius:999px; font-weight:700; white-space:nowrap; }
+    .stats { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:14px; margin-bottom:22px; }
+    .stat { background:var(--shopiva-card); border:1px solid var(--shopiva-border); border-radius:16px; padding:18px; box-shadow:0 4px 16px rgba(15,23,42,.05); }
+    .stat .icon { font-size:20px; }
+    .stat .label { margin-top:9px; color:var(--shopiva-muted); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .stat .value { margin-top:4px; font-size:25px; font-weight:850; color:var(--shopiva-dark); }
+    .layout { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(320px,.75fr); gap:20px; align-items:start; }
+    .panel { background:var(--shopiva-card); border:1px solid var(--shopiva-border); border-radius:18px; padding:20px; box-shadow:0 4px 16px rgba(15,23,42,.05); margin-bottom:20px; }
+    .panel-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:15px; }
+    .panel h2 { margin:0; font-size:18px; color:var(--shopiva-dark); }
+    .panel-sub { color:var(--shopiva-muted); font-size:13px; }
+    .quick-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; }
+    .quick { display:block; padding:15px; border:1px solid var(--shopiva-border); border-radius:13px; text-decoration:none !important; color:var(--shopiva-dark) !important; background:#f8fafc; transition:.15s ease; }
+    .quick:hover { transform:translateY(-2px); border-color:#bfdbfe; background:#eff6ff; }
+    .quick strong { display:block; font-size:14px; }
+    .quick span { display:block; margin-top:3px; color:var(--shopiva-muted); font-size:12px; }
+    .table-wrap { overflow:auto; }
+    .shop-table { width:100%; border-collapse:collapse; }
+    .shop-table th,.shop-table td { padding:12px 8px; border-bottom:1px solid #eef2f7; text-align:left; font-size:13px; }
+    .shop-table th { color:var(--shopiva-muted); font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+    .status { display:inline-flex; padding:5px 9px; border-radius:999px; background:#eff6ff; color:#1d4ed8; font-weight:700; font-size:11px; }
+    .stock-danger { color:var(--shopiva-red); font-weight:800; }
+    .ai-panel { background:linear-gradient(180deg,#ffffff,#f8fbff); }
+    .ai-title { display:flex; align-items:center; gap:10px; }
+    .ai-orb { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; background:#eef2ff; font-size:21px; }
+    #ai-answer { min-height:78px; white-space:pre-line; padding:13px; border-radius:12px; background:#f8fafc; border:1px solid var(--shopiva-border); color:#334155; font-size:13px; line-height:1.55; margin-bottom:12px; }
+    .ai-form { display:flex; gap:8px; }
+    .ai-form input { flex:1; min-width:0; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; }
+    .ai-form button { border:0; border-radius:10px; padding:11px 15px; background:var(--shopiva-blue); color:#fff; font-weight:800; cursor:pointer; }
+    .ai-suggestions { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .ai-suggestions button { border:1px solid var(--shopiva-border); background:#fff; border-radius:999px; padding:6px 9px; cursor:pointer; font-size:11px; }
+    .notice { padding:12px 14px; border-radius:12px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:13px; }
+    @media(max-width:1200px){ .stats{grid-template-columns:repeat(3,1fr)} .layout{grid-template-columns:1fr} }
+    @media(max-width:650px){ #content{padding:0 12px 30px}.shopiva-hero{padding:20px;align-items:flex-start;flex-direction:column}.stats{grid-template-columns:repeat(2,1fr)}.quick-grid{grid-template-columns:1fr}.ai-form{flex-direction:column} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="shopiva-shell">
+    <section class="shopiva-hero"><div><h1>Shopiva Control Center</h1><p>Manage your marketplace, orders, inventory and operations from one protected workspace.</p></div><div class="shopiva-badge">🛡️ Admin Workspace</div></section>
+    <section class="stats">
+        <div class="stat"><div class="icon">🛍️</div><div class="label">Products</div><div class="value">{{ shopiva_stats.products }}</div></div>
+        <div class="stat"><div class="icon">📦</div><div class="label">Orders</div><div class="value">{{ shopiva_stats.orders }}</div></div>
+        <div class="stat"><div class="icon">⏳</div><div class="label">Pending</div><div class="value">{{ shopiva_stats.pending_orders }}</div></div>
+        <div class="stat"><div class="icon">💰</div><div class="label">Revenue</div><div class="value">KSh {{ shopiva_stats.revenue|floatformat:0 }}</div></div>
+        <div class="stat"><div class="icon">⚠️</div><div class="label">Low Stock</div><div class="value">{{ shopiva_stats.low_stock }}</div></div>
+        <div class="stat"><div class="icon">📈</div><div class="label">Today's Orders</div><div class="value">{{ shopiva_stats.today_orders }}</div></div>
+    </section>
+    <div class="layout"><main>
+        <section class="panel"><div class="panel-head"><div><h2>⚡ Quick Actions</h2><div class="panel-sub">Common admin tasks, one click away.</div></div></div><div class="quick-grid">
+            <a class="quick" href="{% url 'shopiva_admin:home_product_add' %}"><strong>➕ Add Product</strong><span>Create a new marketplace listing.</span></a>
+            <a class="quick" href="{% url 'shopiva_admin:home_product_changelist' %}"><strong>🛍️ Manage Products</strong><span>Prices, stock, discounts and visibility.</span></a>
+            <a class="quick" href="{% url 'shopiva_admin:home_order_changelist' %}"><strong>📦 Manage Orders</strong><span>Review and update order status.</span></a>
+            <a class="quick" href="{% url 'shopiva_admin:home_orderitem_changelist' %}"><strong>🧾 Order Items</strong><span>Inspect items attached to orders.</span></a>
+            <a class="quick" href="{% url 'shopiva_admin:auth_user_changelist' %}"><strong>👥 Users</strong><span>Manage staff and customer accounts.</span></a>
+            <a class="quick" href="{% url 'shopiva_admin:auth_group_changelist' %}"><strong>🔐 Permissions</strong><span>Organize admin access with groups.</span></a>
+        </div></section>
+        <section class="panel"><div class="panel-head"><div><h2>📦 Recent Orders</h2><div class="panel-sub">Latest customer activity.</div></div><a href="{% url 'shopiva_admin:home_order_changelist' %}">View all</a></div>
+            {% if recent_orders %}<div class="table-wrap"><table class="shop-table"><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead><tbody>{% for order in recent_orders %}<tr><td>#{{ order.id }}</td><td>{{ order.customer_name }}</td><td>KSh {{ order.total_amount|floatformat:2 }}</td><td><span class="status">{{ order.get_status_display }}</span></td><td>{{ order.created_at|date:"M d, H:i" }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="notice">No orders yet. Orders will appear here automatically when customers complete checkout.</div>{% endif %}
+        </section>
+        <section class="panel"><div class="panel-head"><div><h2>⚠️ Inventory Watch</h2><div class="panel-sub">Active products with 5 units or fewer.</div></div><a href="{% url 'shopiva_admin:home_product_changelist' %}">Manage stock</a></div>
+            {% if low_stock_products %}<div class="table-wrap"><table class="shop-table"><thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Action</th></tr></thead><tbody>{% for product in low_stock_products %}<tr><td>{{ product.name }}</td><td>{{ product.category }}</td><td class="stock-danger">{{ product.stock_quantity }}</td><td><a href="{% url 'shopiva_admin:home_product_change' product.id %}">Edit</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="notice">Inventory is clear right now. Add products and the assistant will monitor low stock automatically.</div>{% endif %}
+        </section>
+    </main><aside>
+        <section class="panel ai-panel"><div class="panel-head"><div class="ai-title"><div class="ai-orb">🤖</div><div><h2>Shopiva AI Assistant</h2><div class="panel-sub">Live database assistant</div></div></div></div>
+            <div id="ai-answer">Hello! I'm your Shopiva operations assistant. Ask me about products, stock, orders or revenue.</div>
+            <form id="ai-form" class="ai-form" method="post" action="{% url 'shopiva_admin:ai_assistant' %}">{% csrf_token %}<input id="ai-question" name="question" type="text" autocomplete="off" placeholder="Ask Shopiva AI..."><button type="submit">Ask AI</button></form>
+            <div class="ai-suggestions"><button type="button" data-q="How many products do we have?">Products</button><button type="button" data-q="Which products are low stock?">Low stock</button><button type="button" data-q="How many pending orders?">Pending orders</button><button type="button" data-q="What is our revenue?">Revenue</button></div>
+        </section>
+        <section class="panel"><div class="panel-head"><div><h2>🧭 Admin Navigation</h2><div class="panel-sub">Safe paths into the management system.</div></div></div><div class="quick-grid">
+            <a class="quick" href="{% url 'shopiva_admin:home_product_changelist' %}"><strong>🛍️ Catalog</strong><span>Products & inventory</span></a>
+            <a class="quick" href="{% url 'shopiva_admin:home_order_changelist' %}"><strong>📦 Orders</strong><span>Fulfilment workflow</span></a>
+            <a class="quick" href="{% url 'shopiva_admin:auth_user_changelist' %}"><strong>👥 Accounts</strong><span>Users & staff</span></a>
+            <a class="quick" href="/">🏪 <strong>Open Market</strong><span>Return to Shopiva storefront</span></a>
+        </div></section>
+    </aside></div>
+</div>
+<script>(function(){const form=document.getElementById("ai-form"),input=document.getElementById("ai-question"),answer=document.getElementById("ai-answer");async function ask(question){if(!question.trim())return;answer.textContent="Thinking…";const csrf=form.querySelector("[name=csrfmiddlewaretoken]").value;const body=new URLSearchParams();body.append("question",question);body.append("csrfmiddlewaretoken",csrf);try{const response=await fetch(form.action,{method:"POST",headers:{"X-Requested-With":"XMLHttpRequest"},body:body});const data=await response.json();answer.textContent=data.answer||"I couldn't generate an answer."}catch(error){answer.textContent="The AI assistant could not connect. Please try again."}}form.addEventListener("submit",function(event){event.preventDefault();const question=input.value;input.value="";ask(question)});document.querySelectorAll(".ai-suggestions button").forEach(function(button){button.addEventListener("click",function(){ask(button.dataset.q)})})})();</script>
+{% endblock %}
