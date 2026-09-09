@@ -1,14 +1,18 @@
-from home.views import home, product_detail, add_to_cart, cart, checkout, order_success, products
-"""
-URL configuration for shopiva project.
-"""
-
 from django.contrib import admin
 from django.urls import path
-from home.views import home, product_detail, add_to_cart, cart, checkout, order_success
+
+from home.views import (
+    home,
+    products,
+    product_detail,
+    add_to_cart,
+    cart,
+    checkout,
+    order_success,
+)
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    # SHOPIVA MARKET
     path("", home, name="home"),
     path("products/", products, name="products"),
     path("product/<int:product_id>/", product_detail, name="product_detail"),
@@ -16,4 +20,7 @@ urlpatterns = [
     path("cart/add/<int:product_id>/", add_to_cart, name="add_to_cart"),
     path("checkout/", checkout, name="checkout"),
     path("order-success/<int:order_id>/", order_success, name="order_success"),
+
+    # SHOPIVA ADMIN
+    path("admin/", admin.site.urls),
 ]
