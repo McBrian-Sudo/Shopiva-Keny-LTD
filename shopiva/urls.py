@@ -1,15 +1,15 @@
-from django.contrib import admin
 from django.urls import path
 
+from home.admin import shopiva_admin_site
 from home.views import (
-    home,
-    products,
-    categories,
-    product_detail,
     add_to_cart,
     cart,
+    categories,
     checkout,
+    home,
     order_success,
+    product_detail,
+    products,
 )
 
 urlpatterns = [
@@ -23,6 +23,6 @@ urlpatterns = [
     path("checkout/", checkout, name="checkout"),
     path("order-success/<int:order_id>/", order_success, name="order_success"),
 
-    # Shopiva Admin
-    path("admin/", admin.site.urls),
+    # Shopiva Admin Control Center
+    path("admin/", shopiva_admin_site.urls),
 ]
