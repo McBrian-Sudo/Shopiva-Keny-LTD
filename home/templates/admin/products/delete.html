@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete Product · Shopiva</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#172033;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:700px;margin:auto;padding:35px 18px}.card{background:white;border:1px solid #e5e7eb;border-radius:20px;padding:30px;box-shadow:0 8px 25px rgba(15,23,42,.05)}.brand{font-size:23px;font-weight:900;margin-bottom:25px}.brand span{color:#2563eb}.warning{background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:18px;color:#991b1b}.warning h1{margin:0 0 8px}.warning p{margin:0;line-height:1.5}.buttons{display:flex;gap:9px;margin-top:22px}.btn{border:0;background:#dc2626;color:white;border-radius:10px;padding:12px 17px;font-weight:900;cursor:pointer;font-family:inherit}.cancel{background:#eef2f7;color:#172033;text-decoration:none}.toplink{display:inline-block;margin-bottom:20px;color:#1d4ed8;text-decoration:none;font-weight:800;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap"><a class="toplink" href="{% url 'shopiva_admin:product_manager' %}">← Back to Product Manager</a><div class="card"><div class="brand">Shopiva<span>Kenya</span></div><div class="warning"><h1>Delete product?</h1><p>You are about to permanently delete <strong>{{ product.name }}</strong>. This action cannot be undone.</p></div><form method="post">{% csrf_token %}<div class="buttons"><button class="btn" type="submit">Yes, delete product</button><a class="btn cancel" href="{% url 'shopiva_admin:product_manager' %}">Cancel</a></div></form></div></div>
+</body>
+</html>
