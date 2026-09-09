@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django import forms
 from django.contrib import admin
+from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group, User
 from django.db.models import ProtectedError, Sum
@@ -65,6 +66,11 @@ class ShopivaAdminSite(admin.AdminSite):
             }
         )
         return super().index(request, extra_context=extra_context)
+
+    def logout(self, request, extra_context=None):
+        """Log out cleanly and return to Shopiva's custom login screen."""
+        auth_logout(request)
+        return redirect("shopiva_admin:login")
 
     def get_urls(self):
         urls = super().get_urls()
