@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sign In | Shopiva Kenya</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #f4f7f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 1000px;
+            min-height: 590px;
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .brand-panel {
+            background: linear-gradient(135deg, #087f5b, #0b9f70);
+            color: white;
+            padding: 55px 45px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .brand {
+            font-size: 34px;
+            font-weight: 800;
+            margin-bottom: 25px;
+        }
+
+        .brand span {
+            color: #d8ffe9;
+        }
+
+        .brand-panel h1 {
+            font-size: 42px;
+            line-height: 1.1;
+            margin: 0 0 20px;
+        }
+
+        .brand-panel p {
+            font-size: 17px;
+            line-height: 1.7;
+            opacity: 0.95;
+            max-width: 420px;
+        }
+
+        .highlights {
+            margin-top: 25px;
+        }
+
+        .highlight {
+            margin: 13px 0;
+            font-size: 15px;
+        }
+
+        .form-panel {
+            padding: 45px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .form-panel h2 {
+            margin: 0 0 8px;
+            font-size: 30px;
+            color: #17211d;
+        }
+
+        .subtitle {
+            color: #6b7772;
+            margin: 0 0 28px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: 600;
+            color: #27332f;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 15px;
+            border: 1px solid #d7dfdb;
+            border-radius: 11px;
+            font-size: 15px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        input:focus {
+            border-color: #087f5b;
+            box-shadow: 0 0 0 3px rgba(8, 127, 91, 0.10);
+        }
+
+        .error-box {
+            background: #fff1f1;
+            border: 1px solid #ffcaca;
+            color: #a33a3a;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            font-size: 14px;
+        }
+
+        .success-box {
+            background: #eefaf4;
+            border: 1px solid #b9ead2;
+            color: #087f5b;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            font-size: 14px;
+        }
+
+        .login-button {
+            width: 100%;
+            border: none;
+            border-radius: 11px;
+            padding: 15px;
+            background: #087f5b;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .login-button:hover {
+            background: #066c4d;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 22px;
+            color: #68736f;
+            font-size: 14px;
+        }
+
+        .register-link a {
+            color: #087f5b;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .back-home {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .back-home a {
+            color: #59655f;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        @media (max-width: 760px) {
+            body {
+                padding: 12px;
+            }
+
+            .login-container {
+                grid-template-columns: 1fr;
+            }
+
+            .brand-panel {
+                padding: 35px 25px;
+            }
+
+            .brand-panel h1 {
+                font-size: 32px;
+            }
+
+            .form-panel {
+                padding: 30px 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="login-container">
+
+    <section class="brand-panel">
+
+        <div class="brand">
+            Shopiva<span>Kenya</span>
+        </div>
+
+        <h1>Welcome back.</h1>
+
+        <p>
+            Sign in to continue your Shopiva journey and
+            access your orders, wishlist, saved addresses
+            and personalized shopping experience.
+        </p>
+
+        <div class="highlights">
+            <div class="highlight">🛍️ Continue shopping where you left off</div>
+            <div class="highlight">📦 Check your latest orders</div>
+            <div class="highlight">❤️ Access your wishlist</div>
+            <div class="highlight">🎁 Discover your Shopiva rewards</div>
+        </div>
+
+    </section>
+
+    <section class="form-panel">
+
+        <h2>Sign in</h2>
+
+        <p class="subtitle">
+            Access your Shopiva account.
+        </p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="success-box">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if form.errors %}
+            <div class="error-box">
+                Your username or password is incorrect.
+                Please try again.
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="id_username">Username</label>
+
+                <input
+                    type="text"
+                    name="username"
+                    id="id_username"
+                    placeholder="Enter your username"
+                    autocomplete="username"
+                    autofocus
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="id_password">Password</label>
+
+                <input
+                    type="password"
+                    name="password"
+                    id="id_password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+            </div>
+
+            <input
+                type="hidden"
+                name="next"
+                value="{{ next }}"
+            >
+
+            <button type="submit" class="login-button">
+                Sign In to Shopiva
+            </button>
+        </form>
+
+        <div class="register-link">
+            Don't have an account?
+            <a href="{% url 'customer_register' %}">
+                Create an account
+            </a>
+        </div>
+
+        <div class="back-home">
+            <a href="/">← Back to Shopiva</a>
+        </div>
+
+    </section>
+
+</div>
+
+</body>
+</html>
