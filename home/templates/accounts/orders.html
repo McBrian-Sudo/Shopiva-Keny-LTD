@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders | Shopiva Kenya</title>
+    <style>
+        body { margin:0; font-family:Arial,sans-serif; background:#f5f8f6; color:#17211d; }
+        .top { background:#087f5b; color:white; padding:18px 24px; }
+        .wrap { max-width:1000px; margin:30px auto; padding:0 20px; }
+        .top a { color:white; text-decoration:none; font-weight:700; }
+        .card { background:white; border-radius:18px; padding:24px; margin-bottom:16px; box-shadow:0 8px 24px rgba(0,0,0,.06); }
+        h1 { margin:0 0 22px; }
+        .meta { color:#66736d; font-size:14px; margin:6px 0; }
+        .status { display:inline-block; margin-top:8px; padding:7px 11px; border-radius:20px; background:#eefaf4; color:#087f5b; font-weight:700; font-size:13px; }
+        .empty { text-align:center; color:#66736d; padding:50px 20px; }
+    </style>
+</head>
+<body>
+<div class="top"><div class="wrap"><a href="{% url 'customer_dashboard' %}">← My Account</a></div></div>
+<main class="wrap">
+    <h1>My Orders</h1>
+    {% if orders %}
+        {% for order in orders %}
+        <section class="card">
+            <h2>Order #{{ order.id }}</h2>
+            <div class="meta">Placed: {{ order.created_at|date:"d M Y, H:i" }}</div>
+            <div class="meta">Total: KSh {{ order.total_amount }}</div>
+            <div class="status">{{ order.get_status_display }}</div>
+        </section>
+        {% endfor %}
+    {% else %}
+        <section class="card empty">
+            <h2>No orders yet</h2>
+            <p>Your Shopiva purchases will appear here.</p>
+        </section>
+    {% endif %}
+</main>
+</body>
+</html>
