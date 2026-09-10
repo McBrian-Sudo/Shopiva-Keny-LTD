@@ -1,30 +1,17 @@
 package ke.co.shopiva.delivery;
 
-import android.Manifest;
 import android.app.Activity;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class MainActivity extends Activity {
-    private static final int LOCATION_PERMISSION_REQUEST = 2001;
-    private static final int NOTIFICATION_PERMISSION_REQUEST = 2002;
-
-    private TextView statusView;
     private WebView webView;
 
     @Override
@@ -33,46 +20,15 @@ public class MainActivity extends Activity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.WHITE);
+        root.setBackgroundColor(0xFFF5F7FB);
 
-        LinearLayout controls = new LinearLayout(this);
-        controls.setOrientation(LinearLayout.VERTICAL);
-        controls.setPadding(18, 12, 18, 12);
-
-        statusView = new TextView(this);
-        statusView.setText("Shopiva Delivery • Tracking is OFF");
-        statusView.setTextColor(Color.DKGRAY);
-        statusView.setTextSize(14);
-        controls.addView(statusView, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        TextView disclosure = new TextView(this);
-        disclosure.setText("Delivery location sharing: When you enable tracking, Shopiva shares your device location with Shopiva's delivery operations and the customer for the active delivery. A persistent Android notification remains visible while tracking is active. You can stop tracking at any time.");
-        disclosure.setTextColor(Color.GRAY);
-        disclosure.setTextSize(12);
-        disclosure.setPadding(0, 8, 0, 2);
-        controls.addView(disclosure, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        buttons.setPadding(0, 10, 0, 0);
-
-        Button start = new Button(this);
-        start.setText("Start tracking");
-        start.setOnClickListener(v -> startTrackingFlow());
-
-        Button stop = new Button(this);
-        stop.setText("Stop tracking");
-        stop.setOnClickListener(v -> stopTracking());
-
-        buttons.addView(start, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        buttons.addView(stop, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        controls.addView(buttons);
-
-        root.addView(controls, new LinearLayout.LayoutParams(
+        TextView header = new TextView(this);
+        header.setText("Shopiva Kenya LTD • Admin Control Center");
+        header.setTextColor(0xFF111827);
+        header.setTextSize(18);
+        header.setTypeface(null, android.graphics.Typeface.BOLD);
+        header.setPadding(20, 20, 20, 16);
+        root.addView(header, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -81,15 +37,21 @@ public class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setMediaPlaybackRequiresUserGesture(true);
+        settings.setSupportZoom(false);
+        settings.setBuiltInZoomControls(false);
+        settings.setDisplayZoomControls(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient());
 
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, false);
 
-        webView.loadUrl(ShopivaConfig.BASE_URL + "/delivery/");
+        // The Django server remains the security boundary. A non-admin user
+        // cannot gain admin access merely by installing this APK.
+        webView.loadUrl(ShopivaConfig.BASE_URL + "/admin/");
+
         root.addView(webView, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
@@ -98,71 +60,13 @@ public class MainActivity extends Activity {
         setContentView(root);
     }
 
-    private void startTrackingFlow() {
-        if (!hasLocationPermission()) {
-            requestLocationPermission();
-            return;
-        }
-
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_REQUEST);
-            return;
-        }
-
-        CookieManager.getInstance().flush();
-        Intent intent = new Intent(this, LocationService.class);
-        intent.setAction(LocationService.ACTION_START);
-        startForegroundService(intent);
-        statusView.setText("Shopiva Delivery • Tracking is ON");
-        Toast.makeText(this, "Background tracking started", Toast.LENGTH_SHORT).show();
-    }
-
-    private void stopTracking() {
-        Intent intent = new Intent(this, LocationService.class);
-        intent.setAction(LocationService.ACTION_STOP);
-        startService(intent);
-        statusView.setText("Shopiva Delivery • Tracking is OFF");
-        Toast.makeText(this, "Tracking stopped", Toast.LENGTH_SHORT).show();
-    }
-
-    private boolean hasLocationPermission() {
-        return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-    }
-
-    private void requestLocationPermission() {
-        if (Build.VERSION.SDK_INT >= 31) {
-            requestPermissions(
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
-                    LOCATION_PERMISSION_REQUEST
-            );
-        } else {
-            requestPermissions(
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    LOCATION_PERMISSION_REQUEST
-            );
-        }
-    }
-
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == LOCATION_PERMISSION_REQUEST) {
-            if (hasLocationPermission()) {
-                startTrackingFlow();
-            } else {
-                Toast.makeText(this, "Shopiva needs location permission for delivery tracking", Toast.LENGTH_LONG).show();
-                openAppSettings();
-            }
-        } else if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
-            startTrackingFlow();
+    public void onBackPressed() {
+        if (webView != null && webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed();
         }
-    }
-
-    private void openAppSettings() {
-        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-        intent.setData(Uri.parse("package:" + getPackageName()));
-        startActivity(intent);
     }
 
     @Override
