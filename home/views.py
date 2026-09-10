@@ -1,16 +1,32 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+import uuid
 
 from django.contrib import messages
-from django.contrib.auth import login as auth_login, logout as auth_logout
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from .forms import CustomerRegistrationForm
-from .models import Order, OrderItem, Product
+from .models import DeliveryAgent, Order, OrderEvent, OrderItem, Product
+
+
+def _customer_only(request):
+    return not (request.user.is_staff or request.user.is_superuser)
+
+
+def _record_order_event(order, event_type, note="", actor=None, delivery_agent=None):
+    return OrderEvent.objects.create(
+        order=order,
+        event_type=event_type,
+        note=note,
+        actor=actor,
+        delivery_agent=delivery_agent,
+    )
 
 
 def customer_register(request):
@@ -21,7 +37,6 @@ def customer_register(request):
 
     if request.method == "POST":
         form = CustomerRegistrationForm(request.POST)
-
         if form.is_valid():
             user = form.save()
             auth_login(request, user)
@@ -38,21 +53,19 @@ def customer_login(request):
         if request.user.is_staff or request.user.is_superuser:
             messages.info(
                 request,
-                "Admin accounts can only be used in the Shopiva Admin Control Center."
+                "Admin accounts can only be used in the Shopiva Admin Control Center.",
             )
             return redirect("/admin/")
         return redirect("customer_dashboard")
 
     if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
-
         if form.is_valid():
             user = form.get_user()
-
             if user.is_staff or user.is_superuser:
                 form.add_error(
                     None,
-                    "This is an admin account. Please use the Shopiva Admin Control Center."
+                    "This is an admin account. Please use the Shopiva Admin Control Center.",
                 )
             else:
                 auth_login(request, user)
@@ -72,23 +85,23 @@ def customer_logout(request):
 
 @login_required(login_url="customer_login")
 def customer_dashboard(request):
-    if request.user.is_staff or request.user.is_superuser:
+    if not _customer_only(request):
         return redirect("/admin/")
-    return render(request, "accounts/dashboard.html")
+    orders = Order.objects.filter(email__iexact=request.user.email).order_by("-created_at")
+    return render(request, "accounts/dashboard.html", {"orders": orders[:5], "latest_order": orders.first()})
 
 
 @login_required(login_url="customer_login")
 def customer_orders(request):
-    if request.user.is_staff or request.user.is_superuser:
+    if not _customer_only(request):
         return redirect("/admin/")
-
-    orders = Order.objects.filter(email__iexact=request.user.email).order_by("-created_at")
+    orders = Order.objects.filter(email__iexact=request.user.email).prefetch_related("events", "delivery_agent").order_by("-created_at")
     return render(request, "accounts/orders.html", {"orders": orders})
 
 
 @login_required(login_url="customer_login")
 def customer_profile(request):
-    if request.user.is_staff or request.user.is_superuser:
+    if not _customer_only(request):
         return redirect("/admin/")
 
     if request.method == "POST":
@@ -104,16 +117,64 @@ def customer_profile(request):
 
 @login_required(login_url="customer_login")
 def customer_addresses(request):
-    if request.user.is_staff or request.user.is_superuser:
+    if not _customer_only(request):
         return redirect("/admin/")
     return render(request, "accounts/addresses.html")
 
 
 @login_required(login_url="customer_login")
 def customer_wishlist(request):
-    if request.user.is_staff or request.user.is_superuser:
+    if not _customer_only(request):
         return redirect("/admin/")
     return render(request, "accounts/wishlist.html")
+
+
+@login_required(login_url="customer_login")
+def delivery_portal(request):
+    try:
+        agent = request.user.delivery_agent_profile
+    except DeliveryAgent.DoesNotExist:
+        return redirect("/admin/")
+
+    if not agent.is_active:
+        return render(request, "delivery/not_authorized.html")
+
+    assigned_orders = agent.orders.select_related("delivery_agent").prefetch_related("events").exclude(status="delivered").exclude(status="cancelled").order_by("-created_at")
+    return render(
+        request,
+        "delivery/portal.html",
+        {"agent": agent, "assigned_orders": assigned_orders},
+    )
+
+
+@login_required(login_url="customer_login")
+def delivery_update_location(request):
+    if request.method != "POST":
+        return redirect("delivery_portal")
+
+    try:
+        agent = request.user.delivery_agent_profile
+    except DeliveryAgent.DoesNotExist:
+        return redirect("/admin/")
+
+    if not agent.is_active:
+        return redirect("/admin/")
+
+    try:
+        latitude = Decimal(request.POST.get("latitude", ""))
+        longitude = Decimal(request.POST.get("longitude", ""))
+    except (InvalidOperation, TypeError):
+        return redirect("delivery_portal")
+
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        return redirect("delivery_portal")
+
+    agent.current_latitude = latitude.quantize(Decimal("0.000001"))
+    agent.current_longitude = longitude.quantize(Decimal("0.000001"))
+    agent.last_location_at = timezone.now()
+    agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
+    agent.save(update_fields=["current_latitude", "current_longitude", "last_location_at", "status"])
+    return redirect("delivery_portal")
 
 
 def home(request):
@@ -140,7 +201,6 @@ def categories(request):
         .distinct()
         .order_by("category")
     )
-
     return render(request, "categories.html", {"categories": categories})
 
 
@@ -151,7 +211,6 @@ def product_detail(request, product_id):
 
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
-
     cart_data = request.session.get("cart", {})
     product_id_str = str(product.id)
     current_quantity = int(cart_data.get(product_id_str, 0))
@@ -198,12 +257,10 @@ def _cart_items(cart_data):
 def cart(request):
     cart_data = request.session.get("cart", {})
     items, total = _cart_items(cart_data)
-
     request.session["cart"] = {
         str(item["product"].id): item["quantity"] for item in items
     }
     request.session.modified = True
-
     return render(request, "cart.html", {"items": items, "total": total})
 
 
@@ -252,6 +309,7 @@ def checkout(request):
                 final_total += subtotal
                 locked_items.append((product, quantity, unit_price))
 
+            tracking_code = f"SPV-{uuid.uuid4().hex[:10].upper()}"
             order = Order.objects.create(
                 customer_name=customer_name,
                 email=email,
@@ -259,6 +317,15 @@ def checkout(request):
                 address=address,
                 total_amount=final_total,
                 status="pending",
+                payment_status="unpaid",
+                tracking_code=tracking_code,
+            )
+
+            _record_order_event(
+                order,
+                "placed",
+                note="Order placed through Shopiva checkout.",
+                actor=request.user if request.user.is_authenticated else None,
             )
 
             for product, quantity, unit_price in locked_items:
@@ -286,7 +353,6 @@ def order_success(request, order_id):
 def products(request):
     query = request.GET.get("q", "").strip()
     category = request.GET.get("category", "").strip()
-
     product_list = Product.objects.filter(is_active=True).order_by("-id")
 
     if query:
