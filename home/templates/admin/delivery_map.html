@@ -1,0 +1,42 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Delivery Command Map | Shopiva{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    body { background:#f4f7fb; }
+    #content { max-width:1500px; margin:auto; padding:0 24px 40px; }
+    .map-page { font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .map-page-hero { margin:8px 0 20px; padding:24px 26px; border-radius:20px; background:linear-gradient(135deg,#111827,#064e3b); color:#fff; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+    .map-page-hero h1 { margin:0 0 5px; font-size:28px; color:#fff; }
+    .map-page-hero p { margin:0; color:#d1fae5; font-size:13px; max-width:760px; }
+    .map-page-badge { background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18); border-radius:999px; padding:9px 12px; font-size:11px; font-weight:800; white-space:nowrap; }
+    .map-page-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .map-page-actions a { text-decoration:none !important; border:1px solid #d7e1dc; background:#fff; color:#25332d !important; border-radius:10px; padding:9px 12px; font-weight:800; font-size:12px; }
+    .map-page-actions a.primary { background:#087f5b; color:#fff !important; border-color:#087f5b; }
+    @media(max-width:700px){ #content{padding:0 12px 28px}.map-page-hero{flex-direction:column}.map-page-badge{align-self:flex-start} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="map-page">
+    <section class="map-page-hero">
+        <div>
+            <h1>🧭 Kenya Delivery Command Map</h1>
+            <p>One operational view for Shopiva's delivery network. The map uses current marketplace metrics and is structured for future rider GPS, county routing and live ETA integration.</p>
+        </div>
+        <div class="map-page-badge">● Operations View</div>
+    </section>
+
+    <div class="map-page-actions">
+        <a href="{% url 'shopiva_admin:index' %}" class="primary">← Back to Control Center</a>
+        <a href="{% url 'shopiva_admin:home_order_changelist' %}">📦 Manage Orders</a>
+        <a href="{% url 'shopiva_admin:home_product_changelist' %}">🛍️ Inventory</a>
+        <a href="/">🏪 Open Market</a>
+    </div>
+
+    {% include "includes/delivery_network_map.html" with delivery_admin_mode=True %}
+</div>
+{% endblock %}
