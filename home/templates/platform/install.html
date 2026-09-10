@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#2563eb">
     <link rel="manifest" href="/manifest.webmanifest">
-    <title>Install Shopiva</title>
+    <title>Install Shopiva Kenya</title>
     <style>
         body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
         .wrap{max-width:900px;margin:auto;padding:28px 20px}
@@ -17,37 +17,38 @@
         button,.link{display:inline-block;border:0;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;text-decoration:none}
         button{background:#2563eb;color:#fff}.link{background:#eef2ff;color:#1d4ed8;margin-right:8px}
         .note{margin-top:16px;padding:13px;border-radius:12px;background:#ecfdf5;color:#065f46}
+        .store{border-left:4px solid #2563eb;padding-left:14px}
         @media(max-width:650px){.grid{grid-template-columns:1fr}h1{font-size:30px}}
     </style>
 </head>
 <body>
 <main class="wrap">
     <section class="hero">
-        <h1>📱 Install Shopiva</h1>
-        <p>One Shopiva experience across Android, iPhone, iPad, Windows, macOS, Linux and ChromeOS.</p>
+        <h1>📱 Install Shopiva Kenya</h1>
+        <p>One customer shopping experience across phones and computers, powered by the same Shopiva marketplace.</p>
     </section>
 
     <section class="grid">
         <article class="card">
-            <h2>🌍 Shopiva Market App</h2>
-            <p class="muted">The customer marketplace is a Progressive Web App. It runs from your browser and can be installed on supported phones and computers without a separate native app.</p>
+            <h2>🛍️ Shopiva Customer App</h2>
+            <p class="muted">This is the main customer shopping app. It connects to the live Shopiva marketplace for products, accounts, cart, checkout, orders and delivery tracking.</p>
             <button id="install-button" hidden>Install Shopiva</button>
-            <p id="install-status" class="muted">On browsers that support installation, the Install button will appear automatically.</p>
+            <p id="install-status" class="muted">On supported browsers, the Install button will appear automatically.</p>
         </article>
 
-        <article class="card">
-            <h2>🤖 Shopiva Delivery</h2>
-            <p class="muted">Delivery partners use the dedicated Android app for foreground/background-capable GPS tracking and dispatch operations.</p>
-            <a class="link" href="https://github.com/McBrian-Sudo/Shopiva-Keny-LTD/releases/latest">Download latest Delivery release</a>
+        <article class="card store">
+            <h2>🏪 Official app stores</h2>
+            <p class="muted">Shopiva's customer distribution is intended for Google Play, Apple App Store and other legitimate app marketplaces. Store publication requires the Shopiva developer accounts, signed store builds, store listings, privacy details and each store's review/approval process.</p>
+            <p class="muted"><strong>Admin app:</strong> never published to customer app stores. It is distributed separately to authorized Shopiva staff.</p>
         </article>
 
-        <article class="card"><h2>Windows / macOS / Linux</h2><p class="muted">Open Shopiva in Chrome or Edge, choose the install icon in the address bar, and launch Shopiva like a desktop app.</p></article>
-        <article class="card"><h2>ChromeOS</h2><p class="muted">Open this page in Chrome and use the Install option. Shopiva can run in its own window like an installed app.</p></article>
-        <article class="card"><h2>Android</h2><p class="muted">Open this page in Chrome and choose Install app / Add to home screen. Delivery staff can use the dedicated Android release linked above.</p></article>
-        <article class="card"><h2>iPhone / iPad</h2><p class="muted">In Safari, tap Share → Add to Home Screen. iOS will launch Shopiva in an app-like window.</p></article>
+        <article class="card"><h2>Windows / macOS / Linux</h2><p class="muted">Open Shopiva in Chrome or Edge and use the install icon in the address bar. It launches in its own app-like window.</p></article>
+        <article class="card"><h2>ChromeOS</h2><p class="muted">Open Shopiva in Chrome and use Install. The customer app can run in its own window like an installed app.</p></article>
+        <article class="card"><h2>Android</h2><p class="muted">Use the official Google Play listing when published. Until store publication is complete, Chrome can install the Shopiva customer PWA from this page.</p></article>
+        <article class="card"><h2>iPhone / iPad</h2><p class="muted">Use the official App Store listing when published. Until then, Safari supports Share → Add to Home Screen for the customer PWA.</p></article>
     </section>
 
-    <div class="note">🔒 Shopiva only enables delivery GPS tracking after the delivery partner explicitly starts tracking and grants the required device permission.</div>
+    <div class="note">🔒 Staff administration is separated from customer shopping. The Admin Control Center uses the Django staff gate, so a normal customer account cannot become an admin by installing or opening an admin client.</div>
 </main>
 <script>
 let deferredPrompt;
