@@ -16,6 +16,8 @@ from home.views import (
     customer_profile,
     customer_register,
     customer_wishlist,
+    delivery_portal,
+    delivery_update_location,
     home,
     order_success,
     product_detail,
@@ -46,54 +48,25 @@ urlpatterns = [
     # =========================
     # CUSTOMER ACCOUNT
     # =========================
-    path(
-        "customer/register/",
-        customer_register,
-        name="customer_register",
-    ),
-    path(
-        "customer/login/",
-        customer_login,
-        name="customer_login",
-    ),
-    path(
-        "customer/logout/",
-        customer_logout,
-        name="customer_logout",
-    ),
-    path(
-        "account/",
-        customer_dashboard,
-        name="customer_dashboard",
-    ),
-    path(
-        "account/orders/",
-        customer_orders,
-        name="customer_orders",
-    ),
-    path(
-        "account/profile/",
-        customer_profile,
-        name="customer_profile",
-    ),
-    path(
-        "account/addresses/",
-        customer_addresses,
-        name="customer_addresses",
-    ),
-    path(
-        "account/wishlist/",
-        customer_wishlist,
-        name="customer_wishlist",
-    ),
+    path("customer/register/", customer_register, name="customer_register"),
+    path("customer/login/", customer_login, name="customer_login"),
+    path("customer/logout/", customer_logout, name="customer_logout"),
+    path("account/", customer_dashboard, name="customer_dashboard"),
+    path("account/orders/", customer_orders, name="customer_orders"),
+    path("account/profile/", customer_profile, name="customer_profile"),
+    path("account/addresses/", customer_addresses, name="customer_addresses"),
+    path("account/wishlist/", customer_wishlist, name="customer_wishlist"),
+
+    # =========================
+    # DELIVERY PORTAL
+    # =========================
+    path("delivery/", delivery_portal, name="delivery_portal"),
+    path("delivery/location/", delivery_update_location, name="delivery_update_location"),
 
     # =========================
     # SHOPIVA ADMIN
     # =========================
-    path(
-        "admin/",
-        shopiva_admin_site.urls,
-    ),
+    path("admin/", shopiva_admin_site.urls),
 ]
 
 # =========================
