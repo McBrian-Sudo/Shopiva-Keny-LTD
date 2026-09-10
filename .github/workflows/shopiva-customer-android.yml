@@ -1,0 +1,50 @@
+name: Build Shopiva Customer Android
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'customer-android/**'
+      - '.github/workflows/shopiva-customer-android.yml'
+  pull_request:
+    paths:
+      - 'customer-android/**'
+      - '.github/workflows/shopiva-customer-android.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 9.5
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Build Customer debug APK
+        run: gradle -p customer-android :app:assembleDebug
+
+      - name: Build Customer release APK and AAB
+        run: gradle -p customer-android :app:assembleRelease :app:bundleRelease
+
+      - name: Upload Customer Android outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: shopiva-customer-android
+          retention-days: 30
+          path: |
+            customer-android/app/build/outputs/apk/debug/*.apk
+            customer-android/app/build/outputs/apk/release/*.apk
+            customer-android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
