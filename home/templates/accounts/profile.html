@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | Shopiva Kenya</title>
+    <style>
+        body{margin:0;font-family:Arial,sans-serif;background:#f5f8f6;color:#17211d}.top{background:#087f5b;color:#fff;padding:18px 24px}.wrap{max-width:700px;margin:30px auto;padding:0 20px}.top a{color:#fff;text-decoration:none;font-weight:700}.card{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.06)}label{display:block;font-weight:700;margin:16px 0 7px}input{width:100%;padding:13px;border:1px solid #d8e0db;border-radius:10px;font-size:15px;box-sizing:border-box}button{margin-top:20px;border:0;border-radius:10px;padding:13px 18px;background:#087f5b;color:#fff;font-weight:700;cursor:pointer}.message{padding:12px;border-radius:10px;background:#eefaf4;color:#087f5b;margin-bottom:16px}
+    </style>
+</head>
+<body>
+<div class="top"><div class="wrap"><a href="{% url 'customer_dashboard' %}">← My Account</a></div></div>
+<main class="wrap">
+    <div class="card">
+        <h1>My Profile</h1>
+        {% if messages %}{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <label>Username</label>
+            <input type="text" value="{{ request.user.username }}" disabled>
+            <label for="email">Email address</label>
+            <input id="email" type="email" name="email" value="{{ request.user.email }}" required>
+            <button type="submit">Save Profile</button>
+        </form>
+    </div>
+</main>
+</body>
+</html>
