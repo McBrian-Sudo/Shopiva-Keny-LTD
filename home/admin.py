@@ -80,8 +80,27 @@ class ShopivaAdminSite(admin.AdminSite):
             path("products/<int:product_id>/edit/", self.admin_view(self.product_edit), name="product_edit"),
             path("products/<int:product_id>/delete/", self.admin_view(self.product_delete), name="product_delete"),
             path("ai-assistant/", self.admin_view(self.ai_assistant), name="ai_assistant"),
+            path("delivery-map/", self.admin_view(self.delivery_map), name="delivery_map"),
         ]
         return custom_urls + urls
+
+    def delivery_map(self, request):
+        today = timezone.localdate()
+        orders = Order.objects.all()
+        products = Product.objects.all()
+        context = {
+            **self.each_context(request),
+            "shopiva_stats": {
+                "products": products.count(),
+                "active_products": products.filter(is_active=True).count(),
+                "low_stock": products.filter(stock_quantity__lte=5, is_active=True).count(),
+                "orders": orders.count(),
+                "pending_orders": orders.filter(status="pending").count(),
+                "today_orders": orders.filter(created_at__date=today).count(),
+                "revenue": orders.exclude(status="cancelled").aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00"),
+            },
+        }
+        return TemplateResponse(request, "admin/delivery_map.html", context)
 
     def product_manager(self, request):
         query = request.GET.get("q", "").strip()
