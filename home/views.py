@@ -101,6 +101,52 @@ def customer_orders(request):
 
 
 @login_required(login_url="customer_login")
+def customer_delivery_location(request):
+    """Return only the latest assigned delivery partner location for this customer."""
+    if not _customer_only(request):
+        return JsonResponse({"ok": False, "error": "Admin accounts use the admin delivery map."}, status=403)
+
+    latest_order = (
+        Order.objects.filter(email__iexact=request.user.email)
+        .select_related("delivery_agent")
+        .prefetch_related("events")
+        .order_by("-created_at")
+        .first()
+    )
+
+    if not latest_order or not latest_order.delivery_agent:
+        return JsonResponse({"ok": True, "agent": None, "order": None})
+
+    agent = latest_order.delivery_agent
+    data = {
+        "id": agent.id,
+        "name": agent.display_name,
+        "status": agent.get_status_display(),
+        "latitude": float(agent.current_latitude) if agent.current_latitude is not None else None,
+        "longitude": float(agent.current_longitude) if agent.current_longitude is not None else None,
+        "updated": agent.last_location_at.isoformat() if agent.last_location_at else None,
+        "live": agent.location_is_live,
+        "accuracy": None,
+    }
+
+    latest_ping = agent.location_history.order_by("-recorded_at").first()
+    if latest_ping and latest_ping.accuracy_meters is not None:
+        data["accuracy"] = float(latest_ping.accuracy_meters)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "agent": data,
+            "order": {
+                "id": latest_order.id,
+                "tracking_code": latest_order.tracking_code,
+                "status": latest_order.get_status_display(),
+            },
+        }
+    )
+
+
+@login_required(login_url="customer_login")
 def customer_profile(request):
     if not _customer_only(request):
         return redirect("/admin/")
