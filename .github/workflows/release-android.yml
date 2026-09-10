@@ -1,15 +1,15 @@
-name: Publish Shopiva Delivery Android Release
+name: Build Shopiva Admin Release
 
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Release tag, e.g. delivery-v1.0.0'
+      version:
+        description: 'Admin app version, e.g. 1.0.0'
         required: true
-        default: 'delivery-v1.0.0'
+        default: '1.0.0'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
@@ -41,26 +41,26 @@ jobs:
           test -n "$ALIAS"
           test -n "$KEY_PASSWORD"
 
-      - name: Decode release keystore
+      - name: Decode Admin release keystore
         shell: bash
         env:
           KEYSTORE: ${{ secrets.SHOPIVA_ANDROID_KEYSTORE_BASE64 }}
-        run: echo "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/shopiva-release.jks"
+        run: echo "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/shopiva-admin-release.jks"
 
-      - name: Build signed APK and AAB
+      - name: Build signed Admin APK and AAB
         env:
-          SHOPIVA_ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/shopiva-release.jks
+          SHOPIVA_ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/shopiva-admin-release.jks
           SHOPIVA_ANDROID_STORE_PASSWORD: ${{ secrets.SHOPIVA_ANDROID_KEYSTORE_PASSWORD }}
           SHOPIVA_ANDROID_KEY_ALIAS: ${{ secrets.SHOPIVA_ANDROID_KEY_ALIAS }}
           SHOPIVA_ANDROID_KEY_PASSWORD: ${{ secrets.SHOPIVA_ANDROID_KEY_PASSWORD }}
         run: gradle -p delivery-android :app:assembleRelease :app:bundleRelease
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload signed Admin release privately as workflow artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ inputs.tag }}
-          name: Shopiva Delivery ${{ inputs.tag }}
-          generate_release_notes: true
-          files: |
+          name: shopiva-admin-release-${{ inputs.version }}
+          retention-days: 30
+          path: |
             delivery-android/app/build/outputs/apk/release/*.apk
             delivery-android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
