@@ -14,11 +14,36 @@ android {
         versionName '1.0.0'
     }
 
+    signingConfigs {
+        release {
+            def storeFilePath = System.getenv('SHOPIVA_ANDROID_KEYSTORE_PATH')
+            def storePasswordValue = System.getenv('SHOPIVA_ANDROID_STORE_PASSWORD')
+            def keyAliasValue = System.getenv('SHOPIVA_ANDROID_KEY_ALIAS')
+            def keyPasswordValue = System.getenv('SHOPIVA_ANDROID_KEY_PASSWORD')
+
+            if (storeFilePath && storePasswordValue && keyAliasValue && keyPasswordValue) {
+                storeFile file(storeFilePath)
+                storePassword storePasswordValue
+                keyAlias keyAliasValue
+                keyPassword keyPasswordValue
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            def keystoreReady = System.getenv('SHOPIVA_ANDROID_KEYSTORE_PATH') &&
+                    System.getenv('SHOPIVA_ANDROID_STORE_PASSWORD') &&
+                    System.getenv('SHOPIVA_ANDROID_KEY_ALIAS') &&
+                    System.getenv('SHOPIVA_ANDROID_KEY_PASSWORD')
+
+            if (keystoreReady) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
