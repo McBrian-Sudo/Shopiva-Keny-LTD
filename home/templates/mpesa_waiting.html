@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M-PESA Payment | Shopiva</title>
+</head>
+<body>
+    <h1>M-PESA Payment</h1>
+    <p>Order <strong>#{{ order.id }}</strong></p>
+    <p>We sent an M-PESA payment prompt to your phone.</p>
+    <p><strong>Check your phone and enter your M-PESA PIN on the official M-PESA prompt.</strong></p>
+    <p id="status">Waiting for payment confirmation…</p>
+    <p><a href="{% url 'order_success' order.id %}">View order</a></p>
+
+    <script>
+        const statusBox = document.getElementById("status");
+        async function checkPayment() {
+            try {
+                const response = await fetch("{% url 'mpesa_payment_status' order.id %}", {cache: "no-store"});
+                const data = await response.json();
+                if (data.payment_status === "paid") {
+                    statusBox.textContent = "Payment confirmed. Your order is now paid.";
+                    setTimeout(() => window.location.href = "{% url 'order_success' order.id %}", 1200);
+                    return;
+                }
+                if (data.payment_status === "failed") {
+                    statusBox.textContent = "Payment was not completed. You can return to checkout and try again.";
+                    return;
+                }
+                statusBox.textContent = "Still waiting for M-PESA confirmation…";
+            } catch (error) {
+                statusBox.textContent = "Still waiting for confirmation…";
+            }
+            setTimeout(checkPayment, 5000);
+        }
+        checkPayment();
+    </script>
+</body>
+</html>
