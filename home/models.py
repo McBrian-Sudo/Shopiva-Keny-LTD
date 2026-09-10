@@ -56,6 +56,14 @@ class DeliveryAgent(models.Model):
     def display_name(self):
         return self.user.get_full_name() or self.user.username
 
+    @property
+    def location_is_live(self):
+        from django.utils import timezone
+
+        if not self.last_location_at:
+            return False
+        return (timezone.now() - self.last_location_at).total_seconds() <= 90
+
     def __str__(self):
         return self.display_name
 
@@ -154,3 +162,28 @@ class OrderEvent(models.Model):
 
     def __str__(self):
         return f"Order #{self.order_id} - {self.get_event_type_display()}"
+
+
+class DeliveryLocationPing(models.Model):
+    """Timestamped GPS sample shared by a delivery partner."""
+
+    agent = models.ForeignKey(
+        DeliveryAgent,
+        on_delete=models.CASCADE,
+        related_name="location_history",
+    )
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    accuracy_meters = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    speed_mps = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    heading_degrees = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    recorded_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-recorded_at",)
+        indexes = [
+            models.Index(fields=("agent", "-recorded_at")),
+        ]
+
+    def __str__(self):
+        return f"{self.agent.display_name} @ {self.recorded_at:%Y-%m-%d %H:%M:%S}"
