@@ -5,34 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Orders | Shopiva Kenya</title>
     <style>
-        body { margin:0; font-family:Arial,sans-serif; background:#f5f8f6; color:#17211d; }
-        .top { background:#087f5b; color:white; padding:18px 24px; }
-        .wrap { max-width:1000px; margin:30px auto; padding:0 20px; }
-        .top a { color:white; text-decoration:none; font-weight:700; }
-        .card { background:white; border-radius:18px; padding:24px; margin-bottom:16px; box-shadow:0 8px 24px rgba(0,0,0,.06); }
-        h1 { margin:0 0 22px; }
-        .meta { color:#66736d; font-size:14px; margin:6px 0; }
-        .status { display:inline-block; margin-top:8px; padding:7px 11px; border-radius:20px; background:#eefaf4; color:#087f5b; font-weight:700; font-size:13px; }
-        .empty { text-align:center; color:#66736d; padding:50px 20px; }
+        *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f8f6;color:#17211d}.top{background:#087f5b;color:#fff;padding:18px 24px}.wrap{max-width:1050px;margin:0 auto;padding:0 20px}.top a{color:#fff;text-decoration:none;font-weight:700}.page-head{padding:28px 0 18px}.page-head h1{margin:0 0 6px}.page-head p{margin:0;color:#66736d}.card{background:#fff;border-radius:18px;padding:22px;margin-bottom:16px;box-shadow:0 8px 24px rgba(0,0,0,.06);border:1px solid #e3ebe6}.order-head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}.order-head h2{margin:0 0 6px}.meta{color:#66736d;font-size:13px;margin:5px 0}.pill{display:inline-flex;padding:7px 10px;border-radius:999px;background:#eefaf4;color:#087f5b;font-weight:800;font-size:12px}.timeline{display:grid;gap:8px;margin-top:16px}.event{display:flex;gap:12px;padding:9px 0;border-top:1px solid #eef2ef}.event-dot{width:10px;height:10px;border-radius:50%;background:#087f5b;margin-top:5px;flex:0 0 10px}.event-main{flex:1}.event-title{font-weight:700;font-size:13px}.event-time{color:#7a8580;font-size:11px;margin-top:2px}.event-note{color:#5f6d66;font-size:12px;margin-top:3px}.agent{margin-top:16px;background:#f3faf7;border:1px solid #d4ebe1;border-radius:12px;padding:12px}.agent strong{display:block;margin-bottom:4px}.track{display:inline-block;margin-top:12px;background:#087f5b;color:white;text-decoration:none;padding:10px 13px;border-radius:10px;font-size:12px;font-weight:800}.empty{text-align:center;color:#66736d;padding:50px 20px}
     </style>
 </head>
 <body>
 <div class="top"><div class="wrap"><a href="{% url 'customer_dashboard' %}">← My Account</a></div></div>
 <main class="wrap">
-    <h1>My Orders</h1>
+    <div class="page-head">
+        <h1>My Orders</h1>
+        <p>Your complete Shopiva order and delivery history.</p>
+    </div>
+
     {% if orders %}
         {% for order in orders %}
         <section class="card">
-            <h2>Order #{{ order.id }}</h2>
-            <div class="meta">Placed: {{ order.created_at|date:"d M Y, H:i" }}</div>
-            <div class="meta">Total: KSh {{ order.total_amount }}</div>
-            <div class="status">{{ order.get_status_display }}</div>
+            <div class="order-head">
+                <div>
+                    <h2>Order #{{ order.id }}</h2>
+                    <div class="meta">Tracking code: {{ order.tracking_code|default:"Pending" }}</div>
+                    <div class="meta">Placed: {{ order.created_at|date:"d M Y, H:i" }}</div>
+                </div>
+                <div class="pill">{{ order.get_status_display }}</div>
+            </div>
+
+            <div class="meta"><strong>Total:</strong> KSh {{ order.total_amount }}</div>
+            <div class="meta"><strong>Payment:</strong> {{ order.get_payment_status_display }}</div>
+
+            {% if order.delivery_agent %}
+            <div class="agent">
+                <strong>🚚 Delivery partner</strong>
+                {{ order.delivery_agent.display_name }}
+                {% if order.delivery_agent.vehicle_type %} · {{ order.delivery_agent.vehicle_type }}{% endif %}
+                {% if order.delivery_agent.phone %}<br>📞 {{ order.delivery_agent.phone }}{% endif %}
+            </div>
+            {% endif %}
+
+            <div class="timeline">
+                {% for event in order.events.all %}
+                <div class="event">
+                    <div class="event-dot"></div>
+                    <div class="event-main">
+                        <div class="event-title">{{ event.get_event_type_display }}</div>
+                        <div class="event-time">{{ event.created_at|date:"d M Y, H:i" }}</div>
+                        {% if event.note %}<div class="event-note">{{ event.note }}</div>{% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="event-note">No detailed events have been recorded for this order yet.</div>
+                {% endfor %}
+            </div>
+
+            <a class="track" href="{% url 'customer_dashboard' %}">View delivery journey →</a>
         </section>
         {% endfor %}
     {% else %}
         <section class="card empty">
             <h2>No orders yet</h2>
-            <p>Your Shopiva purchases will appear here.</p>
+            <p>Your Shopiva purchases and their complete history will appear here.</p>
         </section>
     {% endif %}
 </main>
