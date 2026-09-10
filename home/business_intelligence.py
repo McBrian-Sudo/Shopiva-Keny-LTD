@@ -1,8 +1,8 @@
+from datetime import datetime, time
 from decimal import Decimal
 
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count, Sum, F, DecimalField, ExpressionWrapper
-from django.db.models.functions import TruncDate
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -41,8 +41,9 @@ def business_intelligence(request):
         .order_by("-sales")[:10]
     )
 
+    today_start = timezone.make_aware(datetime.combine(today, time.min))
     daily_sales = (
-        orders.filter(created_at__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())))
+        orders.filter(created_at__gte=today_start)
         .values("created_at__date")
         .annotate(orders=Count("id"), revenue=Sum("total_amount"))
         .order_by("created_at__date")
