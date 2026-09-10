@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Order #{{ order.id }} | Shopiva Kenya</title>
+    <style>
+        *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f8f6;color:#17211d}.top{background:#087f5b;color:#fff;padding:18px 22px}.wrap{max-width:1100px;margin:auto;padding:0 20px}.top-inner{display:flex;justify-content:space-between;align-items:center;gap:16px}.brand{font-size:24px;font-weight:800;color:#fff;text-decoration:none}.brand span{color:#d8ffe9}.back{color:#fff;text-decoration:none;font-weight:700}.hero{margin:24px 0;background:#fff;border-radius:20px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.06);display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.hero h1{margin:0 0 8px}.muted{color:#68736f;font-size:14px}.code{background:#ecfdf5;border:1px solid #b9ead2;color:#087f5b;padding:10px 12px;border-radius:10px;font-weight:800;font-size:12px}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}.card{background:#fff;border-radius:18px;padding:22px;box-shadow:0 10px 25px rgba(0,0,0,.05);margin-bottom:18px}.card h2{margin:0 0 16px;font-size:19px}.timeline{position:relative;margin:4px 0 0 9px;border-left:3px solid #dcebe4;padding-left:24px}.event{position:relative;padding:0 0 19px}.event:last-child{padding-bottom:0}.event:before{content:"";position:absolute;left:-33px;top:2px;width:13px;height:13px;border-radius:50%;background:#087f5b;border:3px solid #e8f7f1}.event strong{display:block;font-size:14px}.event span{display:block;margin-top:4px;color:#68736f;font-size:12px}.event p{margin:5px 0 0;color:#596860;font-size:13px;line-height:1.5}.summary-row{display:flex;justify-content:space-between;gap:15px;padding:11px 0;border-bottom:1px solid #edf1ef;font-size:13px}.summary-row:last-child{border-bottom:0}.summary-row span{color:#68736f}.summary-row strong{color:#17342a;text-align:right}.agent{background:#f2faf6;border:1px solid #d3ebe0;padding:14px;border-radius:14px;margin-top:14px}.agent strong,.agent span,.agent small{display:block}.agent strong{font-size:14px}.agent span{margin-top:5px;font-size:13px;color:#41524b}.agent small{margin-top:5px;font-size:11px;color:#68736f}.button{display:inline-block;margin-top:14px;background:#087f5b;color:#fff;text-decoration:none;padding:11px 14px;border-radius:10px;font-weight:800;font-size:12px}.items{display:grid;gap:9px}.item{border:1px solid #e3ebe7;border-radius:12px;padding:11px;font-size:13px;display:flex;justify-content:space-between;gap:12px}.item span{color:#68736f}.empty{color:#68736f;text-align:center;padding:30px}
+        @media(max-width:800px){.grid{grid-template-columns:1fr}.hero{flex-direction:column}.top-inner{align-items:flex-start;flex-direction:column}}
+    </style>
+</head>
+<body>
+<header class="top"><div class="wrap top-inner"><a href="/" class="brand">Shopiva<span>Kenya</span></a><a href="{% url 'customer_orders' %}" class="back">← My Orders</a></div></header>
+<main class="wrap">
+    <section class="hero">
+        <div>
+            <h1>Track Order #{{ order.id }}</h1>
+            <div class="muted">Your Shopiva order journey in one place.</div>
+        </div>
+        <div class="code">{{ order.tracking_code|default:"Tracking code pending" }}</div>
+    </section>
+
+    <div class="grid">
+        <div>
+            <section class="card">
+                <h2>📍 Order Journey</h2>
+                {% if events %}
+                    <div class="timeline">
+                        {% for event in events %}
+                        <div class="event">
+                            <strong>{{ event.get_event_type_display }}</strong>
+                            <span>{{ event.created_at|date:"d M Y, H:i" }}</span>
+                            {% if event.note %}<p>{{ event.note }}</p>{% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty">Your order timeline will appear here as the order moves through Shopiva.</div>
+                {% endif %}
+            </section>
+
+            <section class="card">
+                <h2>🛍️ Items</h2>
+                <div class="items">
+                    {% for item in order.items.all %}
+                    <div class="item"><strong>{{ item.product.name }}</strong><span>{{ item.quantity }} × KSh {{ item.price|floatformat:2 }}</span></div>
+                    {% empty %}
+                    <div class="empty">No order items recorded.</div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <aside>
+            <section class="card">
+                <h2>Order Summary</h2>
+                <div class="summary-row"><span>Status</span><strong>{{ order.get_status_display }}</strong></div>
+                <div class="summary-row"><span>Payment</span><strong>{{ order.get_payment_status_display }}</strong></div>
+                <div class="summary-row"><span>Total</span><strong>KSh {{ order.total_amount|floatformat:2 }}</strong></div>
+                <div class="summary-row"><span>Placed</span><strong>{{ order.created_at|date:"d M Y, H:i" }}</strong></div>
+                {% if order.paid_at %}<div class="summary-row"><span>Paid</span><strong>{{ order.paid_at|date:"d M Y, H:i" }}</strong></div>{% endif %}
+                {% if order.packed_at %}<div class="summary-row"><span>Packed</span><strong>{{ order.packed_at|date:"d M Y, H:i" }}</strong></div>{% endif %}
+                {% if order.assigned_at %}<div class="summary-row"><span>Assigned</span><strong>{{ order.assigned_at|date:"d M Y, H:i" }}</strong></div>{% endif %}
+
+                {% if order.delivery_agent %}
+                <div class="agent">
+                    <strong>🚚 Delivery partner</strong>
+                    <span>{{ order.delivery_agent.display_name }}</span>
+                    <small>{% if order.delivery_agent.location_is_live %}Live location available{% elif order.delivery_agent.last_location_at %}Last location: {{ order.delivery_agent.last_location_at|date:"d M Y, H:i" }}{% else %}Location not shared yet{% endif %}</small>
+                </div>
+                {% endif %}
+
+                <a class="button" href="/account/">← Back to My Account</a>
+            </section>
+        </aside>
+    </div>
+</main>
+</body>
+</html>
