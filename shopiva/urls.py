@@ -3,7 +3,9 @@ from django.conf.urls.static import static
 from django.urls import path
 
 from home.admin import shopiva_admin_site
+from home.business_intelligence import business_intelligence
 from home.customer_tracking import customer_order_tracking
+from home.platform import app_install, app_manifest, service_worker
 from home.views import (
     add_to_cart,
     cart,
@@ -35,6 +37,9 @@ urlpatterns = [
     path("products/", products, name="products"),
     path("categories/", categories, name="categories"),
     path("product/<int:product_id>/", product_detail, name="product_detail"),
+    path("install/", app_install, name="app_install"),
+    path("manifest.webmanifest", app_manifest, name="app_manifest"),
+    path("service-worker.js", service_worker, name="service_worker"),
 
     # Cart
     path("cart/", cart, name="cart"),
@@ -70,8 +75,9 @@ urlpatterns = [
     path("delivery/location/ping/", delivery_ping_location, name="delivery_ping_location"),
 
     # =========================
-    # SHOPIVA ADMIN
+    # SHOPIVA ADMIN / INTELLIGENCE
     # =========================
+    path("admin/business-intelligence/", business_intelligence, name="business_intelligence"),
     path("admin/", shopiva_admin_site.urls),
 ]
 
