@@ -18,7 +18,6 @@ class Product(models.Model):
     @property
     def discounted_price(self):
         from decimal import Decimal
-
         discount = Decimal(self.discount_percent or 0)
         return self.price * (Decimal("100") - discount) / Decimal("100")
 
@@ -31,17 +30,8 @@ class Product(models.Model):
 
 
 class DeliveryAgent(models.Model):
-    STATUS_CHOICES = [
-        ("offline", "Offline"),
-        ("available", "Available"),
-        ("on_delivery", "On Delivery"),
-    ]
-
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="delivery_agent_profile",
-    )
+    STATUS_CHOICES = [("offline", "Offline"), ("available", "Available"), ("on_delivery", "On Delivery")]
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="delivery_agent_profile")
     phone = models.CharField(max_length=30, blank=True)
     vehicle_type = models.CharField(max_length=80, blank=True)
     vehicle_number = models.CharField(max_length=40, blank=True)
@@ -59,7 +49,6 @@ class DeliveryAgent(models.Model):
     @property
     def location_is_live(self):
         from django.utils import timezone
-
         if not self.last_location_at:
             return False
         return (timezone.now() - self.last_location_at).total_seconds() <= 90
@@ -69,25 +58,8 @@ class DeliveryAgent(models.Model):
 
 
 class Order(models.Model):
-    STATUS_CHOICES = [
-        ("pending", "Placed / Pending"),
-        ("confirmed", "Confirmed"),
-        ("paid", "Paid"),
-        ("packed", "Packed"),
-        ("processing", "Processing"),
-        ("shipped", "Shipped"),
-        ("out_for_delivery", "Out for Delivery"),
-        ("delivered", "Delivered"),
-        ("cancelled", "Cancelled"),
-    ]
-    PAYMENT_STATUS_CHOICES = [
-        ("unpaid", "Unpaid"),
-        ("pending", "Payment Pending"),
-        ("paid", "Paid"),
-        ("failed", "Failed"),
-        ("refunded", "Refunded"),
-    ]
-
+    STATUS_CHOICES = [("pending", "Placed / Pending"), ("confirmed", "Confirmed"), ("paid", "Paid"), ("packed", "Packed"), ("processing", "Processing"), ("shipped", "Shipped"), ("out_for_delivery", "Out for Delivery"), ("delivered", "Delivered"), ("cancelled", "Cancelled")]
+    PAYMENT_STATUS_CHOICES = [("unpaid", "Unpaid"), ("pending", "Payment Pending"), ("paid", "Paid"), ("failed", "Failed"), ("refunded", "Refunded")]
     customer_name = models.CharField(max_length=200)
     email = models.EmailField()
     phone = models.CharField(max_length=30)
@@ -97,13 +69,7 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="unpaid")
     payment_reference = models.CharField(max_length=120, blank=True)
     tracking_code = models.CharField(max_length=40, unique=True, null=True, blank=True)
-    delivery_agent = models.ForeignKey(
-        DeliveryAgent,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="orders",
-    )
+    delivery_agent = models.ForeignKey(DeliveryAgent, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
     packed_at = models.DateTimeField(null=True, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
     assigned_at = models.DateTimeField(null=True, blank=True)
@@ -124,37 +90,12 @@ class OrderItem(models.Model):
 
 
 class OrderEvent(models.Model):
-    EVENT_CHOICES = [
-        ("placed", "Order Placed"),
-        ("confirmed", "Order Confirmed"),
-        ("payment_pending", "Payment Pending"),
-        ("paid", "Payment Confirmed"),
-        ("packed", "Order Packed"),
-        ("assigned", "Delivery Agent Assigned"),
-        ("processing", "Processing"),
-        ("shipped", "Shipped"),
-        ("out_for_delivery", "Out for Delivery"),
-        ("delivered", "Delivered"),
-        ("cancelled", "Order Cancelled"),
-    ]
-
+    EVENT_CHOICES = [("placed", "Order Placed"), ("confirmed", "Order Confirmed"), ("payment_pending", "Payment Pending"), ("paid", "Payment Confirmed"), ("packed", "Order Packed"), ("assigned", "Delivery Agent Assigned"), ("processing", "Processing"), ("shipped", "Shipped"), ("out_for_delivery", "Out for Delivery"), ("delivered", "Delivered"), ("cancelled", "Order Cancelled")]
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="events")
     event_type = models.CharField(max_length=30, choices=EVENT_CHOICES)
     note = models.CharField(max_length=255, blank=True)
-    actor = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="shopiva_order_events",
-    )
-    delivery_agent = models.ForeignKey(
-        DeliveryAgent,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="order_events",
-    )
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="shopiva_order_events")
+    delivery_agent = models.ForeignKey(DeliveryAgent, on_delete=models.SET_NULL, null=True, blank=True, related_name="order_events")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -166,12 +107,7 @@ class OrderEvent(models.Model):
 
 class DeliveryLocationPing(models.Model):
     """Timestamped GPS sample shared by a delivery partner."""
-
-    agent = models.ForeignKey(
-        DeliveryAgent,
-        on_delete=models.CASCADE,
-        related_name="location_history",
-    )
+    agent = models.ForeignKey(DeliveryAgent, on_delete=models.CASCADE, related_name="location_history")
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     accuracy_meters = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
@@ -181,9 +117,33 @@ class DeliveryLocationPing(models.Model):
 
     class Meta:
         ordering = ("-recorded_at",)
-        indexes = [
-            models.Index(fields=("agent", "-recorded_at")),
-        ]
+        indexes = [models.Index(fields=("agent", "-recorded_at"))]
 
     def __str__(self):
         return f"{self.agent.display_name} @ {self.recorded_at:%Y-%m-%d %H:%M:%S}"
+
+
+class PaymentTransaction(models.Model):
+    METHOD_CHOICES = [("mpesa", "M-PESA"), ("card", "Card"), ("cod", "Cash on Delivery")]
+    STATUS_CHOICES = [("initiated", "Initiated"), ("pending", "Pending"), ("paid", "Paid"), ("failed", "Failed"), ("cancelled", "Cancelled"), ("refunded", "Refunded")]
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="payments")
+    method = models.CharField(max_length=20, choices=METHOD_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="initiated")
+    provider = models.CharField(max_length=40, default="shopiva")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    phone = models.CharField(max_length=30, blank=True)
+    merchant_request_id = models.CharField(max_length=120, blank=True, db_index=True)
+    checkout_request_id = models.CharField(max_length=120, blank=True, db_index=True)
+    provider_reference = models.CharField(max_length=120, blank=True, db_index=True)
+    idempotency_key = models.CharField(max_length=120, unique=True)
+    raw_response = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=("order", "status"))]
+
+    def __str__(self):
+        return f"{self.method.upper()} #{self.id} - Order #{self.order_id}"
