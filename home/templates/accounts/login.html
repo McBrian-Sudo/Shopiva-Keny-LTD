@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Sign In | Shopiva Kenya</title>
+    <title>Customer Sign In | Shopiva Kenya</title>
 
     <style>
         * {
@@ -90,7 +90,17 @@
 
         .subtitle {
             color: #6b7772;
-            margin: 0 0 28px;
+            margin: 0 0 16px;
+        }
+
+        .customer-only {
+            background: #eefaf4;
+            border: 1px solid #b9ead2;
+            color: #087f5b;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
         }
 
         .form-group {
@@ -233,11 +243,15 @@
 
     <section class="form-panel">
 
-        <h2>Sign in</h2>
+        <h2>Customer sign in</h2>
 
         <p class="subtitle">
-            Access your Shopiva account.
+            Access your Shopiva customer account.
         </p>
+
+        <div class="customer-only">
+            🔒 Customer accounts only. Admin accounts must use the Shopiva Admin Control Center.
+        </div>
 
         {% if messages %}
             {% for message in messages %}
@@ -249,24 +263,27 @@
 
         {% if form.errors %}
             <div class="error-box">
-                Your username or password is incorrect.
-                Please try again.
+                {{ form.non_field_errors }}
+                Your customer username or password is incorrect.
             </div>
         {% endif %}
 
-        <form method="post">
+        <form method="post" autocomplete="off" data-lpignore="true" data-1p-ignore="true">
             {% csrf_token %}
 
             <div class="form-group">
-                <label for="id_username">Username</label>
+                <label for="id_username">Customer username</label>
 
                 <input
                     type="text"
                     name="username"
                     id="id_username"
-                    placeholder="Enter your username"
-                    autocomplete="username"
-                    autofocus
+                    placeholder="Enter your customer username"
+                    autocomplete="off"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     required
                 >
             </div>
@@ -278,17 +295,13 @@
                     type="password"
                     name="password"
                     id="id_password"
-                    placeholder="Enter your password"
-                    autocomplete="current-password"
+                    placeholder="Enter your customer password"
+                    autocomplete="new-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     required
                 >
             </div>
-
-            <input
-                type="hidden"
-                name="next"
-                value="{{ next }}"
-            >
 
             <button type="submit" class="login-button">
                 Sign In to Shopiva
@@ -296,7 +309,7 @@
         </form>
 
         <div class="register-link">
-            Don't have an account?
+            Don't have a customer account?
             <a href="{% url 'customer_register' %}">
                 Create an account
             </a>
