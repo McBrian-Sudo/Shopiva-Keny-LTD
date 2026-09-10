@@ -1,0 +1,48 @@
+{% extends "admin/base_site.html" %}
+{% load humanize %}
+
+{% block title %}Shopiva Commercial Intelligence{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .intel{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:10px 0 30px}
+    .intel-hero{background:linear-gradient(135deg,#111827,#1d4ed8);color:#fff;border-radius:20px;padding:24px;margin-bottom:18px}
+    .intel-hero h1{margin:0 0 5px;color:#fff}.intel-hero p{margin:0;color:#dbeafe}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+    .stat,.panel{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px;box-shadow:0 5px 18px rgba(15,23,42,.05)}
+    .stat span{font-size:11px;color:#6b7280}.stat strong{display:block;font-size:24px;margin-top:4px;color:#111827}
+    .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}.panel h2{margin:0 0 12px;font-size:18px}.row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #eef2f7}.muted{color:#6b7280;font-size:12px}
+    .pill{background:#eff6ff;color:#1d4ed8;border-radius:999px;padding:5px 8px;font-size:11px;font-weight:800}
+    @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}@media(max-width:560px){.stats{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="intel">
+    <section class="intel-hero">
+        <h1>🧠 Shopiva Commercial Intelligence</h1>
+        <p>Decision-ready signals from Shopiva's orders, products, customers and payments.</p>
+    </section>
+
+    <section class="stats">
+        <div class="stat"><span>Recorded orders</span><strong>{{ stats.orders|intcomma }}</strong></div>
+        <div class="stat"><span>Revenue</span><strong>KSh {{ stats.revenue|floatformat:2|intcomma }}</strong></div>
+        <div class="stat"><span>Paid revenue</span><strong>KSh {{ stats.paid_revenue|floatformat:2|intcomma }}</strong></div>
+        <div class="stat"><span>Average order</span><strong>KSh {{ stats.average_order_value|floatformat:2|intcomma }}</strong></div>
+        <div class="stat"><span>Repeat customers</span><strong>{{ stats.repeat_customers|intcomma }}</strong></div>
+        <div class="stat"><span>Active products</span><strong>{{ stats.active_products|intcomma }}</strong></div>
+        <div class="stat"><span>Inventory value</span><strong>KSh {{ stats.stock_value|floatformat:2|intcomma }}</strong></div>
+        <div class="stat"><span>Today's sales rows</span><strong>{{ daily_sales|length }}</strong></div>
+    </section>
+
+    <section class="grid">
+        <div class="panel"><h2>Top products</h2>
+            {% for item in top_products %}<div class="row"><div><strong>{{ item.product__name }}</strong><div class="muted">{{ item.units }} units</div></div><span class="pill">KSh {{ item.sales|floatformat:2|intcomma }}</span></div>{% empty %}<p class="muted">No order data yet.</p>{% endfor %}
+        </div>
+        <div class="panel"><h2>Top categories</h2>
+            {% for item in top_categories %}<div class="row"><div><strong>{{ item.product__category|default:"Uncategorized" }}</strong><div class="muted">{{ item.units }} units</div></div><span class="pill">KSh {{ item.sales|floatformat:2|intcomma }}</span></div>{% empty %}<p class="muted">No category sales data yet.</p>{% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}
