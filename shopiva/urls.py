@@ -16,6 +16,7 @@ from home.views import (
     customer_profile,
     customer_register,
     customer_wishlist,
+    delivery_ping_location,
     delivery_portal,
     delivery_update_location,
     home,
@@ -62,6 +63,7 @@ urlpatterns = [
     # =========================
     path("delivery/", delivery_portal, name="delivery_portal"),
     path("delivery/location/", delivery_update_location, name="delivery_update_location"),
+    path("delivery/location/ping/", delivery_ping_location, name="delivery_ping_location"),
 
     # =========================
     # SHOPIVA ADMIN
