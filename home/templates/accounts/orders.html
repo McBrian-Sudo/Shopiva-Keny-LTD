@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Orders | Shopiva Kenya</title>
     <style>
-        *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f8f6;color:#17211d}.top{background:#087f5b;color:#fff;padding:18px 24px}.wrap{max-width:1050px;margin:0 auto;padding:0 20px}.top a{color:#fff;text-decoration:none;font-weight:700}.page-head{padding:28px 0 18px}.page-head h1{margin:0 0 6px}.page-head p{margin:0;color:#66736d}.card{background:#fff;border-radius:18px;padding:22px;margin-bottom:16px;box-shadow:0 8px 24px rgba(0,0,0,.06);border:1px solid #e3ebe6}.order-head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}.order-head h2{margin:0 0 6px}.meta{color:#66736d;font-size:13px;margin:5px 0}.pill{display:inline-flex;padding:7px 10px;border-radius:999px;background:#eefaf4;color:#087f5b;font-weight:800;font-size:12px}.timeline{display:grid;gap:8px;margin-top:16px}.event{display:flex;gap:12px;padding:9px 0;border-top:1px solid #eef2ef}.event-dot{width:10px;height:10px;border-radius:50%;background:#087f5b;margin-top:5px;flex:0 0 10px}.event-main{flex:1}.event-title{font-weight:700;font-size:13px}.event-time{color:#7a8580;font-size:11px;margin-top:2px}.event-note{color:#5f6d66;font-size:12px;margin-top:3px}.agent{margin-top:16px;background:#f3faf7;border:1px solid #d4ebe1;border-radius:12px;padding:12px}.agent strong{display:block;margin-bottom:4px}.track{display:inline-block;margin-top:12px;background:#087f5b;color:white;text-decoration:none;padding:10px 13px;border-radius:10px;font-size:12px;font-weight:800}.empty{text-align:center;color:#66736d;padding:50px 20px}
+        *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f8f6;color:#17211d}.top{background:#087f5b;color:#fff;padding:18px 24px}.wrap{max-width:1050px;margin:0 auto;padding:0 20px}.top a{color:#fff;text-decoration:none;font-weight:700}.page-head{padding:28px 0 18px}.page-head h1{margin:0 0 6px}.page-head p{margin:0;color:#66736d}.card{background:#fff;border-radius:18px;padding:22px;margin-bottom:16px;box-shadow:0 8px 24px rgba(0,0,0,.06);border:1px solid #e3ebe6}.order-head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}.order-head h2{margin:0 0 6px}.meta{color:#66736d;font-size:13px;margin:5px 0}.pill{display:inline-flex;padding:7px 10px;border-radius:999px;background:#eefaf4;color:#087f5b;font-weight:800;font-size:12px}.timeline{display:grid;gap:8px;margin-top:16px}.event{display:flex;gap:12px;padding:9px 0;border-top:1px solid #eef2ef}.event-dot{width:10px;height:10px;border-radius:50%;background:#087f5b;margin-top:5px;flex:0 0 10px}.event-main{flex:1}.event-title{font-weight:700;font-size:13px}.event-time{color:#7a8580;font-size:11px;margin-top:2px}.event-note{color:#5f6d66;font-size:12px;margin-top:3px}.agent{margin-top:16px;background:#f3faf7;border:1px solid #d4ebe1;border-radius:12px;padding:12px}.agent strong{display:block;margin-bottom:4px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.track{display:inline-block;background:#087f5b;color:white;text-decoration:none;padding:10px 13px;border-radius:10px;font-size:12px;font-weight:800}.track.secondary{background:#eaf3ef;color:#07553e}.empty{text-align:center;color:#66736d;padding:50px 20px}
     </style>
 </head>
 <body>
@@ -37,6 +37,7 @@
                 {{ order.delivery_agent.display_name }}
                 {% if order.delivery_agent.vehicle_type %} · {{ order.delivery_agent.vehicle_type }}{% endif %}
                 {% if order.delivery_agent.phone %}<br>📞 {{ order.delivery_agent.phone }}{% endif %}
+                <div class="meta">{% if order.delivery_agent.location_is_live %}🟢 Live location available{% elif order.delivery_agent.last_location_at %}Last location: {{ order.delivery_agent.last_location_at|date:"d M Y, H:i" }}{% else %}Location not shared yet{% endif %}</div>
             </div>
             {% endif %}
 
@@ -55,7 +56,10 @@
                 {% endfor %}
             </div>
 
-            <a class="track" href="{% url 'customer_dashboard' %}">View delivery journey →</a>
+            <div class="actions">
+                <a class="track" href="{% url 'customer_order_tracking' order.id %}">📍 Open live order tracking</a>
+                <a class="track secondary" href="{% url 'customer_order_tracking' order.id %}">View full timeline →</a>
+            </div>
         </section>
         {% endfor %}
     {% else %}
