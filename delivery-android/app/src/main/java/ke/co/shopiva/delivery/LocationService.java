@@ -12,8 +12,7 @@ import android.content.pm.ServiceInfo;
 import android.location.Location;
 import android.os.Build;
 import android.os.IBinder;
-
-import androidx.annotation.Nullable;
+import android.webkit.CookieManager;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -30,8 +29,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-
-import android.webkit.CookieManager;
 
 public class LocationService extends Service {
     public static final String ACTION_START = "ke.co.shopiva.delivery.START";
@@ -176,7 +173,7 @@ public class LocationService extends Service {
                 readResponse(connection.getInputStream());
             }
         } catch (Exception ignored) {
-            // Network failures are expected occasionally; the next location update retries.
+            // The next location update retries after transient network failures.
         } finally {
             if (connection != null) connection.disconnect();
         }
@@ -218,7 +215,6 @@ public class LocationService extends Service {
         if (manager != null) manager.createNotificationChannel(channel);
     }
 
-    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return null;
