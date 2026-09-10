@@ -2,45 +2,18 @@
     <div class="shopiva-map-head">
         <div>
             <span class="shopiva-map-kicker">SHOPIVA SMART DELIVERY NETWORK</span>
-            <h2>{% if delivery_admin_mode %}Kenya Delivery Command Map{% else %}Shopiva Delivery Network{% endif %}</h2>
-            <p>{% if delivery_admin_mode %}Monitor orders, assigned delivery partners and last-known locations.{% else %}Follow your order from placement to delivery through Shopiva's network.{% endif %}</p>
+            <h2>{% if delivery_admin_mode %}Kenya Delivery Command Map{% else %}Shopiva Delivery Journey{% endif %}</h2>
+            <p>{% if delivery_admin_mode %}Monitor active delivery partners, order assignment and last-known GPS positions.{% else %}Follow the progress of your latest Shopiva order from placement to delivery.{% endif %}</p>
         </div>
-        <div class="shopiva-map-live"><span></span> Network Active</div>
+        <div class="shopiva-map-live"><span></span>{% if delivery_admin_mode %}Operations Live{% else %}Tracking Ready{% endif %}</div>
     </div>
 
     <div class="shopiva-map-body">
-        <div class="shopiva-network-map" aria-label="Schematic Shopiva delivery network across Kenya">
-            <svg viewBox="0 0 760 430" role="img" aria-label="Shopiva delivery network map">
-                <defs>
-                    <linearGradient id="shopivaRoute" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stop-color="#087f5b" />
-                        <stop offset="100%" stop-color="#20a779" />
-                    </linearGradient>
-                </defs>
-                <path class="shopiva-kenya-shape" d="M205 55 L285 32 L370 52 L445 42 L555 92 L650 165 L612 252 L690 315 L610 380 L506 352 L430 390 L335 350 L250 372 L190 320 L122 290 L135 215 L88 160 L148 110 Z" />
-                <path class="shopiva-route" d="M410 210 C345 168 292 132 226 119 S148 171 176 245 S285 312 350 274 S470 226 555 286" />
-                <path class="shopiva-route shopiva-route-faint" d="M410 210 C445 165 502 142 560 112" />
-                <path class="shopiva-route shopiva-route-faint" d="M350 274 C405 306 467 330 520 349" />
-                <g class="shopiva-hub" data-hub="Nairobi"><circle cx="410" cy="210" r="13"/><circle cx="410" cy="210" r="23" class="shopiva-pulse"/><text x="410" y="177" text-anchor="middle">Nairobi</text><title>Nairobi — National hub</title></g>
-                <g class="shopiva-hub" data-hub="Nakuru"><circle cx="350" cy="274" r="10"/><text x="350" y="302" text-anchor="middle">Nakuru</text><title>Nakuru — Regional hub</title></g>
-                <g class="shopiva-hub" data-hub="Eldoret"><circle cx="226" cy="119" r="10"/><text x="226" y="92" text-anchor="middle">Eldoret</text><title>Eldoret — Regional hub</title></g>
-                <g class="shopiva-hub" data-hub="Kisumu"><circle cx="176" cy="245" r="10"/><text x="176" y="274" text-anchor="middle">Kisumu</text><title>Kisumu — Regional hub</title></g>
-                <g class="shopiva-hub" data-hub="Mombasa"><circle cx="555" cy="286" r="10"/><text x="555" y="315" text-anchor="middle">Mombasa</text><title>Mombasa — Coastal hub</title></g>
-                <g class="shopiva-hub shopiva-hub-small" data-hub="Nyeri"><circle cx="520" cy="145" r="7"/><text x="520" y="131" text-anchor="middle">Nyeri</text></g>
-                <g class="shopiva-hub shopiva-hub-small" data-hub="Malindi"><circle cx="610" cy="230" r="7"/><text x="610" y="216" text-anchor="middle">Malindi</text></g>
-                {% if delivery_admin_mode and delivery_agents %}
-                    {% for agent in delivery_agents %}
-                        {% if agent.current_latitude and agent.current_longitude %}
-                        <circle cx="{{ forloop.counter0|add:90 }}" cy="{{ forloop.counter0|add:95 }}" r="7" fill="#2563eb" stroke="#fff" stroke-width="3"><title>{{ agent.display_name }} — last location update {{ agent.last_location_at|date:"d M Y H:i" }}</title></circle>
-                        {% endif %}
-                    {% endfor %}
-                {% endif %}
-            </svg>
-            <div class="shopiva-map-legend">
-                <span><i class="shopiva-dot shopiva-dot-hub"></i>Shopiva hub</span>
-                <span><i class="shopiva-line"></i>Delivery corridor</span>
-                <span><i class="shopiva-dot shopiva-dot-active"></i>Active network</span>
-                {% if delivery_admin_mode %}<span><i class="shopiva-dot shopiva-dot-rider"></i>Last-known rider position</span>{% endif %}
+        <div class="shopiva-real-map-wrap">
+            <div id="shopiva-live-map" class="shopiva-real-map"></div>
+            <div class="shopiva-map-overlay">
+                <span>🇰🇪 Kenya</span>
+                <span>📍{% if delivery_admin_mode %} Rider positions{% else %} Delivery network{% endif %}</span>
             </div>
         </div>
 
@@ -50,33 +23,38 @@
                 <div class="shopiva-map-stat"><span>🚚 In fulfilment</span><strong>{{ shopiva_stats.processing_orders }}</strong></div>
                 <div class="shopiva-map-stat"><span>👤 Assigned</span><strong>{{ shopiva_stats.assigned_orders }}</strong></div>
                 <div class="shopiva-map-stat"><span>✅ Delivered</span><strong>{{ shopiva_stats.delivered_orders }}</strong></div>
-                <div class="shopiva-map-stat"><span>🚴 Active riders</span><strong>{{ delivery_agents|length }}</strong></div>
 
                 <div class="shopiva-agent-list">
                     <h3>Delivery partners</h3>
                     {% for agent in delivery_agents %}
                     <div class="shopiva-agent-row">
-                        <div><strong>{{ agent.display_name }}</strong><span>{{ agent.get_status_display }}{% if agent.vehicle_number %} · {{ agent.vehicle_number }}{% endif %}</span></div>
-                        <div class="shopiva-agent-location">{% if agent.last_location_at %}📍 {{ agent.last_location_at|date:"H:i" }}{% else %}—{% endif %}</div>
+                        <div>
+                            <strong>{{ agent.display_name }}</strong>
+                            <span>{{ agent.get_status_display }}{% if agent.vehicle_number %} · {{ agent.vehicle_number }}{% endif %}</span>
+                        </div>
+                        <div class="shopiva-agent-location">
+                            {% if agent.last_location_at %}📍 {{ agent.last_location_at|date:"H:i" }}{% else %}No GPS{% endif %}
+                        </div>
                     </div>
                     {% empty %}
-                    <p class="shopiva-map-note-text">No delivery partners configured yet.</p>
+                    <p class="shopiva-map-note-text">No delivery partners are configured yet.</p>
                     {% endfor %}
                 </div>
-
-                <div class="shopiva-map-note"><strong>Tracking layer</strong><p>Admin sees each active partner's last shared location. The next layer can add route history, ETA calculations and delivery alerts.</p></div>
+                <div class="shopiva-map-note"><strong>GPS tracking</strong><p>Only the delivery partner's latest shared location is displayed. Route history and automated ETA can be added once dispatch data is flowing.</p></div>
             {% else %}
                 {% if latest_order %}
                     <div class="shopiva-order-chip">Latest order #{{ latest_order.id }}</div>
                     <div class="shopiva-order-status"><span>Status</span><strong>{{ latest_order.get_status_display }}</strong></div>
-                    <div class="shopiva-order-route"><div><span class="shopiva-route-dot"></span>Shopiva network</div><div class="shopiva-route-arrow">→</div><div><span class="shopiva-route-dot destination"></span>Your delivery address</div></div>
-                    {% if latest_order.delivery_agent %}<p class="shopiva-map-note-text"><strong>Delivery partner:</strong> {{ latest_order.delivery_agent.display_name }}</p>{% endif %}
-                    <p class="shopiva-map-note-text">Your order history records each major event, including payment, packing and delivery assignment as those actions occur.</p>
+                    <div class="shopiva-order-route"><div><span class="shopiva-route-dot"></span>Shopiva network</div><div class="shopiva-route-arrow">→</div><div><span class="shopiva-route-dot destination"></span>Your address</div></div>
+                    {% if latest_order.delivery_agent %}
+                        <div class="shopiva-agent-box"><strong>🚚 Delivery partner</strong><span>{{ latest_order.delivery_agent.display_name }}</span><small>{% if latest_order.delivery_agent.last_location_at %}Last GPS: {{ latest_order.delivery_agent.last_location_at|date:"d M Y, H:i" }}{% else %}GPS not shared yet{% endif %}</small></div>
+                    {% endif %}
+                    <p class="shopiva-map-note-text">Your order timeline records placement, payment, packing, assignment and delivery events as they happen.</p>
                     <a href="{% url 'customer_orders' %}" class="shopiva-map-button">View My Orders →</a>
                 {% else %}
                     <div class="shopiva-order-chip">No active order yet</div>
-                    <h3>Track your journey with Shopiva</h3>
-                    <p class="shopiva-map-note-text">Once you place an order, this space becomes your delivery journey card.</p>
+                    <h3>Your delivery journey starts here</h3>
+                    <p class="shopiva-map-note-text">Place an order and Shopiva will connect the order to its fulfilment and delivery journey.</p>
                     <a href="/products/" class="shopiva-map-button">Start Shopping →</a>
                 {% endif %}
             {% endif %}
@@ -84,6 +62,60 @@
     </div>
 </section>
 
+{% if delivery_admin_mode %}
+<div id="shopiva-agent-coordinates" hidden>
+    {% for agent in delivery_agents %}
+        {% if agent.current_latitude and agent.current_longitude %}
+        <div class="shopiva-agent-data" data-name="{{ agent.display_name|escapejs }}" data-status="{{ agent.get_status_display|escapejs }}" data-lat="{{ agent.current_latitude }}" data-lng="{{ agent.current_longitude }}" data-updated="{{ agent.last_location_at|date:'d M Y, H:i'|escapejs }}"></div>
+        {% endif %}
+    {% endfor %}
+</div>
+{% elif latest_order and latest_order.delivery_agent and latest_order.delivery_agent.current_latitude and latest_order.delivery_agent.current_longitude %}
+<div id="shopiva-agent-coordinates" hidden>
+    <div class="shopiva-agent-data" data-name="{{ latest_order.delivery_agent.display_name|escapejs }}" data-status="{{ latest_order.get_status_display|escapejs }}" data-lat="{{ latest_order.delivery_agent.current_latitude }}" data-lng="{{ latest_order.delivery_agent.current_longitude }}" data-updated="{{ latest_order.delivery_agent.last_location_at|date:'d M Y, H:i'|escapejs }}"></div>
+</div>
+{% endif %}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3n+3bU9m+o3U5yQwE7WjFJZ8M1O6w=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
 <style>
-.shopiva-map-card{background:#fff;border:1px solid #dfe7e3;border-radius:22px;padding:22px;box-shadow:0 10px 30px rgba(12,35,25,.06);margin-top:24px;overflow:hidden}.shopiva-map-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px}.shopiva-map-kicker{font-size:11px;font-weight:900;letter-spacing:.12em;color:#087f5b}.shopiva-map-head h2{margin:5px 0 4px;font-size:24px;color:#13211c}.shopiva-map-head p{margin:0;color:#6a7771;font-size:13px}.shopiva-map-live{display:inline-flex;align-items:center;gap:7px;background:#ecfdf5;color:#047857;border:1px solid #bbf7d0;border-radius:999px;padding:8px 12px;font-size:11px;font-weight:800;white-space:nowrap}.shopiva-map-live span{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 0 4px rgba(16,185,129,.15)}.shopiva-map-body{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(230px,.55fr);gap:16px}.shopiva-network-map{position:relative;min-height:370px;border-radius:18px;background:linear-gradient(145deg,#f0fbf6,#edf7f5);border:1px solid #dcebe4;padding:10px}.shopiva-network-map svg{width:100%;height:auto;display:block}.shopiva-kenya-shape{fill:#dff3ea;stroke:#b6dfd0;stroke-width:2}.shopiva-route{fill:none;stroke:url(#shopivaRoute);stroke-width:6;stroke-linecap:round;stroke-dasharray:11 11;animation:shopivaDash 8s linear infinite}.shopiva-route-faint{opacity:.42;stroke-width:4}.shopiva-hub circle{fill:#087f5b;stroke:#fff;stroke-width:4}.shopiva-hub text{font-size:15px;font-weight:800;fill:#18332b}.shopiva-hub-small circle{fill:#4d8c79;stroke:#fff;stroke-width:3}.shopiva-hub-small text{font-size:11px;font-weight:700;fill:#4d625a}.shopiva-pulse{fill:none!important;stroke:#10b981!important;stroke-width:3!important;opacity:.45;animation:shopivaPulse 2s ease-out infinite}.shopiva-map-legend{position:absolute;left:20px;right:20px;bottom:18px;display:flex;flex-wrap:wrap;gap:14px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border:1px solid #e2ece7;border-radius:12px;padding:9px 11px;font-size:11px;color:#53635c}.shopiva-map-legend span{display:inline-flex;align-items:center;gap:6px}.shopiva-dot{display:inline-block;width:8px;height:8px;border-radius:50%}.shopiva-dot-hub{background:#087f5b}.shopiva-dot-active{background:#10b981;box-shadow:0 0 0 4px rgba(16,185,129,.13)}.shopiva-dot-rider{background:#2563eb}.shopiva-line{display:inline-block;width:18px;height:3px;background:#087f5b;border-radius:5px}.shopiva-map-side{background:#f8fbfa;border:1px solid #e4ece8;border-radius:18px;padding:15px}.shopiva-map-stat{background:#fff;border:1px solid #e2ebe6;border-radius:12px;padding:12px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;gap:10px}.shopiva-map-stat span{font-size:12px;color:#687770}.shopiva-map-stat strong{font-size:18px;color:#17342a}.shopiva-map-note{background:#eaf9f2;border:1px solid #cbeedd;border-radius:12px;padding:12px;margin-top:12px}.shopiva-map-note strong{font-size:12px;color:#087f5b}.shopiva-map-note p,.shopiva-map-note-text{margin:5px 0 0;color:#607069;font-size:12px;line-height:1.55}.shopiva-order-chip{display:inline-block;background:#e7f8f0;color:#087f5b;border:1px solid #c6e9d8;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800;margin-bottom:12px}.shopiva-order-status{display:flex;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid #e0e9e4}.shopiva-order-status span{font-size:12px;color:#75827d}.shopiva-order-status strong{font-size:14px;color:#087f5b}.shopiva-order-route{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:15px 0;font-size:11px;color:#53645d}.shopiva-route-dot{display:inline-block;width:9px;height:9px;background:#087f5b;border-radius:50%;margin-right:6px}.shopiva-route-dot.destination{background:#2563eb}.shopiva-route-arrow{font-size:16px;color:#6c7b73}.shopiva-map-button{display:inline-block;margin-top:14px;width:100%;text-align:center;background:#087f5b;color:#fff;padding:10px 12px;border-radius:10px;text-decoration:none;font-weight:800;font-size:12px}.shopiva-agent-list{margin-top:14px}.shopiva-agent-list h3{margin:0 0 9px;font-size:13px}.shopiva-agent-row{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #e3ebe7;padding:9px 0}.shopiva-agent-row strong{display:block;font-size:12px}.shopiva-agent-row span,.shopiva-agent-location{color:#6a7771;font-size:10px}.shopiva-agent-location{white-space:nowrap}@keyframes shopivaDash{to{stroke-dashoffset:-200}}@keyframes shopivaPulse{0%{r:19;opacity:.48}100%{r:34;opacity:0}}@media(max-width:850px){.shopiva-map-body{grid-template-columns:1fr}.shopiva-map-head{flex-direction:column}.shopiva-map-live{align-self:flex-start}}@media(max-width:560px){.shopiva-map-card{padding:14px}.shopiva-map-head h2{font-size:20px}.shopiva-network-map{min-height:270px}.shopiva-map-legend{position:static;margin-top:-2px}.shopiva-hub text{font-size:12px}}
+.shopiva-map-card{background:#fff;border:1px solid #dfe7e3;border-radius:22px;padding:22px;box-shadow:0 10px 30px rgba(12,35,25,.06);margin-top:24px;overflow:hidden}.shopiva-map-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px}.shopiva-map-kicker{font-size:11px;font-weight:900;letter-spacing:.12em;color:#087f5b}.shopiva-map-head h2{margin:5px 0 4px;font-size:24px;color:#13211c}.shopiva-map-head p{margin:0;color:#6a7771;font-size:13px}.shopiva-map-live{display:inline-flex;align-items:center;gap:7px;background:#ecfdf5;color:#047857;border:1px solid #bbf7d0;border-radius:999px;padding:8px 12px;font-size:11px;font-weight:800;white-space:nowrap}.shopiva-map-live span{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 0 4px rgba(16,185,129,.15)}.shopiva-map-body{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(250px,.55fr);gap:16px}.shopiva-real-map-wrap{position:relative;min-height:390px;border-radius:18px;overflow:hidden;border:1px solid #dcebe4;background:#eaf2ed}.shopiva-real-map{width:100%;height:390px}.shopiva-map-overlay{position:absolute;top:14px;left:14px;right:14px;z-index:500;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}.shopiva-map-overlay span{background:rgba(255,255,255,.94);border:1px solid #dde8e2;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:800;color:#365047;box-shadow:0 3px 10px rgba(0,0,0,.06)}.shopiva-map-side{background:#f8fbfa;border:1px solid #e4ece8;border-radius:18px;padding:15px}.shopiva-map-stat{background:#fff;border:1px solid #e2ebe6;border-radius:12px;padding:12px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;gap:10px}.shopiva-map-stat span{font-size:12px;color:#687770}.shopiva-map-stat strong{font-size:18px;color:#17342a}.shopiva-map-note{background:#eaf9f2;border:1px solid #cbeedd;border-radius:12px;padding:12px;margin-top:12px}.shopiva-map-note strong{font-size:12px;color:#087f5b}.shopiva-map-note p,.shopiva-map-note-text{margin:5px 0 0;color:#607069;font-size:12px;line-height:1.55}.shopiva-order-chip{display:inline-block;background:#e7f8f0;color:#087f5b;border:1px solid #c6e9d8;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800;margin-bottom:12px}.shopiva-order-status{display:flex;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid #e0e9e4}.shopiva-order-status span{font-size:12px;color:#75827d}.shopiva-order-status strong{font-size:14px;color:#087f5b}.shopiva-order-route{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:15px 0;font-size:11px;color:#53645d}.shopiva-route-dot{display:inline-block;width:9px;height:9px;background:#087f5b;border-radius:50%;margin-right:6px}.shopiva-route-dot.destination{background:#2563eb}.shopiva-route-arrow{font-size:16px;color:#6c7b73}.shopiva-map-button{display:inline-block;margin-top:14px;width:100%;text-align:center;background:#087f5b;color:#fff;padding:10px 12px;border-radius:10px;text-decoration:none;font-weight:800;font-size:12px}.shopiva-agent-list{margin-top:14px}.shopiva-agent-list h3{margin:0 0 9px;font-size:13px}.shopiva-agent-row{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #e3ebe7;padding:9px 0}.shopiva-agent-row strong{display:block;font-size:12px}.shopiva-agent-row span,.shopiva-agent-location{color:#6a7771;font-size:10px}.shopiva-agent-location{white-space:nowrap}.shopiva-agent-box{margin-top:13px;background:#f3faf7;border:1px solid #d3ebe0;border-radius:12px;padding:11px}.shopiva-agent-box strong{display:block;font-size:12px}.shopiva-agent-box span,.shopiva-agent-box small{display:block;color:#64736c;font-size:11px;margin-top:3px}@media(max-width:850px){.shopiva-map-body{grid-template-columns:1fr}.shopiva-map-head{flex-direction:column}.shopiva-map-live{align-self:flex-start}}@media(max-width:560px){.shopiva-map-card{padding:14px}.shopiva-map-head h2{font-size:20px}.shopiva-real-map,.shopiva-real-map-wrap{min-height:290px;height:290px}}
 </style>
+
+<script>
+(function () {
+    const mapElement = document.getElementById('shopiva-live-map');
+    if (!mapElement || typeof L === 'undefined') return;
+
+    const kenyaCenter = [-0.0236, 37.9062];
+    const map = L.map(mapElement, { scrollWheelZoom: false }).setView(kenyaCenter, 6);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const points = Array.from(document.querySelectorAll('#shopiva-agent-coordinates .shopiva-agent-data'));
+    const bounds = [];
+
+    points.forEach(function (item) {
+        const lat = parseFloat(item.dataset.lat);
+        const lng = parseFloat(item.dataset.lng);
+        if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+        bounds.push([lat, lng]);
+        L.marker([lat, lng]).addTo(map).bindPopup(
+            '<strong>' + item.dataset.name + '</strong><br>' +
+            item.dataset.status + '<br>' +
+            'Last update: ' + item.dataset.updated
+        );
+    });
+
+    if (bounds.length === 1) {
+        map.setView(bounds[0], 13);
+    } else if (bounds.length > 1) {
+        map.fitBounds(bounds, { padding: [30, 30] });
+    }
+})();
+</script>
