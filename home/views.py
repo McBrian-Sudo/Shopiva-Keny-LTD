@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.contrib import messages
-from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator
@@ -15,6 +15,8 @@ from .models import Order, OrderItem, Product
 
 def customer_register(request):
     if request.user.is_authenticated:
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect("/admin/")
         return redirect("customer_dashboard")
 
     if request.method == "POST":
@@ -33,6 +35,12 @@ def customer_register(request):
 
 def customer_login(request):
     if request.user.is_authenticated:
+        if request.user.is_staff or request.user.is_superuser:
+            messages.info(
+                request,
+                "Admin accounts can only be used in the Shopiva Admin Control Center."
+            )
+            return redirect("/admin/")
         return redirect("customer_dashboard")
 
     if request.method == "POST":
@@ -40,9 +48,16 @@ def customer_login(request):
 
         if form.is_valid():
             user = form.get_user()
-            auth_login(request, user)
-            messages.success(request, f"Welcome back, {user.username}!")
-            return redirect("customer_dashboard")
+
+            if user.is_staff or user.is_superuser:
+                form.add_error(
+                    None,
+                    "This is an admin account. Please use the Shopiva Admin Control Center."
+                )
+            else:
+                auth_login(request, user)
+                messages.success(request, f"Welcome back, {user.username}!")
+                return redirect("customer_dashboard")
     else:
         form = AuthenticationForm()
 
@@ -57,7 +72,48 @@ def customer_logout(request):
 
 @login_required(login_url="customer_login")
 def customer_dashboard(request):
+    if request.user.is_staff or request.user.is_superuser:
+        return redirect("/admin/")
     return render(request, "accounts/dashboard.html")
+
+
+@login_required(login_url="customer_login")
+def customer_orders(request):
+    if request.user.is_staff or request.user.is_superuser:
+        return redirect("/admin/")
+
+    orders = Order.objects.filter(email__iexact=request.user.email).order_by("-created_at")
+    return render(request, "accounts/orders.html", {"orders": orders})
+
+
+@login_required(login_url="customer_login")
+def customer_profile(request):
+    if request.user.is_staff or request.user.is_superuser:
+        return redirect("/admin/")
+
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip()
+        if email:
+            request.user.email = email
+            request.user.save(update_fields=["email"])
+            messages.success(request, "Your profile has been updated.")
+            return redirect("customer_profile")
+
+    return render(request, "accounts/profile.html")
+
+
+@login_required(login_url="customer_login")
+def customer_addresses(request):
+    if request.user.is_staff or request.user.is_superuser:
+        return redirect("/admin/")
+    return render(request, "accounts/addresses.html")
+
+
+@login_required(login_url="customer_login")
+def customer_wishlist(request):
+    if request.user.is_staff or request.user.is_superuser:
+        return redirect("/admin/")
+    return render(request, "accounts/wishlist.html")
 
 
 def home(request):
