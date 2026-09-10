@@ -1,0 +1,125 @@
+<section class="shopiva-map-card {% if delivery_admin_mode %}shopiva-map-admin{% endif %}">
+    <div class="shopiva-map-head">
+        <div>
+            <span class="shopiva-map-kicker">SHOPIVA SMART DELIVERY NETWORK</span>
+            <h2>{% if delivery_admin_mode %}Kenya Delivery Command Map{% else %}Shopiva Delivery Network{% endif %}</h2>
+            <p>{% if delivery_admin_mode %}Monitor delivery operations through Shopiva's national hub network.{% else %}See how your order moves through Shopiva's delivery network across Kenya.{% endif %}</p>
+        </div>
+        <div class="shopiva-map-live"><span></span> Network Active</div>
+    </div>
+
+    <div class="shopiva-map-body">
+        <div class="shopiva-network-map" aria-label="Schematic Shopiva delivery network across Kenya">
+            <svg viewBox="0 0 760 430" role="img" aria-label="Shopiva delivery network map">
+                <defs>
+                    <linearGradient id="shopivaRoute" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#087f5b" />
+                        <stop offset="100%" stop-color="#20a779" />
+                    </linearGradient>
+                </defs>
+
+                <path class="shopiva-kenya-shape" d="M205 55 L285 32 L370 52 L445 42 L555 92 L650 165 L612 252 L690 315 L610 380 L506 352 L430 390 L335 350 L250 372 L190 320 L122 290 L135 215 L88 160 L148 110 Z" />
+
+                <path class="shopiva-route" d="M410 210 C345 168 292 132 226 119 S148 171 176 245 S285 312 350 274 S470 226 555 286" />
+                <path class="shopiva-route shopiva-route-faint" d="M410 210 C445 165 502 142 560 112" />
+                <path class="shopiva-route shopiva-route-faint" d="M350 274 C405 306 467 330 520 349" />
+
+                <g class="shopiva-hub" data-hub="Nairobi">
+                    <circle cx="410" cy="210" r="13" />
+                    <circle cx="410" cy="210" r="23" class="shopiva-pulse" />
+                    <text x="410" y="177" text-anchor="middle">Nairobi</text>
+                    <title>Nairobi — National hub</title>
+                </g>
+
+                <g class="shopiva-hub" data-hub="Nakuru">
+                    <circle cx="350" cy="274" r="10" />
+                    <text x="350" y="302" text-anchor="middle">Nakuru</text>
+                    <title>Nakuru — Regional hub</title>
+                </g>
+
+                <g class="shopiva-hub" data-hub="Eldoret">
+                    <circle cx="226" cy="119" r="10" />
+                    <text x="226" y="92" text-anchor="middle">Eldoret</text>
+                    <title>Eldoret — Regional hub</title>
+                </g>
+
+                <g class="shopiva-hub" data-hub="Kisumu">
+                    <circle cx="176" cy="245" r="10" />
+                    <text x="176" y="274" text-anchor="middle">Kisumu</text>
+                    <title>Kisumu — Regional hub</title>
+                </g>
+
+                <g class="shopiva-hub" data-hub="Mombasa">
+                    <circle cx="555" cy="286" r="10" />
+                    <text x="555" y="315" text-anchor="middle">Mombasa</text>
+                    <title>Mombasa — Coastal hub</title>
+                </g>
+
+                <g class="shopiva-hub shopiva-hub-small" data-hub="Nyeri">
+                    <circle cx="520" cy="145" r="7" />
+                    <text x="520" y="131" text-anchor="middle">Nyeri</text>
+                </g>
+
+                <g class="shopiva-hub shopiva-hub-small" data-hub="Malindi">
+                    <circle cx="610" cy="230" r="7" />
+                    <text x="610" y="216" text-anchor="middle">Malindi</text>
+                </g>
+            </svg>
+
+            <div class="shopiva-map-legend">
+                <span><i class="shopiva-dot shopiva-dot-hub"></i>Shopiva hub</span>
+                <span><i class="shopiva-line"></i>Delivery corridor</span>
+                <span><i class="shopiva-dot shopiva-dot-active"></i>Active network</span>
+            </div>
+        </div>
+
+        <aside class="shopiva-map-side">
+            {% if delivery_admin_mode %}
+                <div class="shopiva-map-stat">
+                    <span>📦 Total orders</span>
+                    <strong>{{ shopiva_stats.orders }}</strong>
+                </div>
+                <div class="shopiva-map-stat">
+                    <span>🚚 In fulfilment</span>
+                    <strong>{{ shopiva_stats.processing_orders }}</strong>
+                </div>
+                <div class="shopiva-map-stat">
+                    <span>✅ Delivered</span>
+                    <strong>{{ shopiva_stats.delivered_orders }}</strong>
+                </div>
+                <div class="shopiva-map-stat">
+                    <span>⏳ Pending</span>
+                    <strong>{{ shopiva_stats.pending_orders }}</strong>
+                </div>
+                <div class="shopiva-map-note">
+                    <strong>Built for scale</strong>
+                    <p>The network view is ready for future rider GPS, county routing, live ETAs and dispatch automation.</p>
+                </div>
+            {% else %}
+                {% if latest_order %}
+                    <div class="shopiva-order-chip">Latest order #{{ latest_order.id }}</div>
+                    <div class="shopiva-order-status">
+                        <span>Status</span>
+                        <strong>{{ latest_order.get_status_display }}</strong>
+                    </div>
+                    <div class="shopiva-order-route">
+                        <div><span class="shopiva-route-dot"></span>Shopiva network</div>
+                        <div class="shopiva-route-arrow">→</div>
+                        <div><span class="shopiva-route-dot destination"></span>Your delivery address</div>
+                    </div>
+                    <p class="shopiva-map-note-text">Your latest order is connected to the Shopiva delivery workflow. Detailed rider GPS and ETA can be plugged into this map as dispatch data becomes available.</p>
+                    <a href="{% url 'customer_orders' %}" class="shopiva-map-button">View My Orders →</a>
+                {% else %}
+                    <div class="shopiva-order-chip">No active order yet</div>
+                    <h3>Track your journey with Shopiva</h3>
+                    <p class="shopiva-map-note-text">Once you place an order, this space becomes your delivery control card. Shopiva can later attach a rider, ETA and route here.</p>
+                    <a href="/products/" class="shopiva-map-button">Start Shopping →</a>
+                {% endif %}
+            {% endif %}
+        </aside>
+    </div>
+</section>
+
+<style>
+.shopiva-map-card{background:#fff;border:1px solid #dfe7e3;border-radius:22px;padding:22px;box-shadow:0 10px 30px rgba(12,35,25,.06);margin-top:24px;overflow:hidden}.shopiva-map-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px}.shopiva-map-kicker{font-size:11px;font-weight:900;letter-spacing:.12em;color:#087f5b}.shopiva-map-head h2{margin:5px 0 4px;font-size:24px;color:#13211c}.shopiva-map-head p{margin:0;color:#6a7771;font-size:13px}.shopiva-map-live{display:inline-flex;align-items:center;gap:7px;background:#ecfdf5;color:#047857;border:1px solid #bbf7d0;border-radius:999px;padding:8px 12px;font-size:11px;font-weight:800;white-space:nowrap}.shopiva-map-live span{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 0 4px rgba(16,185,129,.15)}.shopiva-map-body{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(230px,.55fr);gap:16px}.shopiva-network-map{position:relative;min-height:370px;border-radius:18px;background:linear-gradient(145deg,#f0fbf6,#edf7f5);border:1px solid #dcebe4;padding:10px}.shopiva-network-map svg{width:100%;height:auto;display:block}.shopiva-kenya-shape{fill:#dff3ea;stroke:#b6dfd0;stroke-width:2}.shopiva-route{fill:none;stroke:url(#shopivaRoute);stroke-width:6;stroke-linecap:round;stroke-dasharray:11 11;animation:shopivaDash 8s linear infinite}.shopiva-route-faint{opacity:.42;stroke-width:4}.shopiva-hub circle{fill:#087f5b;stroke:#fff;stroke-width:4}.shopiva-hub text{font-size:15px;font-weight:800;fill:#18332b}.shopiva-hub-small circle{fill:#4d8c79;stroke:#fff;stroke-width:3}.shopiva-hub-small text{font-size:11px;font-weight:700;fill:#4d625a}.shopiva-pulse{fill:none!important;stroke:#10b981!important;stroke-width:3!important;opacity:.45;animation:shopivaPulse 2s ease-out infinite}.shopiva-map-legend{position:absolute;left:20px;right:20px;bottom:18px;display:flex;flex-wrap:wrap;gap:14px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border:1px solid #e2ece7;border-radius:12px;padding:9px 11px;font-size:11px;color:#53635c}.shopiva-map-legend span{display:inline-flex;align-items:center;gap:6px}.shopiva-dot{display:inline-block;width:8px;height:8px;border-radius:50%}.shopiva-dot-hub{background:#087f5b}.shopiva-dot-active{background:#10b981;box-shadow:0 0 0 4px rgba(16,185,129,.13)}.shopiva-line{display:inline-block;width:18px;height:3px;background:#087f5b;border-radius:5px}.shopiva-map-side{background:#f8fbfa;border:1px solid #e4ece8;border-radius:18px;padding:15px}.shopiva-map-stat{background:#fff;border:1px solid #e2ebe6;border-radius:12px;padding:12px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;gap:10px}.shopiva-map-stat span{font-size:12px;color:#687770}.shopiva-map-stat strong{font-size:18px;color:#17342a}.shopiva-map-note{background:#eaf9f2;border:1px solid #cbeedd;border-radius:12px;padding:12px;margin-top:12px}.shopiva-map-note strong{font-size:12px;color:#087f5b}.shopiva-map-note p,.shopiva-map-note-text{margin:5px 0 0;color:#607069;font-size:12px;line-height:1.55}.shopiva-order-chip{display:inline-block;background:#e7f8f0;color:#087f5b;border:1px solid #c6e9d8;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800;margin-bottom:12px}.shopiva-order-status{display:flex;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid #e0e9e4}.shopiva-order-status span{font-size:12px;color:#75827d}.shopiva-order-status strong{font-size:14px;color:#087f5b}.shopiva-order-route{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:15px 0;font-size:11px;color:#53645d}.shopiva-route-dot{display:inline-block;width:9px;height:9px;background:#087f5b;border-radius:50%;margin-right:6px}.shopiva-route-dot.destination{background:#2563eb}.shopiva-route-arrow{font-size:16px;color:#6c7b73}.shopiva-map-button{display:inline-block;margin-top:14px;width:100%;text-align:center;background:#087f5b;color:#fff;padding:10px 12px;border-radius:10px;text-decoration:none;font-weight:800;font-size:12px}@keyframes shopivaDash{to{stroke-dashoffset:-200}}@keyframes shopivaPulse{0%{r:19;opacity:.48}100%{r:34;opacity:0}}@media(max-width:850px){.shopiva-map-body{grid-template-columns:1fr}.shopiva-map-head{flex-direction:column}.shopiva-map-live{align-self:flex-start}}@media(max-width:560px){.shopiva-map-card{padding:14px}.shopiva-map-head h2{font-size:20px}.shopiva-network-map{min-height:270px}.shopiva-map-legend{position:static;margin-top:-2px}.shopiva-hub text{font-size:12px}}
+</style>
