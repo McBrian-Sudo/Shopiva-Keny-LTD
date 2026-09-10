@@ -44,6 +44,7 @@
     .ai-suggestions { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
     .ai-suggestions button { border:1px solid var(--shopiva-border); background:#fff; border-radius:999px; padding:6px 9px; cursor:pointer; font-size:11px; }
     .notice { padding:12px 14px; border-radius:12px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:13px; }
+    .delivery-link { margin-top:12px; display:block; text-decoration:none !important; }
     @media(max-width:1200px){ .stats{grid-template-columns:repeat(3,1fr)} .layout{grid-template-columns:1fr} }
     @media(max-width:650px){ #content{padding:0 12px 30px}.shopiva-hero{padding:20px;align-items:flex-start;flex-direction:column}.stats{grid-template-columns:repeat(2,1fr)}.quick-grid{grid-template-columns:1fr}.ai-form{flex-direction:column} }
 </style>
@@ -79,6 +80,7 @@
                     <a class="quick" href="{% url 'shopiva_admin:home_orderitem_changelist' %}"><strong>🧾 Order Items</strong><span>Inspect items attached to orders.</span></a>
                     <a class="quick" href="{% url 'shopiva_admin:auth_user_changelist' %}"><strong>👥 Users</strong><span>Manage staff and customer accounts.</span></a>
                     <a class="quick" href="{% url 'shopiva_admin:auth_group_changelist' %}"><strong>🔐 Permissions</strong><span>Organize admin access with groups.</span></a>
+                    <a class="quick delivery-link" href="{% url 'shopiva_admin:delivery_map' %}"><strong>🧭 Delivery Command Map</strong><span>View Shopiva's Kenya delivery network.</span></a>
                 </div>
             </section>
 
@@ -124,6 +126,7 @@
                     <a class="quick" href="{% url 'shopiva_admin:home_product_changelist' %}"><strong>🛍️ Catalog</strong><span>Products & inventory</span></a>
                     <a class="quick" href="{% url 'shopiva_admin:home_order_changelist' %}"><strong>📦 Orders</strong><span>Fulfilment workflow</span></a>
                     <a class="quick" href="{% url 'shopiva_admin:auth_user_changelist' %}"><strong>👥 Accounts</strong><span>Users & staff</span></a>
+                    <a class="quick" href="{% url 'shopiva_admin:delivery_map' %}"><strong>🧭 Delivery Map</strong><span>Kenya delivery network</span></a>
                     <a class="quick" href="/">🏪 <strong>Open Market</strong><span>Return to Shopiva storefront</span></a>
                 </div>
             </section>
