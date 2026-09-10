@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'ke.co.shopiva.delivery'
+    namespace 'ke.co.shopiva.admin'
     compileSdk 36
 
     defaultConfig {
-        applicationId 'ke.co.shopiva.delivery'
+        applicationId 'ke.co.shopiva.admin'
         minSdk 26
         targetSdk 36
         versionCode 1
@@ -51,8 +51,4 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-}
-
-dependencies {
-    implementation 'com.google.android.gms:play-services-location:21.4.0'
 }
