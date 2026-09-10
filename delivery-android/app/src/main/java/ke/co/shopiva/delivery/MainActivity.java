@@ -47,6 +47,15 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
+        TextView disclosure = new TextView(this);
+        disclosure.setText("Delivery location sharing: When you enable tracking, Shopiva shares your device location with Shopiva's delivery operations and the customer for the active delivery. A persistent Android notification remains visible while tracking is active. You can stop tracking at any time.");
+        disclosure.setTextColor(Color.GRAY);
+        disclosure.setTextSize(12);
+        disclosure.setPadding(0, 8, 0, 2);
+        controls.addView(disclosure, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
         LinearLayout buttons = new LinearLayout(this);
         buttons.setOrientation(LinearLayout.HORIZONTAL);
         buttons.setPadding(0, 10, 0, 0);
