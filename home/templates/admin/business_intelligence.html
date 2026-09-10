@@ -1,5 +1,4 @@
 {% extends "admin/base_site.html" %}
-{% load humanize %}
 
 {% block title %}Shopiva Commercial Intelligence{% endblock %}
 
@@ -26,22 +25,22 @@
     </section>
 
     <section class="stats">
-        <div class="stat"><span>Recorded orders</span><strong>{{ stats.orders|intcomma }}</strong></div>
-        <div class="stat"><span>Revenue</span><strong>KSh {{ stats.revenue|floatformat:2|intcomma }}</strong></div>
-        <div class="stat"><span>Paid revenue</span><strong>KSh {{ stats.paid_revenue|floatformat:2|intcomma }}</strong></div>
-        <div class="stat"><span>Average order</span><strong>KSh {{ stats.average_order_value|floatformat:2|intcomma }}</strong></div>
-        <div class="stat"><span>Repeat customers</span><strong>{{ stats.repeat_customers|intcomma }}</strong></div>
-        <div class="stat"><span>Active products</span><strong>{{ stats.active_products|intcomma }}</strong></div>
-        <div class="stat"><span>Inventory value</span><strong>KSh {{ stats.stock_value|floatformat:2|intcomma }}</strong></div>
+        <div class="stat"><span>Recorded orders</span><strong>{{ stats.orders }}</strong></div>
+        <div class="stat"><span>Revenue</span><strong>KSh {{ stats.revenue|floatformat:2 }}</strong></div>
+        <div class="stat"><span>Paid revenue</span><strong>KSh {{ stats.paid_revenue|floatformat:2 }}</strong></div>
+        <div class="stat"><span>Average order</span><strong>KSh {{ stats.average_order_value|floatformat:2 }}</strong></div>
+        <div class="stat"><span>Repeat customers</span><strong>{{ stats.repeat_customers }}</strong></div>
+        <div class="stat"><span>Active products</span><strong>{{ stats.active_products }}</strong></div>
+        <div class="stat"><span>Inventory value</span><strong>KSh {{ stats.stock_value|floatformat:2 }}</strong></div>
         <div class="stat"><span>Today's sales rows</span><strong>{{ daily_sales|length }}</strong></div>
     </section>
 
     <section class="grid">
         <div class="panel"><h2>Top products</h2>
-            {% for item in top_products %}<div class="row"><div><strong>{{ item.product__name }}</strong><div class="muted">{{ item.units }} units</div></div><span class="pill">KSh {{ item.sales|floatformat:2|intcomma }}</span></div>{% empty %}<p class="muted">No order data yet.</p>{% endfor %}
+            {% for item in top_products %}<div class="row"><div><strong>{{ item.product__name }}</strong><div class="muted">{{ item.units }} units</div></div><span class="pill">KSh {{ item.sales|floatformat:2 }}</span></div>{% empty %}<p class="muted">No order data yet.</p>{% endfor %}
         </div>
         <div class="panel"><h2>Top categories</h2>
-            {% for item in top_categories %}<div class="row"><div><strong>{{ item.product__category|default:"Uncategorized" }}</strong><div class="muted">{{ item.units }} units</div></div><span class="pill">KSh {{ item.sales|floatformat:2|intcomma }}</span></div>{% empty %}<p class="muted">No category sales data yet.</p>{% endfor %}
+            {% for item in top_categories %}<div class="row"><div><strong>{{ item.product__category|default:"Uncategorized" }}</strong><div class="muted">{{ item.units }} units</div></div><span class="pill">KSh {{ item.sales|floatformat:2 }}</span></div>{% empty %}<p class="muted">No category sales data yet.</p>{% endfor %}
         </div>
     </section>
 </div>
