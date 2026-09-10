@@ -2,17 +2,18 @@ from decimal import Decimal, InvalidOperation
 import uuid
 
 from django.contrib import messages
-from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .forms import CustomerRegistrationForm
-from .models import DeliveryAgent, Order, OrderEvent, OrderItem, Product
+from .models import DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product
 
 
 def _customer_only(request):
@@ -100,6 +101,52 @@ def customer_orders(request):
 
 
 @login_required(login_url="customer_login")
+def customer_delivery_location(request):
+    """Return only the latest assigned delivery partner location for this customer."""
+    if not _customer_only(request):
+        return JsonResponse({"ok": False, "error": "Admin accounts use the admin delivery map."}, status=403)
+
+    latest_order = (
+        Order.objects.filter(email__iexact=request.user.email)
+        .select_related("delivery_agent")
+        .prefetch_related("events")
+        .order_by("-created_at")
+        .first()
+    )
+
+    if not latest_order or not latest_order.delivery_agent:
+        return JsonResponse({"ok": True, "agent": None, "order": None})
+
+    agent = latest_order.delivery_agent
+    data = {
+        "id": agent.id,
+        "name": agent.display_name,
+        "status": agent.get_status_display(),
+        "latitude": float(agent.current_latitude) if agent.current_latitude is not None else None,
+        "longitude": float(agent.current_longitude) if agent.current_longitude is not None else None,
+        "updated": agent.last_location_at.isoformat() if agent.last_location_at else None,
+        "live": agent.location_is_live,
+        "accuracy": None,
+    }
+
+    latest_ping = agent.location_history.order_by("-recorded_at").first()
+    if latest_ping and latest_ping.accuracy_meters is not None:
+        data["accuracy"] = float(latest_ping.accuracy_meters)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "agent": data,
+            "order": {
+                "id": latest_order.id,
+                "tracking_code": latest_order.tracking_code,
+                "status": latest_order.get_status_display(),
+            },
+        }
+    )
+
+
+@login_required(login_url="customer_login")
 def customer_profile(request):
     if not _customer_only(request):
         return redirect("/admin/")
@@ -149,6 +196,7 @@ def delivery_portal(request):
 
 @login_required(login_url="customer_login")
 def delivery_update_location(request):
+    """Backward-compatible manual location update endpoint."""
     if request.method != "POST":
         return redirect("delivery_portal")
 
@@ -169,12 +217,89 @@ def delivery_update_location(request):
     if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
         return redirect("delivery_portal")
 
+    now = timezone.now()
     agent.current_latitude = latitude.quantize(Decimal("0.000001"))
     agent.current_longitude = longitude.quantize(Decimal("0.000001"))
-    agent.last_location_at = timezone.now()
+    agent.last_location_at = now
     agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
     agent.save(update_fields=["current_latitude", "current_longitude", "last_location_at", "status"])
+    DeliveryLocationPing.objects.create(
+        agent=agent,
+        latitude=agent.current_latitude,
+        longitude=agent.current_longitude,
+    )
     return redirect("delivery_portal")
+
+
+@login_required(login_url="customer_login")
+def delivery_ping_location(request):
+    """Receive an automatic browser GPS ping from a delivery partner."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+    try:
+        agent = request.user.delivery_agent_profile
+    except DeliveryAgent.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Delivery partner profile not found."}, status=403)
+
+    if not agent.is_active:
+        return JsonResponse({"ok": False, "error": "Delivery partner account is inactive."}, status=403)
+
+    try:
+        latitude = Decimal(str(request.POST.get("latitude", "")))
+        longitude = Decimal(str(request.POST.get("longitude", "")))
+    except (InvalidOperation, TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "Invalid coordinates."}, status=400)
+
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        return JsonResponse({"ok": False, "error": "Coordinates are out of range."}, status=400)
+
+    def optional_decimal(field_name, minimum=None, maximum=None):
+        raw = request.POST.get(field_name, "").strip()
+        if not raw:
+            return None
+        try:
+            value = Decimal(raw)
+        except (InvalidOperation, TypeError, ValueError):
+            return None
+        if minimum is not None and value < minimum:
+            return None
+        if maximum is not None and value > maximum:
+            return None
+        return value
+
+    accuracy = optional_decimal("accuracy", minimum=Decimal("0"), maximum=Decimal("100000"))
+    speed = optional_decimal("speed", minimum=Decimal("0"), maximum=Decimal("100"))
+    heading = optional_decimal("heading", minimum=Decimal("0"), maximum=Decimal("360"))
+
+    now = timezone.now()
+    latitude = latitude.quantize(Decimal("0.000001"))
+    longitude = longitude.quantize(Decimal("0.000001"))
+
+    agent.current_latitude = latitude
+    agent.current_longitude = longitude
+    agent.last_location_at = now
+    agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
+    agent.save(update_fields=["current_latitude", "current_longitude", "last_location_at", "status"])
+
+    DeliveryLocationPing.objects.create(
+        agent=agent,
+        latitude=latitude,
+        longitude=longitude,
+        accuracy_meters=accuracy.quantize(Decimal("0.01")) if accuracy is not None else None,
+        speed_mps=speed.quantize(Decimal("0.01")) if speed is not None else None,
+        heading_degrees=heading.quantize(Decimal("0.01")) if heading is not None else None,
+    )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "updated_at": now.isoformat(),
+            "latitude": float(latitude),
+            "longitude": float(longitude),
+            "status": agent.get_status_display(),
+        }
+    )
 
 
 def home(request):

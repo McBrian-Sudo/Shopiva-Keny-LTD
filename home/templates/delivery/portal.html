@@ -20,16 +20,21 @@
         .card { background:white; border-radius:18px; padding:20px; box-shadow:0 10px 25px rgba(0,0,0,.06); margin-bottom:18px; }
         .card h2 { margin:0 0 14px; font-size:18px; }
         .status { display:inline-flex; padding:7px 11px; border-radius:999px; background:#ecfdf5; color:#047857; font-weight:800; font-size:12px; }
+        .live-status { margin-top:10px; display:flex; align-items:center; gap:8px; font-size:12px; color:#64736c; }
+        .live-status .dot { width:9px; height:9px; border-radius:50%; background:#94a3b8; }
+        .live-status.live .dot { background:#10b981; box-shadow:0 0 0 5px rgba(16,185,129,.12); }
         .loc-box { background:#eff8f4; border:1px solid #cce9db; border-radius:14px; padding:14px; margin-top:14px; }
         .loc-text { font-size:12px; color:#5d6c65; line-height:1.6; }
         .button { display:inline-block; border:0; background:#087f5b; color:white; border-radius:11px; padding:11px 14px; font-weight:800; cursor:pointer; text-decoration:none; }
         .button.secondary { background:#eaf3ef; color:#07553e; }
+        .button.stop { background:#b42318; }
         .order { border:1px solid #e2eae5; border-radius:14px; padding:15px; margin-bottom:12px; }
         .order:last-child { margin-bottom:0; }
         .order-head { display:flex; justify-content:space-between; gap:14px; align-items:center; }
         .order h3 { margin:0; font-size:17px; }
         .meta { color:#66736d; font-size:13px; margin-top:6px; }
         .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+        .privacy-note { margin-top:12px; padding:11px 12px; border-radius:12px; background:#fff7ed; border:1px solid #fed7aa; color:#8a4513; font-size:11px; line-height:1.5; }
         @media(max-width:800px){ .grid{grid-template-columns:1fr}.top-inner{align-items:flex-start;flex-direction:column} }
     </style>
 </head>
@@ -44,7 +49,7 @@
 <main class="wrap">
     <section class="hero">
         <h1>Welcome, {{ agent.display_name }} 🚚</h1>
-        <p>Your delivery workspace. Keep your location updated so Shopiva can monitor active deliveries.</p>
+        <p>Your delivery workspace. Start automatic location sharing when you begin delivery operations.</p>
     </section>
 
     <div class="grid">
@@ -52,16 +57,20 @@
             <section class="card">
                 <h2>Delivery profile</h2>
                 <div class="status">{{ agent.get_status_display }}</div>
+                <div id="sharing-indicator" class="live-status">
+                    <span class="dot"></span>
+                    <span id="sharing-text">Automatic location sharing is off.</span>
+                </div>
                 {% if agent.phone %}<div class="meta">📞 {{ agent.phone }}</div>{% endif %}
                 {% if agent.vehicle_type %}<div class="meta">🚗 {{ agent.vehicle_type }}{% if agent.vehicle_number %} · {{ agent.vehicle_number }}{% endif %}</div>{% endif %}
 
-                <form id="location-form" method="post" action="{% url 'delivery_update_location' %}" style="margin-top:16px;">
+                <form id="location-form" method="post" action="{% url 'delivery_update_location' %}" style="margin-top:16px; display:none;">
                     {% csrf_token %}
                     <input id="latitude" type="hidden" name="latitude">
                     <input id="longitude" type="hidden" name="longitude">
-                    <button class="button" type="button" id="share-location">📍 Share my live location</button>
                 </form>
 
+                <button class="button" type="button" id="share-location">📍 Start automatic location sharing</button>
                 <div class="loc-box">
                     <div class="loc-text" id="location-status">
                         {% if agent.last_location_at %}
@@ -71,14 +80,17 @@
                         {% endif %}
                     </div>
                 </div>
+                <div class="privacy-note">
+                    🔒 Shopiva only receives location while you have granted browser location permission and this delivery workspace is active. The browser may pause location updates when the page is fully closed or the device/browser suspends background activity.
+                </div>
             </section>
 
             <section class="card">
-                <h2>How tracking works</h2>
-                <div class="meta">1. Tap <strong>Share my live location</strong>.</div>
-                <div class="meta">2. Shopiva stores your latest coordinates securely.</div>
-                <div class="meta">3. Admins can view your last known position in the Delivery Command Map.</div>
-                <div class="meta">4. The customer sees delivery progress through their order history.</div>
+                <h2>Automatic tracking</h2>
+                <div class="meta">1. Tap <strong>Start automatic location sharing</strong> once and allow location access.</div>
+                <div class="meta">2. Your browser watches your position and sends encrypted HTTPS requests to Shopiva about every 20 seconds while this page is active.</div>
+                <div class="meta">3. Shopiva stores the latest point and a timestamped history for operations and delivery support.</div>
+                <div class="meta">4. Admins can see your latest position in the Delivery Command Map.</div>
             </section>
         </div>
 
@@ -110,28 +122,125 @@
 (function () {
     const button = document.getElementById('share-location');
     const form = document.getElementById('location-form');
-    const lat = document.getElementById('latitude');
-    const lng = document.getElementById('longitude');
-    const status = document.getElementById('location-status');
+    const statusText = document.getElementById('location-status');
+    const indicator = document.getElementById('sharing-indicator');
+    const sharingText = document.getElementById('sharing-text');
+    const csrf = form.querySelector('[name=csrfmiddlewaretoken]').value;
+    const pingUrl = "{% url 'delivery_ping_location' %}";
 
-    function sendPosition(position) {
-        lat.value = position.coords.latitude;
-        lng.value = position.coords.longitude;
-        status.textContent = 'Sending your latest location to Shopiva…';
-        form.submit();
+    let watchId = null;
+    let heartbeatId = null;
+    let lastPosition = null;
+    let lastSentAt = 0;
+    const SEND_INTERVAL_MS = 20000;
+
+    function setSharingState(active, text) {
+        indicator.classList.toggle('live', active);
+        sharingText.textContent = text;
+        button.textContent = active
+            ? '⏹ Stop automatic location sharing'
+            : '📍 Start automatic location sharing';
+        button.classList.toggle('stop', active);
+    }
+
+    async function sendPosition(position) {
+        if (!position) return;
+
+        const now = Date.now();
+        if (now - lastSentAt < SEND_INTERVAL_MS && lastSentAt !== 0) return;
+        lastSentAt = now;
+        lastPosition = position;
+
+        const data = new URLSearchParams();
+        data.append('latitude', position.coords.latitude);
+        data.append('longitude', position.coords.longitude);
+        if (typeof position.coords.accuracy === 'number') data.append('accuracy', position.coords.accuracy);
+        if (typeof position.coords.speed === 'number' && position.coords.speed >= 0) data.append('speed', position.coords.speed);
+        if (typeof position.coords.heading === 'number' && position.coords.heading >= 0) data.append('heading', position.coords.heading);
+        data.append('csrfmiddlewaretoken', csrf);
+
+        statusText.textContent = 'Sending your latest location to Shopiva…';
+
+        try {
+            const response = await fetch(pingUrl, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body: data.toString(),
+                credentials: 'same-origin'
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.ok) throw new Error(result.error || 'Location update failed');
+
+            const time = new Date(result.updated_at).toLocaleTimeString();
+            statusText.textContent = 'Live location sent. Last update: ' + time + '.';
+        } catch (error) {
+            lastSentAt = 0;
+            statusText.textContent = 'Location update failed. Checking again shortly.';
+        }
+    }
+
+    function handlePosition(position) {
+        sendPosition(position);
+    }
+
+    function handleError(error) {
+        const messages = {
+            1: 'Location permission was denied. Please allow location access for Shopiva.',
+            2: 'Your location could not be determined. Please check GPS/location services.',
+            3: 'Location request timed out. Trying again…'
+        };
+        statusText.textContent = messages[error.code] || 'Unable to read your location.';
+    }
+
+    function startSharing() {
+        if (!navigator.geolocation) {
+            statusText.textContent = 'This browser does not support location sharing.';
+            return;
+        }
+
+        setSharingState(true, 'Automatic location sharing is active.');
+        statusText.textContent = 'Requesting location permission…';
+
+        watchId = navigator.geolocation.watchPosition(
+            handlePosition,
+            handleError,
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 5000
+            }
+        );
+
+        heartbeatId = setInterval(function () {
+            if (lastPosition) sendPosition(lastPosition);
+        }, SEND_INTERVAL_MS);
+    }
+
+    function stopSharing() {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+        if (heartbeatId !== null) {
+            clearInterval(heartbeatId);
+            heartbeatId = null;
+        }
+        lastPosition = null;
+        lastSentAt = 0;
+        setSharingState(false, 'Automatic location sharing is off.');
+        statusText.textContent = 'Automatic location sharing stopped on this device.';
     }
 
     button.addEventListener('click', function () {
-        if (!navigator.geolocation) {
-            status.textContent = 'This browser does not support location sharing.';
-            return;
+        if (watchId === null) {
+            startSharing();
+        } else {
+            stopSharing();
         }
-        status.textContent = 'Requesting your location permission…';
-        navigator.geolocation.getCurrentPosition(
-            sendPosition,
-            function () { status.textContent = 'Location permission was not granted.'; },
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-        );
     });
 })();
 </script>

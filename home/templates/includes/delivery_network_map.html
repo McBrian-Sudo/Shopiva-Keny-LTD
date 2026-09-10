@@ -3,9 +3,9 @@
         <div>
             <span class="shopiva-map-kicker">SHOPIVA SMART DELIVERY NETWORK</span>
             <h2>{% if delivery_admin_mode %}Kenya Delivery Command Map{% else %}Shopiva Delivery Journey{% endif %}</h2>
-            <p>{% if delivery_admin_mode %}Monitor active delivery partners, order assignment and last-known GPS positions.{% else %}Follow the progress of your latest Shopiva order from placement to delivery.{% endif %}</p>
+            <p>{% if delivery_admin_mode %}Monitor active delivery partners, order assignment and latest GPS positions.{% else %}Follow the progress of your latest Shopiva order from placement to delivery.{% endif %}</p>
         </div>
-        <div class="shopiva-map-live"><span></span>{% if delivery_admin_mode %}Operations Live{% else %}Tracking Ready{% endif %}</div>
+        <div id="shopiva-map-live-label" class="shopiva-map-live"><span></span>{% if delivery_admin_mode %}Operations Live{% else %}Tracking Ready{% endif %}</div>
     </div>
 
     <div class="shopiva-map-body">
@@ -40,14 +40,14 @@
                     <p class="shopiva-map-note-text">No delivery partners are configured yet.</p>
                     {% endfor %}
                 </div>
-                <div class="shopiva-map-note"><strong>GPS tracking</strong><p>Only the delivery partner's latest shared location is displayed. Route history and automated ETA can be added once dispatch data is flowing.</p></div>
+                <div class="shopiva-map-note"><strong>Automatic GPS</strong><p>Delivery partners can share their location from the delivery workspace. The map refreshes automatically while the command center is open.</p></div>
             {% else %}
                 {% if latest_order %}
                     <div class="shopiva-order-chip">Latest order #{{ latest_order.id }}</div>
                     <div class="shopiva-order-status"><span>Status</span><strong>{{ latest_order.get_status_display }}</strong></div>
                     <div class="shopiva-order-route"><div><span class="shopiva-route-dot"></span>Shopiva network</div><div class="shopiva-route-arrow">→</div><div><span class="shopiva-route-dot destination"></span>Your address</div></div>
                     {% if latest_order.delivery_agent %}
-                        <div class="shopiva-agent-box"><strong>🚚 Delivery partner</strong><span>{{ latest_order.delivery_agent.display_name }}</span><small>{% if latest_order.delivery_agent.last_location_at %}Last GPS: {{ latest_order.delivery_agent.last_location_at|date:"d M Y, H:i" }}{% else %}GPS not shared yet{% endif %}</small></div>
+                        <div id="shopiva-customer-agent-box" class="shopiva-agent-box"><strong>🚚 Delivery partner</strong><span>{{ latest_order.delivery_agent.display_name }}</span><small id="shopiva-customer-agent-status">{% if latest_order.delivery_agent.last_location_at %}Last GPS: {{ latest_order.delivery_agent.last_location_at|date:"d M Y, H:i" }}{% else %}GPS not shared yet{% endif %}</small></div>
                     {% endif %}
                     <p class="shopiva-map-note-text">Your order timeline records placement, payment, packing, assignment and delivery events as they happen.</p>
                     <a href="{% url 'customer_orders' %}" class="shopiva-map-button">View My Orders →</a>
@@ -63,17 +63,9 @@
 </section>
 
 {% if delivery_admin_mode %}
-<div id="shopiva-agent-coordinates" hidden>
-    {% for agent in delivery_agents %}
-        {% if agent.current_latitude and agent.current_longitude %}
-        <div class="shopiva-agent-data" data-name="{{ agent.display_name|escapejs }}" data-status="{{ agent.get_status_display|escapejs }}" data-lat="{{ agent.current_latitude }}" data-lng="{{ agent.current_longitude }}" data-updated="{{ agent.last_location_at|date:'d M Y, H:i'|escapejs }}"></div>
-        {% endif %}
-    {% endfor %}
-</div>
-{% elif latest_order and latest_order.delivery_agent and latest_order.delivery_agent.current_latitude and latest_order.delivery_agent.current_longitude %}
-<div id="shopiva-agent-coordinates" hidden>
-    <div class="shopiva-agent-data" data-name="{{ latest_order.delivery_agent.display_name|escapejs }}" data-status="{{ latest_order.get_status_display|escapejs }}" data-lat="{{ latest_order.delivery_agent.current_latitude }}" data-lng="{{ latest_order.delivery_agent.current_longitude }}" data-updated="{{ latest_order.delivery_agent.last_location_at|date:'d M Y, H:i'|escapejs }}"></div>
-</div>
+<div id="shopiva-agent-coordinates" hidden></div>
+{% elif latest_order and latest_order.delivery_agent %}
+<div id="shopiva-agent-coordinates" hidden></div>
 {% endif %}
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3n+3bU9m+o3U5yQwE7WjFJZ8M1O6w=" crossorigin="" />
@@ -88,34 +80,90 @@
     const mapElement = document.getElementById('shopiva-live-map');
     if (!mapElement || typeof L === 'undefined') return;
 
-    const kenyaCenter = [-0.0236, 37.9062];
-    const map = L.map(mapElement, { scrollWheelZoom: false }).setView(kenyaCenter, 6);
+    const isAdmin = {{ delivery_admin_mode|yesno:"true,false" }};
+    const feedUrl = isAdmin
+        ? "{% url 'shopiva_admin:delivery_locations' %}"
+        : "{% url 'customer_delivery_location' %}";
+    const map = L.map(mapElement, { scrollWheelZoom: false }).setView([-0.0236, 37.9062], 6);
+    const markers = new Map();
+    const trailLines = new Map();
+    let firstFix = true;
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 18,
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    const points = Array.from(document.querySelectorAll('#shopiva-agent-coordinates .shopiva-agent-data'));
-    const bounds = [];
-
-    points.forEach(function (item) {
-        const lat = parseFloat(item.dataset.lat);
-        const lng = parseFloat(item.dataset.lng);
-        if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-
-        bounds.push([lat, lng]);
-        L.marker([lat, lng]).addTo(map).bindPopup(
-            '<strong>' + item.dataset.name + '</strong><br>' +
-            item.dataset.status + '<br>' +
-            'Last update: ' + item.dataset.updated
-        );
-    });
-
-    if (bounds.length === 1) {
-        map.setView(bounds[0], 13);
-    } else if (bounds.length > 1) {
-        map.fitBounds(bounds, { padding: [30, 30] });
+    function clearAgentLayers() {
+        markers.forEach(function (marker) { map.removeLayer(marker); });
+        trailLines.forEach(function (line) { map.removeLayer(line); });
+        markers.clear();
+        trailLines.clear();
     }
+
+    function updateMap(payload) {
+        clearAgentLayers();
+        const agents = isAdmin ? (payload.agents || []) : (payload.agent ? [payload.agent] : []);
+        const bounds = [];
+
+        agents.forEach(function (agent) {
+            if (agent.latitude === null || agent.longitude === null) return;
+            const point = [Number(agent.latitude), Number(agent.longitude)];
+            bounds.push(point);
+
+            const liveLabel = agent.live ? 'LIVE' : 'Last known position';
+            const popup = '<strong>' + agent.name + '</strong><br>' +
+                agent.status + '<br>' + liveLabel +
+                (agent.updated ? '<br>Updated: ' + new Date(agent.updated).toLocaleString() : '');
+            const marker = L.marker(point).addTo(map).bindPopup(popup);
+            markers.set(String(agent.id), marker);
+        });
+
+        if (bounds.length === 1 && firstFix) {
+            map.setView(bounds[0], isAdmin ? 12 : 13);
+            firstFix = false;
+        } else if (bounds.length > 1 && firstFix) {
+            map.fitBounds(bounds, { padding: [30, 30] });
+            firstFix = false;
+        }
+
+        const label = document.getElementById('shopiva-map-live-label');
+        if (label && !isAdmin) {
+            const agent = payload.agent;
+            label.innerHTML = '<span></span>' + (agent && agent.live ? 'Rider Live' : 'Tracking Ready');
+        }
+
+        if (!isAdmin) {
+            const customerStatus = document.getElementById('shopiva-customer-agent-status');
+            if (customerStatus && payload.agent) {
+                if (payload.agent.live && payload.agent.updated) {
+                    customerStatus.textContent = 'Live GPS · updated ' + new Date(payload.agent.updated).toLocaleTimeString();
+                } else if (payload.agent.updated) {
+                    customerStatus.textContent = 'Last GPS: ' + new Date(payload.agent.updated).toLocaleString();
+                } else {
+                    customerStatus.textContent = 'GPS not shared yet';
+                }
+            }
+        }
+    }
+
+    async function refresh() {
+        try {
+            const response = await fetch(feedUrl, {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
+            if (!response.ok) return;
+            const payload = await response.json();
+            updateMap(payload);
+        } catch (error) {
+            // Keep the last rendered map if a refresh temporarily fails.
+        }
+    }
+
+    refresh();
+    window.setInterval(refresh, 15000);
 })();
 </script>
