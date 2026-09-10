@@ -89,6 +89,7 @@ class ShopivaAdminSite(admin.AdminSite):
             path("products/<int:product_id>/delete/", self.admin_view(self.product_delete), name="product_delete"),
             path("ai-assistant/", self.admin_view(self.ai_assistant), name="ai_assistant"),
             path("delivery-map/", self.admin_view(self.delivery_map), name="delivery_map"),
+            path("delivery-locations/", self.admin_view(self.delivery_locations), name="delivery_locations"),
         ]
         return custom_urls + urls
 
@@ -100,6 +101,23 @@ class ShopivaAdminSite(admin.AdminSite):
             "recent_orders": Order.objects.select_related("delivery_agent").order_by("-created_at")[:15],
         }
         return TemplateResponse(request, "admin/delivery_map.html", context)
+
+    def delivery_locations(self, request):
+        agents = DeliveryAgent.objects.filter(is_active=True).select_related("user")
+        data = []
+        for agent in agents:
+            if agent.current_latitude is None or agent.current_longitude is None:
+                continue
+            data.append(
+                {
+                    "name": agent.display_name,
+                    "status": agent.get_status_display(),
+                    "latitude": float(agent.current_latitude),
+                    "longitude": float(agent.current_longitude),
+                    "updated": agent.last_location_at.isoformat() if agent.last_location_at else None,
+                }
+            )
+        return JsonResponse({"agents": data, "updated_at": timezone.now().isoformat()})
 
     def product_manager(self, request):
         query = request.GET.get("q", "").strip()
@@ -267,8 +285,7 @@ class OrderAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
         if previous is None:
-            _record_event = OrderEvent.objects.create
-            _record_event(
+            OrderEvent.objects.create(
                 order=obj,
                 event_type="placed",
                 note="Order created in the Shopiva control center.",
@@ -279,7 +296,6 @@ class OrderAdmin(admin.ModelAdmin):
         if previous.status != obj.status:
             event_map = {
                 "confirmed": "confirmed",
-                "paid": "paid",
                 "packed": "packed",
                 "processing": "processing",
                 "shipped": "shipped",
