@@ -10,6 +10,7 @@ from home.views import (
     checkout,
     customer_addresses,
     customer_dashboard,
+    customer_delivery_location,
     customer_login,
     customer_logout,
     customer_orders,
@@ -57,6 +58,7 @@ urlpatterns = [
     path("account/profile/", customer_profile, name="customer_profile"),
     path("account/addresses/", customer_addresses, name="customer_addresses"),
     path("account/wishlist/", customer_wishlist, name="customer_wishlist"),
+    path("account/delivery-location/", customer_delivery_location, name="customer_delivery_location"),
 
     # =========================
     # DELIVERY PORTAL
