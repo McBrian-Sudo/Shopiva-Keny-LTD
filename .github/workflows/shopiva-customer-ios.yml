@@ -1,0 +1,35 @@
+name: Validate Shopiva Customer iOS
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/shopiva-customer-ios.yml'
+  pull_request:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/shopiva-customer-ios.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Validate iOS project without distribution signing
+        run: |
+          xcodebuild \
+            -project ios/ShopivaCustomer.xcodeproj \
+            -scheme ShopivaCustomer \
+            -sdk iphoneos \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            build
