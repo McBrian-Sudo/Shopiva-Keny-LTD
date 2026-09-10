@@ -1,26 +1,27 @@
-# Shopiva Delivery Android
+# Shopiva Admin Android
 
-Native Android companion for Shopiva delivery partners.
+The single native Android administration client for Shopiva Kenya LTD.
 
 ## What it does
 
-- Opens the production Shopiva delivery workspace inside the app.
-- Lets the delivery partner explicitly start and stop tracking.
-- Runs a visible Android location foreground service while tracking is active.
-- Sends GPS latitude, longitude, accuracy, speed and heading to Shopiva over HTTPS.
-- Continues location updates while the app is minimized or the screen is locked, subject to Android device and battery-management rules.
-- Uses the existing authenticated Shopiva delivery session, so customer/admin credentials are not exposed by the location service.
+- Opens the production Shopiva Admin Control Center.
+- Uses the same Django staff/admin authentication and permissions as the web Admin Control Center.
+- Gives authorized staff access to the Shopiva management dashboard and the controls already implemented on the main platform, including products, orders, users, commercial intelligence, delivery command/map tools, categories and operational actions.
+- Is not a customer shopping app and is not intended for Google Play or the Apple App Store.
+- Customer access is still handled by the main Shopiva shopping site/PWA and its planned official store distribution.
 
-## Permissions
+## Security model
 
-The app requests precise/coarse location and notifications. It does not request `ACCESS_BACKGROUND_LOCATION`; ongoing background operation is provided by the user-started location foreground service. Android requires an appropriate foreground-service location declaration and permission for modern target SDKs. See `LOCATION_DATA_POLICY.md` for the privacy disclosure.
+The APK itself is not the authority for admin access. The production Django server remains the authority. A customer account cannot gain staff access by installing or modifying the APK because `/admin/` is protected server-side.
+
+For distribution, the Admin APK is produced as a signed workflow artifact instead of a public customer-facing store release. Do not publish the Admin APK to Google Play, Apple App Store or other public app marketplaces.
 
 ## Build
 
-Open the `delivery-android` folder in Android Studio. The project uses Android Gradle Plugin 9.3.0, Gradle 9.5, Java 17, compile SDK 36, target SDK 36, and `com.google.android.gms:play-services-location:21.4.0`.
+Open the `delivery-android` folder in Android Studio. The project uses Java 17, compile SDK 36, target SDK 36 and Gradle 9.5 through GitHub Actions.
 
-A GitHub Actions workflow at `.github/workflows/delivery-android-build.yml` builds the debug APK on changes to this project.
+The GitHub Actions workflow at `.github/workflows/delivery-android-build.yml` builds debug and release outputs. Production signing is enabled only when the GitHub repository signing secrets are present.
 
 ## Production endpoint
 
-The server endpoint is configured in `app/src/main/java/ke/co/shopiva/delivery/ShopivaConfig.java`.
+The production Shopiva URL is configured in `app/src/main/java/ke/co/shopiva/delivery/ShopivaConfig.java` and the application opens `/admin/`.
