@@ -8,10 +8,14 @@ from home.views import (
     cart,
     categories,
     checkout,
+    customer_addresses,
     customer_dashboard,
     customer_login,
     customer_logout,
+    customer_orders,
+    customer_profile,
     customer_register,
+    customer_wishlist,
     home,
     order_success,
     product_detail,
@@ -61,6 +65,26 @@ urlpatterns = [
         "account/",
         customer_dashboard,
         name="customer_dashboard",
+    ),
+    path(
+        "account/orders/",
+        customer_orders,
+        name="customer_orders",
+    ),
+    path(
+        "account/profile/",
+        customer_profile,
+        name="customer_profile",
+    ),
+    path(
+        "account/addresses/",
+        customer_addresses,
+        name="customer_addresses",
+    ),
+    path(
+        "account/wishlist/",
+        customer_wishlist,
+        name="customer_wishlist",
     ),
 
     # =========================
