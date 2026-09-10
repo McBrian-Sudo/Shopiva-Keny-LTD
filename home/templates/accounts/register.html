@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Create Account | Shopiva Kenya</title>
+    <title>Customer Sign Up | Shopiva Kenya</title>
 
     <style>
         * {
@@ -217,9 +217,8 @@
         <h1>Shop smarter.<br>Live better.</h1>
 
         <p>
-            Create your Shopiva account and unlock a smarter,
-            faster and more personal shopping experience built
-            for Kenya.
+            Create your Shopiva customer account and unlock a smarter,
+            faster and more personal shopping experience built for Kenya.
         </p>
 
         <div class="benefits">
@@ -232,7 +231,7 @@
 
     <section class="form-panel">
 
-        <h2>Create your account</h2>
+        <h2>Create your customer account</h2>
 
         <p class="subtitle">
             Join Shopiva Kenya today.
@@ -262,19 +261,23 @@
             </div>
         {% endif %}
 
-        <form method="post">
+        <form method="post" autocomplete="off" data-lpignore="true" data-1p-ignore="true">
             {% csrf_token %}
 
             <div class="form-group">
-                <label for="id_username">Username</label>
+                <label for="id_username">Customer username</label>
 
                 <input
                     type="text"
                     name="username"
                     id="id_username"
                     value="{{ form.username.value|default:'' }}"
-                    placeholder="Choose a username"
-                    autocomplete="username"
+                    placeholder="Choose a customer username"
+                    autocomplete="off"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     required
                 >
             </div>
@@ -288,7 +291,9 @@
                     id="id_email"
                     value="{{ form.email.value|default:'' }}"
                     placeholder="you@example.com"
-                    autocomplete="email"
+                    autocomplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     required
                 >
             </div>
@@ -302,6 +307,8 @@
                     id="id_password1"
                     placeholder="Create a strong password"
                     autocomplete="new-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     required
                 >
             </div>
@@ -315,6 +322,8 @@
                     id="id_password2"
                     placeholder="Enter your password again"
                     autocomplete="new-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     required
                 >
 
@@ -329,7 +338,7 @@
         </form>
 
         <div class="login-link">
-            Already have an account?
+            Already have a customer account?
             <a href="{% url 'customer_login' %}">Sign in</a>
         </div>
 
