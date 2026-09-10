@@ -3,6 +3,7 @@ from django.conf.urls.static import static
 from django.urls import path
 
 from home.admin import shopiva_admin_site
+from home.customer_tracking import customer_order_tracking
 from home.views import (
     add_to_cart,
     cart,
@@ -55,6 +56,7 @@ urlpatterns = [
     path("customer/logout/", customer_logout, name="customer_logout"),
     path("account/", customer_dashboard, name="customer_dashboard"),
     path("account/orders/", customer_orders, name="customer_orders"),
+    path("account/orders/<int:order_id>/", customer_order_tracking, name="customer_order_tracking"),
     path("account/profile/", customer_profile, name="customer_profile"),
     path("account/addresses/", customer_addresses, name="customer_addresses"),
     path("account/wishlist/", customer_wishlist, name="customer_wishlist"),
