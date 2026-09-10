@@ -1,5 +1,3 @@
-import json
-
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 
@@ -19,8 +17,7 @@ def app_manifest(request):
         "theme_color": "#2563eb",
         "description": "Shopiva Kenya — modern shopping for customers across Kenya.",
         "icons": [
-            {"src": "/static/shopiva/icon-192.png", "sizes": "192x192", "type": "image/png"},
-            {"src": "/static/shopiva/icon-512.png", "sizes": "512x512", "type": "image/png"},
+            {"src": "/static/shopiva/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
         ],
     }
     return JsonResponse(manifest)
