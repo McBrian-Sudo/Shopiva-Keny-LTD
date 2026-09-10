@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Partner | Shopiva Kenya</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin:0; font-family:Arial,sans-serif; background:#f3f7f5; color:#17211d; }
+        .top { background:#064e3b; color:white; padding:18px 22px; }
+        .wrap { max-width:1050px; margin:auto; padding:0 18px; }
+        .top-inner { display:flex; justify-content:space-between; align-items:center; gap:20px; }
+        .brand { font-weight:800; font-size:24px; }
+        .brand span { color:#8ff0c8; }
+        .logout { color:white; text-decoration:none; font-weight:700; }
+        .hero { margin:24px 0; background:white; border-radius:20px; padding:25px; box-shadow:0 10px 28px rgba(0,0,0,.06); }
+        .hero h1 { margin:0 0 6px; }
+        .hero p { margin:0; color:#66736d; }
+        .grid { display:grid; grid-template-columns:1fr 1.4fr; gap:18px; align-items:start; }
+        .card { background:white; border-radius:18px; padding:20px; box-shadow:0 10px 25px rgba(0,0,0,.06); margin-bottom:18px; }
+        .card h2 { margin:0 0 14px; font-size:18px; }
+        .status { display:inline-flex; padding:7px 11px; border-radius:999px; background:#ecfdf5; color:#047857; font-weight:800; font-size:12px; }
+        .loc-box { background:#eff8f4; border:1px solid #cce9db; border-radius:14px; padding:14px; margin-top:14px; }
+        .loc-text { font-size:12px; color:#5d6c65; line-height:1.6; }
+        .button { display:inline-block; border:0; background:#087f5b; color:white; border-radius:11px; padding:11px 14px; font-weight:800; cursor:pointer; text-decoration:none; }
+        .button.secondary { background:#eaf3ef; color:#07553e; }
+        .order { border:1px solid #e2eae5; border-radius:14px; padding:15px; margin-bottom:12px; }
+        .order:last-child { margin-bottom:0; }
+        .order-head { display:flex; justify-content:space-between; gap:14px; align-items:center; }
+        .order h3 { margin:0; font-size:17px; }
+        .meta { color:#66736d; font-size:13px; margin-top:6px; }
+        .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+        @media(max-width:800px){ .grid{grid-template-columns:1fr}.top-inner{align-items:flex-start;flex-direction:column} }
+    </style>
+</head>
+<body>
+<header class="top">
+    <div class="wrap top-inner">
+        <div class="brand">Shopiva<span>Kenya</span> Delivery</div>
+        <a class="logout" href="{% url 'customer_logout' %}">Sign out</a>
+    </div>
+</header>
+
+<main class="wrap">
+    <section class="hero">
+        <h1>Welcome, {{ agent.display_name }} 🚚</h1>
+        <p>Your delivery workspace. Keep your location updated so Shopiva can monitor active deliveries.</p>
+    </section>
+
+    <div class="grid">
+        <div>
+            <section class="card">
+                <h2>Delivery profile</h2>
+                <div class="status">{{ agent.get_status_display }}</div>
+                {% if agent.phone %}<div class="meta">📞 {{ agent.phone }}</div>{% endif %}
+                {% if agent.vehicle_type %}<div class="meta">🚗 {{ agent.vehicle_type }}{% if agent.vehicle_number %} · {{ agent.vehicle_number }}{% endif %}</div>{% endif %}
+
+                <form id="location-form" method="post" action="{% url 'delivery_update_location' %}" style="margin-top:16px;">
+                    {% csrf_token %}
+                    <input id="latitude" type="hidden" name="latitude">
+                    <input id="longitude" type="hidden" name="longitude">
+                    <button class="button" type="button" id="share-location">📍 Share my live location</button>
+                </form>
+
+                <div class="loc-box">
+                    <div class="loc-text" id="location-status">
+                        {% if agent.last_location_at %}
+                            Last location update: {{ agent.last_location_at|date:"d M Y, H:i:s" }}.
+                        {% else %}
+                            Location has not been shared yet.
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>How tracking works</h2>
+                <div class="meta">1. Tap <strong>Share my live location</strong>.</div>
+                <div class="meta">2. Shopiva stores your latest coordinates securely.</div>
+                <div class="meta">3. Admins can view your last known position in the Delivery Command Map.</div>
+                <div class="meta">4. The customer sees delivery progress through their order history.</div>
+            </section>
+        </div>
+
+        <section class="card">
+            <h2>Assigned deliveries</h2>
+            {% if assigned_orders %}
+                {% for order in assigned_orders %}
+                <article class="order">
+                    <div class="order-head">
+                        <h3>Order #{{ order.id }}</h3>
+                        <span class="status">{{ order.get_status_display }}</span>
+                    </div>
+                    <div class="meta">Tracking: {{ order.tracking_code|default:"Not assigned yet" }}</div>
+                    <div class="meta">Customer: {{ order.customer_name }}</div>
+                    <div class="meta">Destination: {{ order.address }}</div>
+                    <div class="actions">
+                        <a class="button secondary" href="/admin/home/order/{{ order.id }}/change/">Open order record</a>
+                    </div>
+                </article>
+                {% endfor %}
+            {% else %}
+                <div class="meta">No active deliveries are assigned to you right now.</div>
+            {% endif %}
+        </section>
+    </div>
+</main>
+
+<script>
+(function () {
+    const button = document.getElementById('share-location');
+    const form = document.getElementById('location-form');
+    const lat = document.getElementById('latitude');
+    const lng = document.getElementById('longitude');
+    const status = document.getElementById('location-status');
+
+    function sendPosition(position) {
+        lat.value = position.coords.latitude;
+        lng.value = position.coords.longitude;
+        status.textContent = 'Sending your latest location to Shopiva…';
+        form.submit();
+    }
+
+    button.addEventListener('click', function () {
+        if (!navigator.geolocation) {
+            status.textContent = 'This browser does not support location sharing.';
+            return;
+        }
+        status.textContent = 'Requesting your location permission…';
+        navigator.geolocation.getCurrentPosition(
+            sendPosition,
+            function () { status.textContent = 'Location permission was not granted.'; },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        );
+    });
+})();
+</script>
+</body>
+</html>
