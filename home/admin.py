@@ -16,7 +16,7 @@ from django.urls import path
 from django.utils import timezone
 
 from .voice_ai import speak_text, transcribe_voice
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
 
 class ProductForm(forms.ModelForm):
@@ -355,14 +355,15 @@ class OrderAdmin(admin.ModelAdmin):
             return
 
         if previous.status != obj.status and obj.status == "delivered":
-            for settlement in SellerSettlement.objects.select_for_update().filter(order=obj, status="pending"):
-                wallet = SellerWallet.objects.select_for_update().get(seller=settlement.seller)
-                wallet.pending_balance = max(Decimal("0.00"), wallet.pending_balance - settlement.seller_amount)
-                wallet.available_balance += settlement.seller_amount
-                wallet.save(update_fields=("pending_balance", "available_balance", "updated_at"))
-                settlement.status = "available"
-                settlement.released_at = now
-                settlement.save(update_fields=("status", "released_at"))
+            with transaction.atomic():
+                for settlement in SellerSettlement.objects.select_for_update().filter(order=obj, status="pending"):
+                    wallet = SellerWallet.objects.select_for_update().get(seller=settlement.seller)
+                    wallet.pending_balance = max(Decimal("0.00"), wallet.pending_balance - settlement.seller_amount)
+                    wallet.available_balance += settlement.seller_amount
+                    wallet.save(update_fields=("pending_balance", "available_balance", "updated_at"))
+                    settlement.status = "available"
+                    settlement.released_at = now
+                    settlement.save(update_fields=("status", "released_at"))
         if previous.status != obj.status:
             event_map = {
                 "confirmed": "confirmed",
@@ -483,3 +484,11 @@ class SellerSettlementAdmin(admin.ModelAdmin):
     list_filter = ("status", "created_at")
     search_fields = ("order__tracking_code", "seller__business_name", "seller__user__username", "provider_reference")
     readonly_fields = ("order", "seller", "gross_amount", "platform_commission", "seller_amount", "provider_reference", "created_at", "released_at", "paid_at")
+
+@admin.register(SellerPayoutRequest, site=shopiva_admin_site)
+class SellerPayoutRequestAdmin(admin.ModelAdmin):
+    list_display = ("id", "seller", "amount", "phone", "status", "provider_reference", "created_at", "paid_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("seller__business_name", "seller__user__username", "seller__user__email", "phone", "provider_reference", "idempotency_key")
+    readonly_fields = ("seller", "amount", "phone", "idempotency_key", "provider_response", "provider_reference", "failure_reason", "created_at", "updated_at", "paid_at")
+    list_per_page = 25
