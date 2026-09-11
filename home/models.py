@@ -147,3 +147,35 @@ class PaymentTransaction(models.Model):
 
     def __str__(self):
         return f"{self.method.upper()} #{self.id} - Order #{self.order_id}"
+
+
+class CustomerAddress(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="shopiva_addresses")
+    label = models.CharField(max_length=80, default="Home")
+    full_name = models.CharField(max_length=200)
+    phone = models.CharField(max_length=30)
+    county = models.CharField(max_length=100)
+    town = models.CharField(max_length=100)
+    address_line = models.CharField(max_length=255)
+    landmark = models.CharField(max_length=255, blank=True)
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-is_default", "-created_at")
+
+    def __str__(self):
+        return f"{self.label} - {self.town}, {self.county}"
+
+
+class WishlistItem(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="shopiva_wishlist")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="wishlist_items")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [models.UniqueConstraint(fields=("user", "product"), name="unique_shopiva_wishlist_item")]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.product.name}"
