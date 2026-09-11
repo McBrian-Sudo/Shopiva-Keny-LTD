@@ -1078,7 +1078,7 @@ function showHeroSlide(index) {
 function startHeroSlideshow() {
     clearInterval(heroTimer);
     if (heroSlides.length > 1) {
-        heroTimer = setInterval(() => showHeroSlide(heroIndex + 1), 5000);
+        heroTimer = setInterval(() => showHeroSlide(heroIndex + 1), 1000);
     }
 }
 
