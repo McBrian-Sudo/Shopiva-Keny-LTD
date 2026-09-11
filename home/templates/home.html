@@ -146,16 +146,234 @@
 
         .hero {
             max-width: 1200px;
+            height: 520px;
             margin: 28px auto;
-            padding: 55px 35px;
+            padding: 0;
             border-radius: 24px;
-            background: linear-gradient(135deg, #172554, #2563eb);
+            position: relative;
+            overflow: hidden;
+            background: #0f172a;
             color: white;
+            isolation: isolate;
+        }
+
+        .hero-track,
+        .hero-slide {
+            position: absolute;
+            inset: 0;
+        }
+
+        .hero-slide {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 30px;
-            overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(1.03);
+            transition: opacity .7s ease, transform 1.2s ease, visibility .7s;
+        }
+
+        .hero-slide.is-active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+            z-index: 2;
+        }
+
+        .hero-slide-image {
+            position: absolute;
+            inset: 0;
+            background: #172033;
+        }
+
+        .hero-slide-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .hero-default-image {
+            background:
+                linear-gradient(120deg, rgba(15,23,42,.92), rgba(37,99,235,.52)),
+                url("https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=85") center/cover;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: linear-gradient(90deg, rgba(8,15,35,.94) 0%, rgba(15,23,42,.78) 44%, rgba(15,23,42,.18) 100%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 3;
+            max-width: 650px;
+            padding: 55px;
+        }
+
+        .hero-kicker {
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: .16em;
+            opacity: .82;
+            margin-bottom: 10px;
+        }
+
+        .hero h1 {
+            font-size: clamp(38px, 5vw, 68px);
+            line-height: 1;
+            letter-spacing: -.045em;
+            margin: 0 0 16px;
+            max-width: 650px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            line-height: 1.55;
+            opacity: .94;
+            margin-bottom: 16px;
+            max-width: 610px;
+        }
+
+        .hero-price {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin: 8px 0;
+        }
+
+        .hero-price strong {
+            font-size: 25px;
+        }
+
+        .hero-price del {
+            opacity: .62;
+            font-size: 14px;
+        }
+
+        .hero-offer {
+            display: inline-block;
+            margin: 8px 0 18px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,.13);
+            border: 1px solid rgba(255,255,255,.2);
+            font-size: 13px;
+            font-weight: 750;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            background: rgba(255,255,255,.13);
+            border: 1px solid rgba(255,255,255,.25);
+            padding: 7px 13px;
+            border-radius: 30px;
+            margin-bottom: 14px;
+            font-size: 13px;
+            font-weight: bold;
+            backdrop-filter: blur(8px);
+        }
+
+        .hero-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .primary-btn,
+        .secondary-btn {
+            display: inline-block;
+            padding: 13px 21px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        .primary-btn {
+            background: white;
+            color: #1d4ed8;
+        }
+
+        .secondary-btn {
+            border: 1px solid rgba(255,255,255,.45);
+            background: rgba(255,255,255,.08);
+            color: white;
+            backdrop-filter: blur(8px);
+        }
+
+        .hero-arrow {
+            position: absolute;
+            top: 50%;
+            z-index: 5;
+            transform: translateY(-50%);
+            width: 46px;
+            height: 46px;
+            border: 1px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            background: rgba(15,23,42,.42);
+            color: white;
+            font-size: 34px;
+            line-height: 1;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+        }
+
+        .hero-arrow:hover {
+            background: rgba(255,255,255,.18);
+        }
+
+        .hero-prev { left: 18px; }
+        .hero-next { right: 18px; }
+
+        .hero-dots {
+            position: absolute;
+            left: 55px;
+            bottom: 22px;
+            z-index: 6;
+            display: flex;
+            gap: 7px;
+        }
+
+        .hero-dot {
+            width: 28px;
+            height: 5px;
+            padding: 0;
+            border: 0;
+            border-radius: 99px;
+            background: rgba(255,255,255,.38);
+            cursor: pointer;
+            transition: .25s;
+        }
+
+        .hero-dot.is-active {
+            width: 46px;
+            background: white;
+        }
+
+        .hero-progress {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 7;
+            height: 3px;
+            background: rgba(255,255,255,.16);
+        }
+
+        .hero-progress span {
+            display: block;
+            height: 100%;
+            width: 0;
+            background: white;
+        }
+
+        .hero-slide.is-active ~ .hero-progress span {
+            animation: heroProgress 5s linear forwards;
+        }
+
+        @keyframes heroProgress {
+            from { width: 0; }
+            to { width: 100%; }
         }
 
         .hero-content {
@@ -505,24 +723,74 @@
     </div>
 </nav>
 
-<section class="hero">
-    <div class="hero-content">
-        <span class="hero-badge">🇰🇪 Built for Kenya</span>
-
-        <h1>Shop smarter.<br>Live better.</h1>
-
-        <p>
-            Discover quality products, compare your options,
-            and enjoy a simple shopping experience with Shopiva.
-        </p>
-
-        <div class="hero-buttons">
-            <a href="#products" class="primary-btn">Shop Products</a>
-            <a href="#categories" class="secondary-btn">Explore Categories</a>
-        </div>
+<section class="hero hero-slideshow" aria-label="Shopiva offers and featured products">
+    <div class="hero-track">
+        {% if featured_products %}
+            {% for product in featured_products|slice:":6" %}
+            <article class="hero-slide{% if forloop.first %} is-active{% endif %}">
+                <div class="hero-slide-image">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                    {% else %}
+                        <div class="hero-fallback-icon">🛍️</div>
+                    {% endif %}
+                </div>
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    {% if product.discount_percent %}
+                        <span class="hero-badge">🔥 {{ product.discount_percent }}% OFF</span>
+                    {% else %}
+                        <span class="hero-badge">🇰🇪 Built for Kenya</span>
+                    {% endif %}
+                    <div class="hero-kicker">SHOPIVA FEATURED</div>
+                    <h1>{{ product.name }}</h1>
+                    <p>{{ product.description|truncatechars:150 }}</p>
+                    <div class="hero-price">
+                        {% if product.has_discount %}
+                            <strong>KSh {{ product.discounted_price|floatformat:2 }}</strong>
+                            <del>KSh {{ product.price|floatformat:2 }}</del>
+                        {% else %}
+                            <strong>KSh {{ product.price|floatformat:2 }}</strong>
+                        {% endif %}
+                    </div>
+                    {% if product.promo_text %}
+                        <div class="hero-offer">🎁 {{ product.promo_text }}</div>
+                    {% endif %}
+                    <div class="hero-buttons">
+                        <a href="{% url 'product_detail' product.id %}" class="primary-btn">Shop Now</a>
+                        <a href="/products/" class="secondary-btn">Explore Products</a>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        {% else %}
+            <article class="hero-slide is-active hero-static-slide">
+                <div class="hero-slide-image hero-default-image"></div>
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    <span class="hero-badge">🇰🇪 Built for Kenya</span>
+                    <div class="hero-kicker">WELCOME TO SHOPIVA</div>
+                    <h1>Shop smarter.<br>Live better.</h1>
+                    <p>Discover quality products, compare your options, and enjoy a simple shopping experience with Shopiva.</p>
+                    <div class="hero-buttons">
+                        <a href="/products/" class="primary-btn">Shop Products</a>
+                        <a href="#categories" class="secondary-btn">Explore Categories</a>
+                    </div>
+                </div>
+            </article>
+        {% endif %}
     </div>
 
-    <div class="hero-icon">🛍️</div>
+    {% if featured_products|length > 1 %}
+    <button class="hero-arrow hero-prev" type="button" aria-label="Previous slide">‹</button>
+    <button class="hero-arrow hero-next" type="button" aria-label="Next slide">›</button>
+    <div class="hero-dots" aria-label="Slideshow controls">
+        {% for product in featured_products|slice:":6" %}
+            <button class="hero-dot{% if forloop.first %} is-active{% endif %}" type="button" aria-label="Go to slide {{ forloop.counter }}"></button>
+        {% endfor %}
+    </div>
+    <div class="hero-progress"><span></span></div>
+    {% endif %}
 </section>
 
 <section class="section" id="categories">
@@ -785,21 +1053,56 @@
 </section>
 
 <script>
-let shopivaFeaturedIndex = 0;
+const heroSlides = document.querySelectorAll(".hero-slide");
+const heroDots = document.querySelectorAll(".hero-dot");
+const heroNext = document.querySelector(".hero-next");
+const heroPrev = document.querySelector(".hero-prev");
+let heroIndex = 0;
+let heroTimer;
 
-function shopivaFeaturedChange(direction) {
-    const slides = document.querySelectorAll(".shopiva-featured-slide");
-    if (!slides.length) return;
+function showHeroSlide(index) {
+    if (!heroSlides.length) return;
+    heroIndex = (index + heroSlides.length) % heroSlides.length;
 
-    slides[shopivaFeaturedIndex].style.display = "none";
-    shopivaFeaturedIndex = (shopivaFeaturedIndex + direction + slides.length) % slides.length;
-    slides[shopivaFeaturedIndex].style.display = "grid";
+    heroSlides.forEach((slide, i) => slide.classList.toggle("is-active", i === heroIndex));
+    heroDots.forEach((dot, i) => dot.classList.toggle("is-active", i === heroIndex));
+
+    const progress = document.querySelector(".hero-progress span");
+    if (progress) {
+        progress.style.animation = "none";
+        void progress.offsetWidth;
+        progress.style.animation = "heroProgress 5s linear forwards";
+    }
 }
 
-setInterval(() => {
-    const slides = document.querySelectorAll(".shopiva-featured-slide");
-    if (slides.length > 1) shopivaFeaturedChange(1);
-}, 5000);
+function startHeroSlideshow() {
+    clearInterval(heroTimer);
+    if (heroSlides.length > 1) {
+        heroTimer = setInterval(() => showHeroSlide(heroIndex + 1), 5000);
+    }
+}
+
+if (heroSlides.length > 1) {
+    heroNext?.addEventListener("click", () => {
+        showHeroSlide(heroIndex + 1);
+        startHeroSlideshow();
+    });
+
+    heroPrev?.addEventListener("click", () => {
+        showHeroSlide(heroIndex - 1);
+        startHeroSlideshow();
+    });
+
+    heroDots.forEach((dot, i) => {
+        dot.addEventListener("click", () => {
+            showHeroSlide(i);
+            startHeroSlideshow();
+        });
+    });
+
+    showHeroSlide(0);
+    startHeroSlideshow();
+}
 </script>
 
 </body>
