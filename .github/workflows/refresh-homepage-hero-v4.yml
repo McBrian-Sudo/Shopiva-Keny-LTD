@@ -15,11 +15,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Refresh homepage hero
-        run: python scripts/refresh_homepage_hero_v4.py
-
-      - name: Add 20 more homepage slides
-        run: python scripts/add_20_homepage_slides.py
+      - name: Refresh current homepage hero
+        run: python scripts/refresh_homepage_hero_v5.py
 
       - name: Commit generated homepage changes
         run: |
@@ -30,5 +27,5 @@ jobs:
             exit 0
           fi
           git add home/templates/home.html
-          git commit -m "Add 20 more Shopiva homepage slides [skip ci]"
+          git commit -m "Refresh Shopiva homepage hero V5 [skip ci]"
           git push
