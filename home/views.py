@@ -12,9 +12,10 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.db.models import Sum
 
-from .forms import CustomerRegistrationForm, SellerRegistrationForm
-from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
+from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm
+from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
 
 def _customer_only(request):
@@ -625,6 +626,40 @@ def products(request):
 
 
 
+@login_required(login_url="customer_login")
+def product_review(request, product_id):
+    if not _customer_only(request):
+        return redirect("/admin/")
+    product = get_object_or_404(Product, id=product_id)
+    eligible_orders = Order.objects.filter(email__iexact=request.user.email, status="delivered", items__product=product).distinct()
+    if not eligible_orders.exists():
+        messages.error(request, "You can review this product only after a delivered purchase.")
+        return redirect("product_detail", product_id=product.id)
+    if request.method == "POST":
+        order = get_object_or_404(eligible_orders, id=request.POST.get("order_id"))
+        form = ProductReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.product = product
+            review.customer = request.user
+            review.order = order
+            review.save()
+            messages.success(request, "Thank you. Your verified review is now live.")
+            return redirect("product_detail", product_id=product.id)
+    else:
+        form = ProductReviewForm()
+    return render(request, "reviews/form.html", {"product": product, "orders": eligible_orders, "form": form})
+
+
+@login_required(login_url="customer_login")
+def customer_notifications(request):
+    if not _customer_only(request):
+        return redirect("/admin/")
+    notifications = request.user.shopiva_notifications.all()[:50]
+    request.user.shopiva_notifications.filter(is_read=False).update(is_read=True)
+    return render(request, "accounts/notifications.html", {"notifications": notifications})
+
+
 def seller_register(request):
     if request.user.is_authenticated:
         if hasattr(request.user, "seller_profile"):
@@ -663,6 +698,13 @@ def seller_dashboard(request):
     order_items = seller.order_items.select_related("order", "product").order_by("-id")[:50]
     settlements = seller.settlements.select_related("order").order_by("-created_at")[:25]
     payouts = seller.payout_requests.order_by("-created_at")[:25]
+    analytics = {
+        "orders": seller.order_items.values("order_id").distinct().count(),
+        "units": seller.order_items.aggregate(total=Sum("quantity"))["total"] or 0,
+        "gross": seller.order_items.aggregate(total=Sum("seller_gross"))["total"] or Decimal("0.00"),
+        "net": seller.order_items.aggregate(total=Sum("seller_net"))["total"] or Decimal("0.00"),
+        "delivered": seller.order_items.filter(order__status="delivered").values("order_id").distinct().count(),
+    }
     return render(
         request,
         "seller/dashboard.html",
@@ -673,8 +715,38 @@ def seller_dashboard(request):
             "order_items": order_items,
             "settlements": settlements,
             "payouts": payouts,
+            "analytics": analytics,
         },
     )
+
+
+@login_required(login_url="customer_login")
+@login_required(login_url="customer_login")
+def seller_product_edit(request, product_id):
+    seller = getattr(request.user, "seller_profile", None)
+    if not seller or not seller.is_active:
+        return redirect("seller_register")
+    product = get_object_or_404(Product, id=product_id, seller=seller)
+    if request.method == "POST":
+        form = SellerProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"{product.name} has been updated.")
+            return redirect("seller_dashboard")
+    else:
+        form = SellerProductForm(instance=product)
+    return render(request, "seller/product_form.html", {"form": form, "mode": "edit", "product": product})
+
+
+@login_required(login_url="customer_login")
+def seller_product_toggle(request, product_id):
+    seller = getattr(request.user, "seller_profile", None)
+    product = get_object_or_404(Product, id=product_id, seller=seller)
+    if request.method == "POST":
+        product.is_active = not product.is_active
+        product.save(update_fields=["is_active"])
+        messages.success(request, f"{product.name} is now {'live' if product.is_active else 'paused'}.")
+    return redirect("seller_dashboard")
 
 
 @login_required(login_url="customer_login")
@@ -683,33 +755,19 @@ def seller_product_add(request):
     if not seller or not seller.is_active:
         return redirect("seller_register")
     if request.method == "POST":
-        name = request.POST.get("name", "").strip()
-        description = request.POST.get("description", "").strip()
-        category = request.POST.get("category", "General").strip() or "General"
-        sku = request.POST.get("sku", "").strip() or None
-        promo_text = request.POST.get("promo_text", "").strip()
-        try:
-            price = Decimal(request.POST.get("price", "0"))
-            stock = int(request.POST.get("stock_quantity", "0"))
-            discount = int(request.POST.get("discount_percent", "0"))
-        except (InvalidOperation, TypeError, ValueError):
-            price, stock, discount = Decimal("0"), -1, -1
-        if not name or price <= 0 or stock < 0 or not 0 <= discount <= 100:
-            return render(request, "seller/product_form.html", {"error": "Enter a valid name, price, stock quantity and discount.", "mode": "add"})
-        if sku and Product.objects.filter(sku=sku).exists():
-            return render(request, "seller/product_form.html", {"error": "SKU already exists. Choose a unique SKU.", "mode": "add"})
-        Product.objects.create(
-            name=name, description=description, category=category, sku=sku,
-            price=price, stock_quantity=stock, discount_percent=discount,
-            promo_text=promo_text, seller=seller, is_active=True,
-            image=request.FILES.get("image"),
-        )
-        messages.success(request, f"{name} is now listed on Shopiva.")
-        return redirect("seller_dashboard")
-    return render(request, "seller/product_form.html", {"mode": "add"})
+        form = SellerProductForm(request.POST, request.FILES)
+        if form.is_valid():
+            product = form.save(commit=False)
+            product.seller = seller
+            product.is_active = True
+            product.save()
+            messages.success(request, f"{product.name} is now listed on Shopiva.")
+            return redirect("seller_dashboard")
+    else:
+        form = SellerProductForm()
+    return render(request, "seller/product_form.html", {"form": form, "mode": "add"})
 
 
-@login_required(login_url="customer_login")
 def seller_product_delete(request, product_id):
     seller = getattr(request.user, "seller_profile", None)
     product = get_object_or_404(Product, id=product_id, seller=seller)
