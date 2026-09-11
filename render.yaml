@@ -52,3 +52,5 @@ services:
         sync: false
       - key: WHATSAPP_TEMPLATE_LANGUAGE
         value: "en_US"
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
