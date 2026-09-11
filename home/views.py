@@ -13,8 +13,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .forms import CustomerRegistrationForm
-from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, WishlistItem
+from .forms import CustomerRegistrationForm, SellerRegistrationForm
+from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
 
 def _customer_only(request):
@@ -622,3 +622,136 @@ def products(request):
             "selected_category": category,
         },
     )
+
+
+
+def seller_register(request):
+    if request.user.is_authenticated:
+        if hasattr(request.user, "seller_profile"):
+            return redirect("seller_dashboard")
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect("/admin/")
+
+    if request.method == "POST":
+        form = SellerRegistrationForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                user = form.save()
+                seller = SellerProfile.objects.create(
+                    user=user,
+                    business_name=form.cleaned_data["business_name"].strip(),
+                    mpesa_phone=form.cleaned_data["mpesa_phone"].strip(),
+                )
+                SellerWallet.objects.create(seller=seller)
+            auth_login(request, user)
+            messages.success(request, "Seller account created. Add your first product from the seller dashboard.")
+            return redirect("seller_dashboard")
+    else:
+        form = SellerRegistrationForm()
+    return render(request, "seller/register.html", {"form": form})
+
+
+@login_required(login_url="customer_login")
+def seller_dashboard(request):
+    if request.user.is_staff or request.user.is_superuser:
+        return redirect("/admin/")
+    seller = getattr(request.user, "seller_profile", None)
+    if not seller:
+        return redirect("seller_register")
+    wallet, _ = SellerWallet.objects.get_or_create(seller=seller)
+    products = seller.products.order_by("-id")
+    order_items = seller.order_items.select_related("order", "product").order_by("-id")[:50]
+    settlements = seller.settlements.select_related("order").order_by("-created_at")[:25]
+    payouts = seller.payout_requests.order_by("-created_at")[:25]
+    return render(
+        request,
+        "seller/dashboard.html",
+        {
+            "seller": seller,
+            "wallet": wallet,
+            "products": products,
+            "order_items": order_items,
+            "settlements": settlements,
+            "payouts": payouts,
+        },
+    )
+
+
+@login_required(login_url="customer_login")
+def seller_product_add(request):
+    seller = getattr(request.user, "seller_profile", None)
+    if not seller or not seller.is_active:
+        return redirect("seller_register")
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        description = request.POST.get("description", "").strip()
+        category = request.POST.get("category", "General").strip() or "General"
+        sku = request.POST.get("sku", "").strip() or None
+        promo_text = request.POST.get("promo_text", "").strip()
+        try:
+            price = Decimal(request.POST.get("price", "0"))
+            stock = int(request.POST.get("stock_quantity", "0"))
+            discount = int(request.POST.get("discount_percent", "0"))
+        except (InvalidOperation, TypeError, ValueError):
+            price, stock, discount = Decimal("0"), -1, -1
+        if not name or price <= 0 or stock < 0 or not 0 <= discount <= 100:
+            return render(request, "seller/product_form.html", {"error": "Enter a valid name, price, stock quantity and discount.", "mode": "add"})
+        if sku and Product.objects.filter(sku=sku).exists():
+            return render(request, "seller/product_form.html", {"error": "SKU already exists. Choose a unique SKU.", "mode": "add"})
+        Product.objects.create(
+            name=name, description=description, category=category, sku=sku,
+            price=price, stock_quantity=stock, discount_percent=discount,
+            promo_text=promo_text, seller=seller, is_active=True,
+            image=request.FILES.get("image"),
+        )
+        messages.success(request, f"{name} is now listed on Shopiva.")
+        return redirect("seller_dashboard")
+    return render(request, "seller/product_form.html", {"mode": "add"})
+
+
+@login_required(login_url="customer_login")
+def seller_product_delete(request, product_id):
+    seller = getattr(request.user, "seller_profile", None)
+    product = get_object_or_404(Product, id=product_id, seller=seller)
+    if request.method == "POST":
+        product.is_active = False
+        product.save(update_fields=["is_active"])
+        messages.success(request, "Product hidden from the shop.")
+    return redirect("seller_dashboard")
+
+
+@login_required(login_url="customer_login")
+def seller_request_payout(request):
+    seller = getattr(request.user, "seller_profile", None)
+    if not seller or not seller.is_active:
+        return redirect("seller_register")
+    if request.method != "POST":
+        return redirect("seller_dashboard")
+    wallet, _ = SellerWallet.objects.get_or_create(seller=seller)
+    try:
+        amount = Decimal(request.POST.get("amount", "0")).quantize(Decimal("0.01"))
+    except (InvalidOperation, TypeError, ValueError):
+        amount = Decimal("0.00")
+    if amount <= 0 or amount > wallet.available_balance:
+        messages.error(request, "Payout amount is invalid or exceeds your available balance.")
+        return redirect("seller_dashboard")
+    phone = request.POST.get("phone", "").strip() or seller.mpesa_phone
+    if not phone:
+        messages.error(request, "Add an M-PESA payout number before requesting a payout.")
+        return redirect("seller_dashboard")
+    with transaction.atomic():
+        wallet = SellerWallet.objects.select_for_update().get(pk=wallet.pk)
+        if amount > wallet.available_balance:
+            messages.error(request, "Your available balance changed. Please try again.")
+            return redirect("seller_dashboard")
+        payout = SellerPayoutRequest.objects.create(
+            seller=seller,
+            amount=amount,
+            phone=phone,
+            status="requested",
+            idempotency_key=f"PAYOUT-{seller.id}-{uuid.uuid4().hex}",
+        )
+        wallet.available_balance -= amount
+        wallet.save(update_fields=["available_balance", "updated_at"])
+    messages.success(request, f"Payout request #{payout.id} submitted for admin processing.")
+    return redirect("seller_dashboard")
