@@ -63,7 +63,7 @@
  const isAdmin={{ delivery_admin_mode|yesno:"true,false" }}; const feedUrl=isAdmin?"{% url 'shopiva_admin:delivery_locations' %}":"{% url 'customer_delivery_location' %}";
  const empty=document.getElementById('shopiva-map-empty-state'), providerError=document.getElementById('shopiva-map-provider-error');
  const map=L.map(mapEl,{scrollWheelZoom:false,zoomControl:true,minZoom:2}).setView([-1.2921,36.8219],11);
- const base=L.tileLayer('https://tile.openfreemap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © OpenMapTiles © OpenStreetMap contributors'}).addTo(map);
+ const base=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}.jpg',{maxZoom:19,attribution:'Tiles © Esri — World Street Map'}).addTo(map);
  base.on('tileerror',()=>{if(providerError)providerError.hidden=false;});
  const riderMarkers=[], customerMarkers=[], routeLayers=[]; let customerLocation=null, firstFix=true;
  const riderIcon=L.divIcon({className:'shopiva-rider-marker',html:'🚚',iconSize:[38,38],iconAnchor:[19,19]});
