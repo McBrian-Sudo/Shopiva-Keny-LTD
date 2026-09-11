@@ -14,7 +14,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .forms import CustomerRegistrationForm
-from .models import DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product
+from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, WishlistItem
 
 
 def _customer_only(request):
@@ -175,14 +175,74 @@ def customer_profile(request):
 def customer_addresses(request):
     if not _customer_only(request):
         return redirect("/admin/")
-    return render(request, "accounts/addresses.html")
+
+    if request.method == "POST":
+        action = request.POST.get("action", "save")
+        address_id = request.POST.get("address_id")
+
+        if action == "delete" and address_id:
+            CustomerAddress.objects.filter(id=address_id, user=request.user).delete()
+            messages.success(request, "Address removed.")
+            return redirect("customer_addresses")
+
+        if action == "default" and address_id:
+            with transaction.atomic():
+                CustomerAddress.objects.filter(user=request.user).update(is_default=False)
+                CustomerAddress.objects.filter(id=address_id, user=request.user).update(is_default=True)
+            messages.success(request, "Default delivery address updated.")
+            return redirect("customer_addresses")
+
+        fields = {
+            "label": request.POST.get("label", "Home").strip() or "Home",
+            "full_name": request.POST.get("full_name", "").strip(),
+            "phone": request.POST.get("phone", "").strip(),
+            "county": request.POST.get("county", "").strip(),
+            "town": request.POST.get("town", "").strip(),
+            "address_line": request.POST.get("address_line", "").strip(),
+            "landmark": request.POST.get("landmark", "").strip(),
+        }
+        if not all(fields[key] for key in ("full_name", "phone", "county", "town", "address_line")):
+            messages.error(request, "Please complete your name, phone, county, town and address.")
+        else:
+            with transaction.atomic():
+                if not CustomerAddress.objects.filter(user=request.user).exists():
+                    fields["is_default"] = True
+                address = CustomerAddress.objects.create(user=request.user, **fields)
+                if address.is_default:
+                    CustomerAddress.objects.filter(user=request.user).exclude(id=address.id).update(is_default=False)
+            messages.success(request, "Delivery address saved.")
+            return redirect("customer_addresses")
+
+    addresses = CustomerAddress.objects.filter(user=request.user)
+    return render(request, "accounts/addresses.html", {"addresses": addresses})
 
 
 @login_required(login_url="customer_login")
 def customer_wishlist(request):
     if not _customer_only(request):
         return redirect("/admin/")
-    return render(request, "accounts/wishlist.html")
+
+    if request.method == "POST":
+        product_id = request.POST.get("product_id")
+        action = request.POST.get("action", "toggle")
+        product = get_object_or_404(Product, id=product_id, is_active=True)
+
+        item = WishlistItem.objects.filter(user=request.user, product=product).first()
+        if action == "remove":
+            if item:
+                item.delete()
+                messages.success(request, f"{product.name} removed from your wishlist.")
+        else:
+            if item:
+                item.delete()
+                messages.info(request, f"{product.name} removed from your wishlist.")
+            else:
+                WishlistItem.objects.create(user=request.user, product=product)
+                messages.success(request, f"{product.name} saved to your wishlist.")
+        return redirect("customer_wishlist")
+
+    wishlist = WishlistItem.objects.filter(user=request.user).select_related("product")
+    return render(request, "accounts/wishlist.html", {"wishlist": wishlist})
 
 
 @login_required(login_url="customer_login")
