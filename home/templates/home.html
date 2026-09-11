@@ -729,6 +729,37 @@ body{background:#f6f8fc;color:#101828}
 @media (max-width:650px){.hero.shopiva-hero-v2{height:610px}.shopiva-hero-v2 .hero-overlay{background:linear-gradient(180deg,rgba(8,13,28,.48) 0%,rgba(8,13,28,.30) 55%,rgba(8,13,28,.12) 100%)}.shopiva-hero-v2 .hero-content{padding:36px 28px;margin-bottom:24px}.shopiva-hero-v2 .hero-content:after{left:16px;right:16px;width:auto;inset:22px 16px 18px;border-radius:22px;background:rgba(8,13,28,.28)}.shopiva-hero-v2 .hero-dots{left:28px;bottom:22px;max-width:72%;overflow:hidden}.shopiva-hero-v2 .hero-dot{width:12px}.shopiva-hero-v2 .hero-dot.is-active{width:30px}}
 
     </style>
+
+<style id="shopiva-hero-v4-css">
+.hero.shopiva-hero-v4{height:540px;margin:24px auto 34px;border-radius:30px;background:#edf2f7;box-shadow:0 24px 70px rgba(16,24,40,.10);position:relative;overflow:hidden;isolation:isolate}
+.shopiva-hero-v4 .hero-slide{transition:opacity .65s ease,transform 1.1s ease,visibility .65s;}
+.shopiva-hero-v4 .hero-slide-image img{filter:saturate(1.08) contrast(1.01);object-position:center;}
+.shopiva-hero-v4 .hero-overlay{background:linear-gradient(90deg,rgba(15,23,42,.20) 0%,rgba(15,23,42,.10) 34%,rgba(15,23,42,.025) 68%,rgba(15,23,42,0) 100%)}
+.shopiva-hero-v4 .hero-content{max-width:760px;padding:48px 56px;}
+.shopiva-hero-v4 .hero-content:before{content:"";position:absolute;left:36px;top:34px;bottom:34px;width:min(650px,62%);z-index:-1;border-radius:26px;background:rgba(255,255,255,.82);border:1px solid rgba(255,255,255,.72);box-shadow:0 18px 45px rgba(15,23,42,.08);backdrop-filter:blur(7px)}
+.shopiva-hero-v4 .hero-badge{background:rgba(255,255,255,.86);color:#172033;border:1px solid rgba(15,23,42,.10);box-shadow:0 8px 20px rgba(15,23,42,.07)}
+.shopiva-hero-v4 .hero-kicker{color:#4f46e5;opacity:1;letter-spacing:.16em;font-weight:900}
+.shopiva-hero-v4 .hero h1{color:#111827!important;font-weight:900;text-shadow:none}
+.shopiva-hero-v4 .hero h1 em{font-style:normal;color:#4f46e5!important;background:none!important;-webkit-text-fill-color:#4f46e5}
+.shopiva-hero-v4 .hero p{color:#344054!important;text-shadow:none}
+.shopiva-hero-v4 .primary-btn{background:#111827;color:#fff;border:1px solid #111827;box-shadow:0 10px 24px rgba(17,24,39,.13)}
+.shopiva-hero-v4 .primary-btn span{color:#76e4ff}
+.shopiva-hero-v4 .secondary-btn{background:rgba(255,255,255,.72);border:1px solid rgba(17,24,39,.14);color:#111827;box-shadow:0 8px 20px rgba(17,24,39,.06)}
+.shopiva-hero-v4 .secondary-btn:hover{background:#fff}
+.shopiva-hero-v4 .secondary-btn span{color:#4f46e5}
+.shopiva-hero-v4 .hero-arrow{width:48px;height:48px;background:rgba(255,255,255,.86);border:1px solid rgba(17,24,39,.12);color:#111827;box-shadow:0 8px 24px rgba(17,24,39,.10)}
+.shopiva-hero-v4 .hero-arrow:hover{background:#fff}
+.shopiva-hero-v4 .hero-dot{background:rgba(17,24,39,.20);height:6px;width:20px}
+.shopiva-hero-v4 .hero-dot.is-active{background:#4f46e5;width:46px}
+.shopiva-hero-v4 .hero-progress{background:rgba(17,24,39,.08);height:3px}
+.shopiva-hero-v4 .hero-progress span{background:linear-gradient(90deg,#4f46e5,#76e4ff);}
+.shopiva-hero-v4 .hero-status{color:#475467}
+.shopiva-hero-v4 .hero-status strong{color:#059669}
+.shopiva-hero-v4 .hero-live-dot{background:#34d399;box-shadow:0 0 0 5px rgba(52,211,153,.12)}
+@media(max-width:900px){.shopiva-hero-v4 .hero-content{padding:44px}.shopiva-hero-v4 .hero-content:before{left:28px;width:70%}.shopiva-hero-v4 .hero-status{display:none}}
+@media(max-width:650px){.hero.shopiva-hero-v4{height:600px;margin:15px;border-radius:24px}.shopiva-hero-v4 .hero-overlay{background:linear-gradient(180deg,rgba(15,23,42,.12),rgba(15,23,42,.03))}.shopiva-hero-v4 .hero-content{padding:30px 26px;align-self:flex-end;margin-bottom:26px}.shopiva-hero-v4 .hero-content:before{left:14px;right:14px;top:18px;bottom:18px;width:auto;border-radius:22px;background:rgba(255,255,255,.88)}.shopiva-hero-v4 .hero h1{font-size:40px}.shopiva-hero-v4 .hero p{font-size:16px}.shopiva-hero-v4 .hero-dots{left:26px;bottom:22px;max-width:72%;overflow:hidden}.shopiva-hero-v4 .hero-arrow{width:42px;height:42px}.shopiva-hero-v4 .hero-prev{left:10px}.shopiva-hero-v4 .hero-next{right:10px}}
+</style>
+
 </head>
 
 <body>
@@ -789,8 +820,8 @@ body{background:#f6f8fc;color:#101828}
     </div>
 </nav>
 
-<!-- SHOPIVA-HERO-V3 -->
-<section class="hero hero-slideshow shopiva-hero-v2" aria-label="Shopiva featured shopping stories">
+<!-- SHOPIVA-HERO-V4 -->
+<section class="hero hero-slideshow shopiva-hero-v4" aria-label="Shopiva shopping and customer service highlights">
     <div class="hero-track">
         <article class="hero-slide is-active" data-index="0">
             <div class="hero-slide-image">
@@ -798,7 +829,7 @@ body{background:#f6f8fc;color:#101828}
             </div>
             <div class="hero-overlay"></div>
             <div class="hero-content">
-                <span class="hero-badge">🇰🇪 SHOPIVA KENYA</span>
+                <span class="hero-badge">🛍️ SHOPIVA KENYA</span>
                 <div class="hero-kicker">SMART SHOPPING · LOCAL DISCOVERY</div>
                 <h1>Everything you need.<br><em>One smarter marketplace.</em></h1>
                 <p>Discover trusted products, compare your options and order with a shopping experience built for Kenya.</p>
@@ -811,14 +842,14 @@ body{background:#f6f8fc;color:#101828}
 
         <article class="hero-slide" data-index="1">
             <div class="hero-slide-image">
-                <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=2200&q=88" alt="Modern retail store" loading="lazy">
+                <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=2200&q=88" alt="Modern retail shopping" loading="lazy">
             </div>
             <div class="hero-overlay"></div>
             <div class="hero-content">
-                <span class="hero-badge">🛍️ DISCOVER MORE</span>
+                <span class="hero-badge">✨ DISCOVER MORE</span>
                 <div class="hero-kicker">PRODUCTS · CATEGORIES · SELLERS</div>
                 <h1>Find your next<br><em>favourite.</em></h1>
-                <p>Browse the marketplace and discover useful products from Shopiva sellers in one clean digital experience.</p>
+                <p>Browse products from Shopiva sellers in one clean digital marketplace.</p>
                 <div class="hero-buttons">
                     <a href="/products/" class="primary-btn">Browse Products <span>↗</span></a>
                     <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
@@ -832,10 +863,10 @@ body{background:#f6f8fc;color:#101828}
             </div>
             <div class="hero-overlay"></div>
             <div class="hero-content">
-                <span class="hero-badge">✨ SHOP YOUR STYLE</span>
+                <span class="hero-badge">👗 SHOP YOUR STYLE</span>
                 <div class="hero-kicker">FASHION · BEAUTY · LIFESTYLE</div>
                 <h1>Style that moves<br><em>with you.</em></h1>
-                <p>Explore fashion, lifestyle essentials and new finds with simple product discovery and quick ordering.</p>
+                <p>Explore fashion, lifestyle essentials and new finds for every day.</p>
                 <div class="hero-buttons">
                     <a href="/products/" class="primary-btn">Shop Fashion <span>↗</span></a>
                     <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
@@ -852,7 +883,7 @@ body{background:#f6f8fc;color:#101828}
                 <span class="hero-badge">👟 FRESH PICKS</span>
                 <div class="hero-kicker">SHOES · ACCESSORIES · STREET STYLE</div>
                 <h1>Step into<br><em>something better.</em></h1>
-                <p>Find everyday footwear and accessories that match your pace, your look and your budget.</p>
+                <p>Find footwear and accessories that match your pace and your budget.</p>
                 <div class="hero-buttons">
                     <a href="/products/" class="primary-btn">Shop Footwear <span>↗</span></a>
                     <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
@@ -869,7 +900,7 @@ body{background:#f6f8fc;color:#101828}
                 <span class="hero-badge">📱 TECH PICKS</span>
                 <div class="hero-kicker">PHONES · GADGETS · SMART DEVICES</div>
                 <h1>Power your<br><em>everyday life.</em></h1>
-                <p>Discover practical tech, smart devices and electronics for work, entertainment and everyday life.</p>
+                <p>Discover practical electronics for work, entertainment and everyday life.</p>
                 <div class="hero-buttons">
                     <a href="/products/" class="primary-btn">Shop Electronics <span>↗</span></a>
                     <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
@@ -903,7 +934,7 @@ body{background:#f6f8fc;color:#101828}
                 <span class="hero-badge">💄 BEAUTY & CARE</span>
                 <div class="hero-kicker">BEAUTY · SELF CARE · DAILY ESSENTIALS</div>
                 <h1>Feel good.<br><em>Look your best.</em></h1>
-                <p>Shop beauty and self-care essentials selected for everyday routines and special moments.</p>
+                <p>Shop beauty and self-care essentials for everyday routines and special moments.</p>
                 <div class="hero-buttons">
                     <a href="/products/" class="primary-btn">Shop Beauty <span>↗</span></a>
                     <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
@@ -937,7 +968,7 @@ body{background:#f6f8fc;color:#101828}
                 <span class="hero-badge">🥑 EVERYDAY ESSENTIALS</span>
                 <div class="hero-kicker">GROCERIES · HOUSEHOLD · DAILY NEEDS</div>
                 <h1>Stock up<br><em>with less stress.</em></h1>
-                <p>Discover useful everyday essentials and household products in one convenient marketplace.</p>
+                <p>Discover everyday essentials and household products in one convenient marketplace.</p>
                 <div class="hero-buttons">
                     <a href="/products/" class="primary-btn">Shop Essentials <span>↗</span></a>
                     <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
@@ -978,21 +1009,116 @@ body{background:#f6f8fc;color:#101828}
                 </div>
             </div>
         </article>
-    </div>
 
+        <article class="hero-slide" data-index="11">
+            <div class="hero-slide-image">
+                <img src="https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=2200&q=88" alt="Digital payment and shopping" loading="lazy">
+            </div>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <span class="hero-badge">💳 EASY PAYMENTS</span>
+                <div class="hero-kicker">M-PESA · CHECKOUT · ORDER CONFIRMATION</div>
+                <h1>Pay with<br><em>confidence.</em></h1>
+                <p>Use Shopiva checkout to place your order and follow confirmed payment updates without guessing.</p>
+                <div class="hero-buttons">
+                    <a href="/products/" class="primary-btn">Start Shopping <span>↗</span></a>
+                    <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
+                </div>
+            </div>
+        </article>
+
+        <article class="hero-slide" data-index="12">
+            <div class="hero-slide-image">
+                <img src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=2200&q=88" alt="Customer support conversation" loading="lazy">
+            </div>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <span class="hero-badge">🤝 CUSTOMER SUPPORT</span>
+                <div class="hero-kicker">HELP · ORDERS · DELIVERY QUESTIONS</div>
+                <h1>Need help?<br><em>Shopiva is here.</em></h1>
+                <p>Get support before, during and after your purchase with digital help for orders, delivery and shopping questions.</p>
+                <div class="hero-buttons">
+                    <a href="/products/" class="primary-btn">Get Help <span>↗</span></a>
+                    <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
+                </div>
+            </div>
+        </article>
+
+        <article class="hero-slide" data-index="13">
+            <div class="hero-slide-image">
+                <img src="https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&w=2200&q=88" alt="Delivery and logistics" loading="lazy">
+            </div>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <span class="hero-badge">🚚 DELIVERY UPDATES</span>
+                <div class="hero-kicker">TRACKING · RIDERS · LAST-MILE DELIVERY</div>
+                <h1>Know where<br><em>your order is.</em></h1>
+                <p>Follow your delivery journey and see rider details when live GPS is available.</p>
+                <div class="hero-buttons">
+                    <a href="/products/" class="primary-btn">Track Orders <span>↗</span></a>
+                    <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
+                </div>
+            </div>
+        </article>
+
+        <article class="hero-slide" data-index="14">
+            <div class="hero-slide-image">
+                <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=2200&q=88" alt="Customer service technology" loading="lazy">
+            </div>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <span class="hero-badge">↩️ RETURNS & RESOLUTION</span>
+                <div class="hero-kicker">ORDER HELP · ISSUE REPORTING · CUSTOMER CARE</div>
+                <h1>We listen.<br><em>We help resolve.</em></h1>
+                <p>Shopiva is designed to give customers a clear path for order issues and support requests.</p>
+                <div class="hero-buttons">
+                    <a href="/products/" class="primary-btn">Shop with Confidence <span>↗</span></a>
+                    <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
+                </div>
+            </div>
+        </article>
+
+        <article class="hero-slide" data-index="15">
+            <div class="hero-slide-image">
+                <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=2200&q=88" alt="Digital customer assistance" loading="lazy">
+            </div>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <span class="hero-badge">🤖 SHOPIVA AI</span>
+                <div class="hero-kicker">AI SHOPPING · VOICE · PRODUCT DISCOVERY</div>
+                <h1>Ask Shopiva.<br><em>Shop smarter.</em></h1>
+                <p>Use the Shopiva AI assistant to search products, compare options and get shopping help in natural language.</p>
+                <div class="hero-buttons">
+                    <a href="/products/" class="primary-btn">Ask Shopiva AI <span>↗</span></a>
+                    <a href="#categories" class="secondary-btn"><span>✦</span> Explore Categories <b>↓</b></a>
+                </div>
+            </div>
+        </article>
+
+    </div>
     <button class="hero-arrow hero-prev" type="button" aria-label="Previous slide">‹</button>
     <button class="hero-arrow hero-next" type="button" aria-label="Next slide">›</button>
-
     <div class="hero-dots" aria-label="Slideshow controls">
-        {% for n in "0123456789A" %}
-        <button class="hero-dot{% if forloop.first %} is-active{% endif %}" type="button" aria-label="Go to slide {{ forloop.counter }}"></button>
-        {% endfor %}
+        <button class="hero-dot is-active" type="button" data-slide="0" aria-label="Go to slide 1"></button>
+        <button class="hero-dot" type="button" data-slide="1" aria-label="Go to slide 2"></button>
+        <button class="hero-dot" type="button" data-slide="2" aria-label="Go to slide 3"></button>
+        <button class="hero-dot" type="button" data-slide="3" aria-label="Go to slide 4"></button>
+        <button class="hero-dot" type="button" data-slide="4" aria-label="Go to slide 5"></button>
+        <button class="hero-dot" type="button" data-slide="5" aria-label="Go to slide 6"></button>
+        <button class="hero-dot" type="button" data-slide="6" aria-label="Go to slide 7"></button>
+        <button class="hero-dot" type="button" data-slide="7" aria-label="Go to slide 8"></button>
+        <button class="hero-dot" type="button" data-slide="8" aria-label="Go to slide 9"></button>
+        <button class="hero-dot" type="button" data-slide="9" aria-label="Go to slide 10"></button>
+        <button class="hero-dot" type="button" data-slide="10" aria-label="Go to slide 11"></button>
+        <button class="hero-dot" type="button" data-slide="11" aria-label="Go to slide 12"></button>
+        <button class="hero-dot" type="button" data-slide="12" aria-label="Go to slide 13"></button>
+        <button class="hero-dot" type="button" data-slide="13" aria-label="Go to slide 14"></button>
+        <button class="hero-dot" type="button" data-slide="14" aria-label="Go to slide 15"></button>
+        <button class="hero-dot" type="button" data-slide="15" aria-label="Go to slide 16"></button>
     </div>
-
-    <div class="hero-status"><span class="hero-live-dot"></span><strong>LIVE</strong><span class="hero-status-label">Shopiva discovery</span></div>
+    <div class="hero-status"><span class="hero-live-dot"></span><strong>LIVE</strong><span class="hero-status-label">Shopiva services & discovery</span></div>
     <div class="hero-progress"><span></span></div>
 </section>
-
 <section class="section" id="categories">
     <div class="section-header">
         <div>
@@ -1462,6 +1588,38 @@ document.getElementById("shopiva-ai-form")?.addEventListener("submit", function(
     start();
 })();
 </script>
+
+
+<script id="shopiva-hero-v4-js">
+(function(){
+ const root=document.querySelector('.shopiva-hero-v4');
+ if(!root)return;
+ const slides=[...root.querySelectorAll('.hero-slide')];
+ const dots=[...root.querySelectorAll('.hero-dot')];
+ const prev=root.querySelector('.hero-prev');
+ const next=root.querySelector('.hero-next');
+ const progress=root.querySelector('.hero-progress span');
+ if(!slides.length)return;
+ let index=0,timer=null;
+ const duration=3000;
+ function render(i){
+   index=(i+slides.length)%slides.length;
+   slides.forEach((s,n)=>s.classList.toggle('is-active',n===index));
+   dots.forEach((d,n)=>d.classList.toggle('is-active',n===index));
+   if(progress){progress.style.animation='none';progress.offsetHeight;progress.style.animation='shopivaHeroProgress '+duration+'ms linear forwards';}
+ }
+ function schedule(){clearTimeout(timer);timer=setTimeout(()=>{render(index+1);schedule();},duration);}
+ prev?.addEventListener('click',()=>{render(index-1);schedule();});
+ next?.addEventListener('click',()=>{render(index+1);schedule();});
+ dots.forEach((d,n)=>d.addEventListener('click',()=>{render(n);schedule();}));
+ root.addEventListener('mouseenter',()=>clearTimeout(timer));
+ root.addEventListener('mouseleave',()=>schedule());
+ render(0);schedule();
+})();
+</script>
+<style id="shopiva-hero-v4-progress">
+@keyframes shopivaHeroProgress{from{width:0}to{width:100%}}
+</style>
 
 </body>
 </html>
