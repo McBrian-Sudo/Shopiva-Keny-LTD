@@ -102,27 +102,107 @@ class ShopivaAdminSite(admin.AdminSite):
         return custom_urls + urls
 
     def delivery_map(self, request):
+        counties = [
+            "Nairobi", "Mombasa", "Kisumu", "Nakuru", "Uasin Gishu", "Kiambu",
+            "Machakos", "Kajiado", "Nyeri", "Meru", "Kakamega", "Kilifi",
+            "Bungoma", "Kericho", "Kisii", "Homa Bay", "Siaya", "Trans Nzoia",
+            "Nandi", "Bomet", "Narok", "Laikipia", "Nyandarua", "Murang'a",
+            "Embu", "Tharaka Nithi", "Kitui", "Makueni", "Taita Taveta",
+            "Kwale", "Lamu", "Tana River", "Garissa", "Wajir", "Mandera",
+            "Marsabit", "Isiolo", "Samburu", "Turkana", "West Pokot", "Elgeyo-Marakwet",
+            "Baringo", "Vihiga", "Busia", "Migori", "Nyamira", "Kirinyaga",
+        ]
+        selected_county = request.GET.get("county", "").strip()
+        active_qs = Order.objects.select_related("delivery_agent").filter(
+            delivery_agent__isnull=False,
+            status__in=["confirmed", "paid", "packed", "processing", "shipped", "out_for_delivery"],
+        )
+        if selected_county:
+            active_qs = active_qs.filter(address__icontains=selected_county)
+        active_orders = list(active_qs.order_by("-created_at")[:50])
+
+        now = timezone.now()
+        rider_qs = DeliveryAgent.objects.filter(is_active=True).select_related("user")
+        rider_rows = []
+        for agent in rider_qs:
+            latest_order = (
+                agent.orders.select_related("delivery_agent")
+                .exclude(status__in=["cancelled"])
+                .order_by("-created_at")
+                .first()
+            )
+            if selected_county and latest_order and selected_county.lower() not in (latest_order.address or "").lower():
+                continue
+            live = agent.location_is_live
+            stale_minutes = None
+            if agent.last_location_at:
+                stale_minutes = max(0, int((now - agent.last_location_at).total_seconds() // 60))
+            rider_rows.append(
+                {
+                    "agent": agent,
+                    "latest_order": latest_order,
+                    "live": live,
+                    "stale_minutes": stale_minutes,
+                }
+            )
+
+        active_count = len(active_orders)
+        online_count = sum(1 for row in rider_rows if row["agent"].status in {"available", "on_delivery"} and row["live"])
+        delayed_count = sum(
+            1 for order in active_orders
+            if order.delivery_agent and order.delivery_agent.last_location_at and not order.delivery_agent.location_is_live
+        )
+        on_time_count = max(0, active_count - delayed_count)
+        today_deliveries = Order.objects.filter(created_at__date=timezone.localdate(), delivery_agent__isnull=False)
+
         context = {
             **self.each_context(request),
             "shopiva_stats": self._stats(),
-            "delivery_agents": DeliveryAgent.objects.filter(is_active=True).select_related("user").order_by("user__username"),
-            "recent_orders": Order.objects.select_related("delivery_agent").order_by("-created_at")[:15],
+            "delivery_agents": rider_qs,
+            "rider_rows": rider_rows,
+            "recent_deliveries": active_orders[:8] + list(
+                Order.objects.select_related("delivery_agent").filter(delivery_agent__isnull=False).order_by("-created_at")[:8]
+            ),
+            "counties": counties,
+            "selected_county": selected_county,
+            "delivery_dashboard": {
+                "active": active_count,
+                "on_time": on_time_count,
+                "delayed": delayed_count,
+                "riders_online": online_count,
+                "today": today_deliveries.count(),
+            },
         }
         return TemplateResponse(request, "admin/delivery_map.html", context)
 
     def delivery_locations(self, request):
+        county = request.GET.get("county", "").strip()
         agents = DeliveryAgent.objects.filter(is_active=True).select_related("user")
         data = []
         for agent in agents:
             if agent.current_latitude is None or agent.current_longitude is None:
                 continue
+            latest_order = agent.orders.select_related("delivery_agent").exclude(status="cancelled").order_by("-created_at").first()
+            address = latest_order.address if latest_order else ""
+            if county and county.lower() not in address.lower():
+                continue
             data.append(
                 {
+                    "id": agent.id,
                     "name": agent.display_name,
+                    "phone": agent.phone,
+                    "vehicle_type": agent.vehicle_type,
+                    "vehicle_number": agent.vehicle_number,
                     "status": agent.get_status_display(),
+                    "status_code": agent.status,
+                    "live": agent.location_is_live,
                     "latitude": float(agent.current_latitude),
                     "longitude": float(agent.current_longitude),
                     "updated": agent.last_location_at.isoformat() if agent.last_location_at else None,
+                    "order_id": latest_order.id if latest_order else None,
+                    "tracking_code": latest_order.tracking_code if latest_order else "",
+                    "order_status": latest_order.get_status_display() if latest_order else "No active order",
+                    "address": address[:120],
                 }
             )
         return JsonResponse({"agents": data, "updated_at": timezone.now().isoformat()})
