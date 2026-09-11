@@ -101,8 +101,18 @@ def customer_logout(request):
 def customer_dashboard(request):
     if not _customer_only(request):
         return redirect("/admin/")
-    orders = Order.objects.filter(email__iexact=request.user.email).order_by("-created_at")
-    return render(request, "accounts/dashboard.html", {"orders": orders[:5], "latest_order": orders.first()})
+    orders = (
+        Order.objects.filter(email__iexact=request.user.email)
+        .select_related("delivery_agent")
+        .prefetch_related("events__delivery_agent", "items__product")
+        .order_by("-created_at")
+    )
+    latest_order = orders.first()
+    return render(
+        request,
+        "accounts/dashboard.html",
+        {"orders": orders[:5], "latest_order": latest_order},
+    )
 
 
 @login_required(login_url="customer_login")
@@ -115,49 +125,59 @@ def customer_orders(request):
 
 @login_required(login_url="customer_login")
 def customer_delivery_location(request):
-    """Return only the latest assigned delivery partner location for this customer."""
+    """Return the latest delivery partner position and customer-safe tracking data."""
     if not _customer_only(request):
         return JsonResponse({"ok": False, "error": "Admin accounts use the admin delivery map."}, status=403)
 
     latest_order = (
         Order.objects.filter(email__iexact=request.user.email)
         .select_related("delivery_agent")
-        .prefetch_related("events")
+        .prefetch_related("events__delivery_agent")
         .order_by("-created_at")
         .first()
     )
-
     if not latest_order or not latest_order.delivery_agent:
-        return JsonResponse({"ok": True, "agent": None, "order": None})
+        return JsonResponse({"ok": True, "agent": None, "order": None, "events": []})
 
     agent = latest_order.delivery_agent
+    latest_ping = agent.location_history.order_by("-recorded_at").first()
     data = {
         "id": agent.id,
         "name": agent.display_name,
+        "phone": agent.phone or "",
+        "vehicle_type": agent.vehicle_type or "",
         "vehicle_number": agent.vehicle_number or "",
         "status": agent.get_status_display(),
         "latitude": float(agent.current_latitude) if agent.current_latitude is not None else None,
         "longitude": float(agent.current_longitude) if agent.current_longitude is not None else None,
         "updated": agent.last_location_at.isoformat() if agent.last_location_at else None,
         "live": agent.location_is_live,
-        "accuracy": None,
+        "accuracy": float(latest_ping.accuracy_meters) if latest_ping and latest_ping.accuracy_meters is not None else None,
+        "speed_mps": float(latest_ping.speed_mps) if latest_ping and latest_ping.speed_mps is not None else None,
+        "heading_degrees": float(latest_ping.heading_degrees) if latest_ping and latest_ping.heading_degrees is not None else None,
     }
 
-    latest_ping = agent.location_history.order_by("-recorded_at").first()
-    if latest_ping and latest_ping.accuracy_meters is not None:
-        data["accuracy"] = float(latest_ping.accuracy_meters)
+    events = []
+    for event in latest_order.events.all()[:8]:
+        events.append({
+            "type": event.event_type,
+            "label": event.get_event_type_display(),
+            "note": event.note or "",
+            "created": event.created_at.isoformat(),
+        })
 
-    return JsonResponse(
-        {
-            "ok": True,
-            "agent": data,
-            "order": {
-                "id": latest_order.id,
-                "tracking_code": latest_order.tracking_code,
-                "status": latest_order.get_status_display(),
-            },
-        }
-    )
+    return JsonResponse({
+        "ok": True,
+        "agent": data,
+        "order": {
+            "id": latest_order.id,
+            "tracking_code": latest_order.tracking_code,
+            "status": latest_order.get_status_display(),
+            "created": latest_order.created_at.isoformat(),
+            "address": latest_order.address,
+        },
+        "events": events,
+    })
 
 
 @login_required(login_url="customer_login")
