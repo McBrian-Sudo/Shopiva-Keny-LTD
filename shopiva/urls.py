@@ -22,6 +22,11 @@ from home.views import (
     customer_profile,
     customer_register,
     customer_wishlist,
+    seller_dashboard,
+    seller_product_add,
+    seller_product_delete,
+    seller_register,
+    seller_request_payout,
     delivery_ping_location,
     delivery_portal,
     delivery_update_location,
@@ -50,6 +55,11 @@ urlpatterns = [
     path("order-success/<int:order_id>/", order_success, name="order_success"),
 
     # Customer account
+    path("seller/register/", seller_register, name="seller_register"),
+    path("seller/", seller_dashboard, name="seller_dashboard"),
+    path("seller/products/add/", seller_product_add, name="seller_product_add"),
+    path("seller/products/<int:product_id>/hide/", seller_product_delete, name="seller_product_delete"),
+    path("seller/payout/request/", seller_request_payout, name="seller_request_payout"),
     path("customer/register/", customer_register, name="customer_register"),
     path("customer/login/", customer_login, name="customer_login"),
     path("customer/logout/", customer_logout, name="customer_logout"),
