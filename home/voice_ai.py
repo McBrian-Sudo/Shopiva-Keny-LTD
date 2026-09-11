@@ -62,8 +62,38 @@ def _catalog_context():
             "discount_percent": p.discount_percent,
             "stock": p.stock_quantity,
         }
-        for p in _catalog(60)
+        for p in _catalog(30)
     ]
+
+
+def _product_payload(product):
+    return {
+        "id": product.id,
+        "name": product.name,
+        "category": product.category,
+        "description": product.description[:350],
+        "price": str(product.discounted_price),
+        "original_price": str(product.price),
+        "discount_percent": product.discount_percent,
+        "stock": product.stock_quantity,
+    }
+
+
+def _search_products(query="", category="", max_price=None):
+    products = _catalog(120)
+    words = {w.lower() for w in query.split() if len(w) > 2}
+    ranked = []
+    for product in products:
+        haystack = f"{product.name} {product.category} {product.description} {product.promo_text}".lower()
+        score = sum(2 if w in product.name.lower() else 1 for w in words if w in haystack)
+        if category and category.lower() not in product.category.lower():
+            continue
+        if max_price is not None and product.discounted_price > max_price:
+            continue
+        if score or not words:
+            ranked.append((score, product))
+    ranked.sort(key=lambda item: (-item[0], -item[1].discount_percent, item[1].discounted_price))
+    return [_product_payload(p) for _, p in ranked[:8]]
 
 
 def _customer_instructions(request):
@@ -138,10 +168,7 @@ def realtime_call(request):
         ]
     else:
         instructions = _customer_instructions(request)
-        tools = [
-            {
-                "type": "function",
-                "name": "add_to_cart",
+
                 "description": "Add a real Shopiva product to the current customer's browser cart. Use only a product id from the supplied catalogue.",
                 "parameters": {
                     "type": "object",
@@ -168,7 +195,7 @@ def realtime_call(request):
 
     session = {
         "type": "realtime",
-        "model": os.getenv("OPENAI_REALTIME_MODEL", "gpt-realtime-2.1-mini"),
+        "model": os.getenv("OPENAI_REALTIME_MODEL", "gpt-realtime-2.1"),
         "output_modalities": ["audio"],
         "audio": {
             "input": {"turn_detection": {"type": "semantic_vad", "eagerness": "auto"}},
@@ -197,6 +224,49 @@ def realtime_action(request):
         payload = request.POST
 
     action = payload.get("action")
+    if action == "search_products":
+        max_price = payload.get("max_price")
+        try:
+            max_price = float(max_price) if max_price not in (None, "") else None
+        except (TypeError, ValueError):
+            max_price = None
+        return JsonResponse({"ok": True, "products": _search_products(
+            str(payload.get("query", "")),
+            str(payload.get("category", "")),
+            max_price,
+        )})
+
+    if action == "get_product_details":
+        try:
+            product_id = int(payload.get("product_id"))
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "error": "Invalid product id."}, status=400)
+        product = Product.objects.filter(id=product_id, is_active=True).first()
+        if not product:
+            return JsonResponse({"ok": False, "error": "That product is not available."}, status=404)
+        return JsonResponse({"ok": True, "product": _product_payload(product)})
+
+    if action == "get_cart_summary":
+        cart = request.session.get("cart", {})
+        items = []
+        total = 0
+        for product_id, quantity in cart.items():
+            try:
+                product = Product.objects.get(id=int(product_id), is_active=True)
+                qty = max(1, int(quantity))
+            except (Product.DoesNotExist, TypeError, ValueError):
+                continue
+            line_total = product.discounted_price * qty
+            total += line_total
+            items.append({
+                "product_id": product.id,
+                "name": product.name,
+                "quantity": qty,
+                "unit_price": str(product.discounted_price),
+                "line_total": str(line_total),
+            })
+        return JsonResponse({"ok": True, "items": items, "total": str(total)})
+
     if action == "add_to_cart":
         try:
             product_id = int(payload.get("product_id"))
