@@ -10,3 +10,4 @@ Pillow==11.3.0
 openai>=2.0.0,<3
 
 whitenoise>=6.9,<7
+cloudinary==1.46.2
