@@ -25,5 +25,7 @@
         |
         <a href="{% url 'home' %}">Continue Shopping</a>
     </p>
-</body>
+<hr><section style="max-width:700px"><h2>Customer reviews ⭐ {{ product.average_rating|floatformat:1 }}/5</h2><p>{{ product.review_count }} verified review{{ product.review_count|pluralize }}</p>
+{% for review in product.reviews.all %}<article style="padding:12px;border-bottom:1px solid #ddd"><strong>{{ review.rating }}/5</strong> — {{ review.comment }}<small style="display:block;color:#667085">Verified purchase • {{ review.created_at|date:"M d, Y" }}</small></article>{% empty %}<p>No reviews yet.</p>{% endfor %}
+{% if user.is_authenticated and not user.is_staff and not user.is_superuser %}<p><a href="{% url 'product_review' product.id %}">Write a verified review</a></p>{% endif %}</section></body>
 </html>
