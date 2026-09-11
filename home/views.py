@@ -722,7 +722,6 @@ def seller_dashboard(request):
 
 
 @login_required(login_url="customer_login")
-@login_required(login_url="customer_login")
 def seller_product_edit(request, product_id):
     seller = getattr(request.user, "seller_profile", None)
     if not seller or not seller.is_active:
@@ -769,6 +768,7 @@ def seller_product_add(request):
     return render(request, "seller/product_form.html", {"form": form, "mode": "add"})
 
 
+@login_required(login_url="customer_login")
 def seller_product_delete(request, product_id):
     seller = getattr(request.user, "seller_profile", None)
     product = get_object_or_404(Product, id=product_id, seller=seller)
