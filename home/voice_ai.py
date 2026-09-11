@@ -6,6 +6,7 @@ import uuid
 
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .ai import _catalog
@@ -117,6 +118,7 @@ Product catalogue:
 """
 
 
+@csrf_exempt
 def realtime_call(request):
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST required."}, status=405)
