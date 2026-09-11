@@ -13,7 +13,7 @@ from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils import timezone
 
-from .models import DeliveryAgent, Order, OrderEvent, OrderItem, Product
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, Product, WishlistItem
 
 
 class ProductForm(forms.ModelForm):
@@ -356,6 +356,21 @@ class DeliveryAgentAdmin(admin.ModelAdmin):
     list_editable = ("status", "is_active")
     readonly_fields = ("current_latitude", "current_longitude", "last_location_at")
     list_per_page = 25
+
+
+@admin.register(CustomerAddress, site=shopiva_admin_site)
+class CustomerAddressAdmin(admin.ModelAdmin):
+    list_display = ("label", "full_name", "phone", "town", "county", "is_default", "user")
+    list_filter = ("county", "is_default")
+    search_fields = ("full_name", "phone", "town", "county", "address_line", "user__username", "user__email")
+    list_editable = ("is_default",)
+
+
+@admin.register(WishlistItem, site=shopiva_admin_site)
+class WishlistItemAdmin(admin.ModelAdmin):
+    list_display = ("user", "product", "created_at")
+    search_fields = ("user__username", "user__email", "product__name")
+    ordering = ("-created_at",)
 
 
 @admin.register(OrderEvent, site=shopiva_admin_site)
