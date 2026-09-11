@@ -15,6 +15,7 @@ from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils import timezone
 
+from .voice_ai import speak_text, transcribe_voice
 from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, WishlistItem
 
 
@@ -90,6 +91,7 @@ class ShopivaAdminSite(admin.AdminSite):
             path("products/<int:product_id>/edit/", self.admin_view(self.product_edit), name="product_edit"),
             path("products/<int:product_id>/delete/", self.admin_view(self.product_delete), name="product_delete"),
             path("ai-assistant/", self.admin_view(self.ai_assistant), name="ai_assistant"),
+            path("ai-voice/transcribe/", self.admin_view(transcribe_voice), name="ai_voice_transcribe"),
             path("delivery-map/", self.admin_view(self.delivery_map), name="delivery_map"),
             path("delivery-locations/", self.admin_view(self.delivery_locations), name="delivery_locations"),
         ]
