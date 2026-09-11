@@ -79,7 +79,6 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-CLOUDINARY_STORAGE = {"CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", "")}
 
 EMAIL_NOTIFICATIONS_ENABLED = os.getenv("EMAIL_NOTIFICATIONS_ENABLED", "false").lower() == "true"
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
