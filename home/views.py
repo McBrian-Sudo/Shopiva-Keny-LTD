@@ -131,6 +131,7 @@ def customer_delivery_location(request):
     data = {
         "id": agent.id,
         "name": agent.display_name,
+        "vehicle_number": agent.vehicle_number or "",
         "status": agent.get_status_display(),
         "latitude": float(agent.current_latitude) if agent.current_latitude is not None else None,
         "longitude": float(agent.current_longitude) if agent.current_longitude is not None else None,

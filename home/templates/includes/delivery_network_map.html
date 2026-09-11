@@ -46,7 +46,12 @@
                     <div class="shopiva-order-status"><span>Status</span><strong>{{ latest_order.get_status_display }}</strong></div>
                     <div class="shopiva-order-route"><div><span class="shopiva-route-dot"></span>Shopiva network</div><div class="shopiva-route-arrow">→</div><div><span class="shopiva-route-dot destination"></span>Your address</div></div>
                     {% if latest_order.delivery_agent %}
-                        <div id="shopiva-customer-agent-box" class="shopiva-agent-box"><strong>🚚 Delivery partner</strong><span>{{ latest_order.delivery_agent.display_name }}</span><small id="shopiva-customer-agent-status">{% if latest_order.delivery_agent.last_location_at %}Last GPS: {{ latest_order.delivery_agent.last_location_at|date:"d M Y, H:i" }}{% else %}GPS not shared yet{% endif %}</small></div>
+                        <div id="shopiva-customer-agent-box" class="shopiva-agent-box">
+    <strong>🚚 Delivery partner</strong>
+    <span>👤 {{ latest_order.delivery_agent.display_name }}</span>
+    <span>🚐 {% if latest_order.delivery_agent.vehicle_number %}{{ latest_order.delivery_agent.vehicle_number }}{% else %}Vehicle details not added yet{% endif %}</span>
+    <small id="shopiva-customer-agent-status">{% if latest_order.delivery_agent.last_location_at %}Last GPS: {{ latest_order.delivery_agent.last_location_at|date:"d M Y, H:i" }}{% else %}GPS not shared yet{% endif %}</small>
+</div>
                     {% endif %}
                     <p class="shopiva-map-note-text">Your delivery timeline updates as your order moves through fulfilment.</p>
                     <a href="{% url 'customer_orders' %}" class="shopiva-map-button">View My Orders →</a>
