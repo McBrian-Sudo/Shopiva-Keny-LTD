@@ -54,14 +54,31 @@ def _send_whatsapp(phone, message):
     phone_number_id = getattr(settings, "WHATSAPP_PHONE_NUMBER_ID", "")
     if not (token and phone_number_id and phone):
         return False
-    payload = json.dumps({
-        "messaging_product": "whatsapp",
-        "to": _kenya_phone(phone).replace("+", ""),
-        "type": "text",
-        "text": {"preview_url": False, "body": message[:4096]},
-    }).encode()
+    template = getattr(settings, "WHATSAPP_TEMPLATE_NAME", "")
+    if template:
+        body = {
+            "messaging_product": "whatsapp",
+            "to": _kenya_phone(phone).replace("+", ""),
+            "type": "template",
+            "template": {
+                "name": template,
+                "language": {"code": getattr(settings, "WHATSAPP_TEMPLATE_LANGUAGE", "en_US")},
+                "components": [{
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": message[:1024]}],
+                }],
+            },
+        }
+    else:
+        body = {
+            "messaging_product": "whatsapp",
+            "to": _kenya_phone(phone).replace("+", ""),
+            "type": "text",
+            "text": {"preview_url": False, "body": message[:4096]},
+        }
+    payload = json.dumps(body).encode()
     req = urllib.request.Request(
-        f"https://graph.facebook.com/v23.0/{phone_number_id}/messages",
+        f"https://graph.facebook.com/{getattr(settings, 'WHATSAPP_GRAPH_VERSION', 'v23.0')}/{phone_number_id}/messages",
         data=payload,
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         method="POST",
@@ -100,6 +117,14 @@ def notify_user(user, title, message, notification_type="system", link=""):
         getattr(user, "phone", "")
         or getattr(getattr(user, "seller_profile", None), "mpesa_phone", "")
     )
+    if not phone:
+        try:
+            from .models import CustomerAddress
+            phone = CustomerAddress.objects.filter(
+                user=user, is_default=True
+            ).values_list("phone", flat=True).first() or ""
+        except Exception:
+            phone = ""
     if phone and getattr(settings, "SMS_NOTIFICATIONS_ENABLED", False):
         _send_sms(phone, f"Shopiva: {title}. {message}")
     if phone and getattr(settings, "WHATSAPP_NOTIFICATIONS_ENABLED", False):
