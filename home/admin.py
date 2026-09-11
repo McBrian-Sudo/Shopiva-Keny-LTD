@@ -8,6 +8,7 @@ from django.contrib import admin
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group, User
+from django.db import transaction
 from django.db.models import ProtectedError, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -490,5 +491,23 @@ class SellerPayoutRequestAdmin(admin.ModelAdmin):
     list_display = ("id", "seller", "amount", "phone", "status", "provider_reference", "created_at", "paid_at")
     list_filter = ("status", "created_at")
     search_fields = ("seller__business_name", "seller__user__username", "seller__user__email", "phone", "provider_reference", "idempotency_key")
-    readonly_fields = ("seller", "amount", "phone", "idempotency_key", "provider_response", "provider_reference", "failure_reason", "created_at", "updated_at", "paid_at")
+    readonly_fields = ("seller", "amount", "phone", "idempotency_key", "provider_response", "created_at", "updated_at", "paid_at")
+    list_editable = ("status",)
     list_per_page = 25
+
+    def save_model(self, request, obj, form, change):
+        previous_status = None
+        if change and obj.pk:
+            previous_status = SellerPayoutRequest.objects.get(pk=obj.pk).status
+        super().save_model(request, obj, form, change)
+        if not change or previous_status == obj.status:
+            return
+        with transaction.atomic():
+            wallet = SellerWallet.objects.select_for_update().get(seller=obj.seller)
+            if obj.status == "paid":
+                obj.paid_at = timezone.now()
+                obj.save(update_fields=("paid_at", "updated_at"))
+            elif obj.status in {"failed", "cancelled"} and previous_status not in {"failed", "cancelled"}:
+                wallet.available_balance += obj.amount
+                wallet.save(update_fields=("available_balance", "updated_at"))
+                obj.save(update_fields=("updated_at",))
