@@ -16,7 +16,7 @@ from django.urls import path
 from django.utils import timezone
 
 from .voice_ai import speak_text, transcribe_voice
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, WishlistItem
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
 
 class ProductForm(forms.ModelForm):
@@ -34,6 +34,7 @@ class ProductForm(forms.ModelForm):
             "image",
             "is_featured",
             "is_active",
+            "seller",
         )
         widgets = {
             "description": forms.Textarea(attrs={"rows": 5}),
@@ -300,7 +301,7 @@ shopiva_admin_site = ShopivaAdminSite(name="shopiva_admin")
 
 @admin.register(Product, site=shopiva_admin_site)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("name", "sku", "price", "discount_percent", "stock_quantity", "is_featured", "is_active")
+    list_display = ("name", "seller", "sku", "price", "discount_percent", "stock_quantity", "is_featured", "is_active")
     list_filter = ("is_featured", "is_active", "category")
     search_fields = ("name", "description", "sku")
     list_editable = ("discount_percent", "stock_quantity", "is_featured", "is_active")
@@ -452,3 +453,24 @@ class ShopivaUserAdmin(UserAdmin):
 @admin.register(Group, site=shopiva_admin_site)
 class ShopivaGroupAdmin(admin.ModelAdmin):
     search_fields = ("name",)
+
+
+@admin.register(SellerProfile, site=shopiva_admin_site)
+class SellerProfileAdmin(admin.ModelAdmin):
+    list_display = ("business_name", "user", "mpesa_phone", "commission_percent", "is_active", "created_at")
+    list_filter = ("is_active", "commission_percent")
+    search_fields = ("business_name", "user__username", "user__email", "mpesa_phone")
+    list_editable = ("commission_percent", "is_active")
+
+@admin.register(SellerWallet, site=shopiva_admin_site)
+class SellerWalletAdmin(admin.ModelAdmin):
+    list_display = ("seller", "pending_balance", "available_balance", "total_sales", "total_commission", "updated_at")
+    search_fields = ("seller__business_name", "seller__user__username", "seller__user__email")
+    readonly_fields = ("pending_balance", "available_balance", "total_sales", "total_commission", "updated_at")
+
+@admin.register(SellerSettlement, site=shopiva_admin_site)
+class SellerSettlementAdmin(admin.ModelAdmin):
+    list_display = ("order", "seller", "gross_amount", "platform_commission", "seller_amount", "status", "provider_reference", "created_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("order__tracking_code", "seller__business_name", "seller__user__username", "provider_reference")
+    readonly_fields = ("order", "seller", "gross_amount", "platform_commission", "seller_amount", "provider_reference", "created_at", "released_at", "paid_at")
