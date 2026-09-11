@@ -18,40 +18,18 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-
-      - name: Replace failing OpenFreeMap Leaflet tiles
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path("home/templates/includes/delivery_network_map.html")
-          text = p.read_text(encoding="utf-8")
-          old = "https://tile.openfreemap.org/{z}/{x}/{y}.png"
-          new = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}.jpg"
-          if old in text:
-              text = text.replace(old, new)
-          text = text.replace(
-              "© <a href=\"https://openfreemap.org\" target=\"_blank\" rel=\"noopener\">OpenFreeMap</a> © OpenMapTiles © OpenStreetMap contributors",
-              "Tiles © Esri — World Street Map"
-          )
-          text = text.replace(
-              "Map service temporarily unavailable",
-              "Map service temporarily unavailable"
-          )
-          text = text.replace(
-              "The delivery tracker is still active. Please refresh shortly.",
-              "The delivery tracker is still active. Please refresh shortly."
-          )
-          p.write_text(text, encoding="utf-8")
-          PY
-
-      - name: Commit map provider fix
+      - name: Re-apply canonical Google Maps dashboard
+        run: python scripts/apply_google_maps_dashboard_upgrade.py
+      - name: Commit canonical map dashboard
         run: |
           git config user.name "shopiva-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet; then
-            echo "Map provider already fixed."
+            echo "Google Maps dashboard already canonical."
             exit 0
           fi
-          git add home/templates/includes/delivery_network_map.html
-          git commit -m "Use reliable street map tiles for customer delivery tracking [skip ci]"
-          git push origin main
+          git add home/views.py home/templates/accounts/dashboard.html home/templates/includes/delivery_network_map.html home/context_processors.py shopiva/settings.py render.yaml
+          git commit -m "Keep Google Maps customer dashboard canonical [skip ci]"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
