@@ -152,8 +152,8 @@
             border-radius: 24px;
             position: relative;
             overflow: hidden;
-            background: #0f172a;
-            color: white;
+            background: #ffffff;
+            color: #172033;
             isolation: isolate;
         }
 
@@ -182,7 +182,7 @@
         .hero-slide-image {
             position: absolute;
             inset: 0;
-            background: #172033;
+            background: #ffffff;
         }
 
         .hero-slide-image img {
@@ -194,7 +194,6 @@
 
         .hero-default-image {
             background:
-                linear-gradient(120deg, rgba(15,23,42,.92), rgba(37,99,235,.52)),
                 url("https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=85") center/cover;
         }
 
@@ -202,7 +201,7 @@
             position: absolute;
             inset: 0;
             z-index: 1;
-            background: linear-gradient(90deg, rgba(8,15,35,.94) 0%, rgba(15,23,42,.78) 44%, rgba(15,23,42,.18) 100%);
+            background: linear-gradient(90deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.82) 42%, rgba(255,255,255,.05) 78%);
         }
 
         .hero-content {
@@ -257,16 +256,16 @@
             margin: 8px 0 18px;
             padding: 8px 12px;
             border-radius: 10px;
-            background: rgba(255,255,255,.13);
-            border: 1px solid rgba(255,255,255,.2);
+            background: rgba(15,138,95,.10);
+            border: 1px solid rgba(15,138,95,.18);
             font-size: 13px;
             font-weight: 750;
         }
 
         .hero-badge {
             display: inline-flex;
-            background: rgba(255,255,255,.13);
-            border: 1px solid rgba(255,255,255,.25);
+            background: rgba(255,255,255,.92);
+            border: 1px solid #d1d5db;
             padding: 7px 13px;
             border-radius: 30px;
             margin-bottom: 14px;
@@ -290,14 +289,14 @@
         }
 
         .primary-btn {
-            background: white;
-            color: #1d4ed8;
+            background: #ffffff;
+            color: #0f8a5f;
         }
 
         .secondary-btn {
             border: 1px solid rgba(255,255,255,.45);
             background: rgba(255,255,255,.08);
-            color: white;
+            color: #172033;
             backdrop-filter: blur(8px);
         }
 
@@ -310,8 +309,8 @@
             height: 46px;
             border: 1px solid rgba(255,255,255,.3);
             border-radius: 50%;
-            background: rgba(15,23,42,.42);
-            color: white;
+            background: rgba(255,255,255,.92);
+            color: #172033;
             font-size: 34px;
             line-height: 1;
             cursor: pointer;
@@ -340,14 +339,14 @@
             padding: 0;
             border: 0;
             border-radius: 99px;
-            background: rgba(255,255,255,.38);
+            background: rgba(15,118,110,.25);
             cursor: pointer;
             transition: .25s;
         }
 
         .hero-dot.is-active {
             width: 46px;
-            background: white;
+            background: #0f8a5f;
         }
 
         .hero-progress {
@@ -357,7 +356,7 @@
             bottom: 0;
             z-index: 7;
             height: 3px;
-            background: rgba(255,255,255,.16);
+            background: rgba(15,118,110,.12);
         }
 
         .hero-progress span {
@@ -368,7 +367,7 @@
         }
 
         .hero-slide.is-active ~ .hero-progress span {
-            animation: heroProgress 5s linear forwards;
+            animation: heroProgress 1s linear forwards;
         }
 
         @keyframes heroProgress {
@@ -418,8 +417,8 @@
         }
 
         .primary-btn {
-            background: white;
-            color: #1d4ed8;
+            background: #0f8a5f;
+            color: white;
         }
 
         .secondary-btn {
@@ -924,6 +923,33 @@
 
 </section>
 
+<section class="shopiva-ai" aria-label="Shopiva AI shopping assistant">
+<style>
+.shopiva-ai{max-width:1200px;margin:28px auto;padding:0 20px}.ai-card{background:#fff;border:1px solid #e2e8f0;border-radius:22px;padding:22px;box-shadow:0 10px 30px rgba(15,23,42,.06);display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center}.ai-card h2{margin:0 0 5px;font-size:22px}.ai-card p{margin:0;color:#64748b}.ai-form{display:flex;gap:8px}.ai-form input{width:min(430px,55vw);padding:13px 15px;border:1px solid #cbd5e1;border-radius:11px;font-size:14px}.ai-form button{border:0;background:#0f8a5f;color:#fff;border-radius:11px;padding:13px 17px;font-weight:800;cursor:pointer}.ai-result{grid-column:1/-1;background:#f8fafc;border-radius:15px;padding:15px;display:none}.ai-result.show{display:block}.ai-products{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.ai-product{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;text-decoration:none;font-weight:700;font-size:13px}.ai-status{font-size:12px;color:#64748b;margin-top:6px}@media(max-width:760px){.ai-card{grid-template-columns:1fr}.ai-form{flex-direction:column}.ai-form input{width:100%}}
+</style>
+<div class="ai-card">
+<div><h2>🤖 Shopiva AI Shopping Assistant</h2><p>Tell me what you want in normal language — budget, product type, use case or preferences.</p></div>
+<form class="ai-form" id="shopiva-ai-form"><input id="shopiva-ai-input" name="question" placeholder="e.g. Find me a phone under KSh 30,000" required><button type="submit">Ask AI</button></form>
+<div class="ai-result" id="shopiva-ai-result"><strong id="shopiva-ai-answer"></strong><div class="ai-products" id="shopiva-ai-products"></div><div class="ai-status" id="shopiva-ai-status"></div></div>
+</div>
+<script>
+document.getElementById("shopiva-ai-form")?.addEventListener("submit", async function(e){
+ e.preventDefault();
+ const input=document.getElementById("shopiva-ai-input"), result=document.getElementById("shopiva-ai-result"), answer=document.getElementById("shopiva-ai-answer"), products=document.getElementById("shopiva-ai-products"), status=document.getElementById("shopiva-ai-status");
+ result.classList.add("show"); answer.textContent="Thinking…"; products.innerHTML=""; status.textContent="";
+ const body=new URLSearchParams(); body.set("question",input.value);
+ try{
+   const r=await fetch("{% url 'shop_assistant' %}",{method:"POST",headers:{"X-CSRFToken":"{{ csrf_token }}"},body});
+   const data=await r.json();
+   if(!r.ok) throw new Error(data.error||"AI request failed");
+   answer.textContent=data.answer||"I couldn't find a recommendation.";
+   (data.products||[]).forEach(p=>{const a=document.createElement("a");a.className="ai-product";a.href="/product/"+p.id+"/";a.textContent=p.name+" · KSh "+Number(p.price).toLocaleString();products.appendChild(a);});
+   status.textContent=data.ai?"Powered by Shopiva AI":"Smart catalog mode — connect OPENAI_API_KEY for full generative recommendations.";
+ }catch(err){answer.textContent="Sorry, the shopping assistant is temporarily unavailable.";status.textContent=err.message||"";}
+});
+</script>
+</section>
+
 <footer>
     <div class="footer-container">
 
@@ -1071,7 +1097,7 @@ function showHeroSlide(index) {
     if (progress) {
         progress.style.animation = "none";
         void progress.offsetWidth;
-        progress.style.animation = "heroProgress 5s linear forwards";
+        progress.style.animation = "heroProgress 1s linear forwards";
     }
 }
 
