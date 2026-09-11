@@ -716,6 +716,7 @@ def seller_dashboard(request):
             "settlements": settlements,
             "payouts": payouts,
             "analytics": analytics,
+            "notifications": seller.user.shopiva_notifications.all()[:10],
         },
     )
 
