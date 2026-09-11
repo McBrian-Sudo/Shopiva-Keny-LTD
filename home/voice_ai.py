@@ -162,25 +162,27 @@ def realtime_call(request):
             {
                 "type": "function",
                 "name": "get_mpesa_attention",
-                "description": "Return the latest M-PESA transactions that are pending or failed. Never treat pending as paid.",
+                "description": "Return M-PESA transactions that are pending or failed. Never treat pending as paid.",
                 "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
             },
             {
                 "type": "function",
                 "name": "get_low_stock",
-                "description": "Return active products with low stock so the admin can act before they sell out.",
+                "description": "Return active products at or below a requested stock threshold.",
                 "parameters": {
                     "type": "object",
-                    "properties": {"threshold": {"type": "integer", "minimum": 0, "maximum": 100}},
-                    "additionalProperties": False
-                }
+                    "properties": {
+                        "threshold": {"type": "integer", "minimum": 0, "maximum": 100}
+                    },
+                    "additionalProperties": False,
+                },
             },
             {
                 "type": "function",
                 "name": "get_order_attention",
-                "description": "Return recent orders that need operational attention, including unpaid, pending-payment, failed-payment, or cancelled orders.",
-                "parameters": {"type": "object", "properties": {}, "additionalProperties": False}
-            }
+                "description": "Return recent orders with unpaid, pending, or failed payment status that need attention.",
+                "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+            },
         ]
     else:
         instructions = _customer_instructions(request)
@@ -188,59 +190,59 @@ def realtime_call(request):
             {
                 "type": "function",
                 "name": "search_products",
-                "description": "Search the live Shopiva product catalogue using a natural-language request.",
+                "description": "Search the live Shopiva product catalogue.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "query": {"type": "string"},
                         "category": {"type": "string"},
-                        "max_price": {"type": "number"}
+                        "max_price": {"type": "number"},
                     },
-                    "additionalProperties": False
-                }
+                    "additionalProperties": False,
+                },
             },
             {
                 "type": "function",
                 "name": "get_cart_summary",
-                "description": "Read the current browser cart and return its real contents and total.",
-                "parameters": {"type": "object", "properties": {}, "additionalProperties": False}
+                "description": "Read the current customer's real session cart.",
+                "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
             },
             {
                 "type": "function",
                 "name": "get_product_details",
-                "description": "Return current details for one real Shopiva product.",
+                "description": "Return current details for a real Shopiva product.",
                 "parameters": {
                     "type": "object",
                     "properties": {"product_id": {"type": "integer"}},
                     "required": ["product_id"],
-                    "additionalProperties": False
-                }
+                    "additionalProperties": False,
+                },
             },
             {
                 "type": "function",
                 "name": "add_to_cart",
-                "description": "Add a real Shopiva product to the current customer's browser cart. Use only a product id from the live catalogue.",
+                "description": "Add a real Shopiva product to the current customer's cart.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "product_id": {"type": "integer"},
-                        "quantity": {"type": "integer", "minimum": 1, "maximum": 20}
+                        "quantity": {"type": "integer", "minimum": 1, "maximum": 20},
                     },
                     "required": ["product_id", "quantity"],
-                    "additionalProperties": False
-                }
+                    "additionalProperties": False,
+                },
             },
             {
                 "type": "function",
                 "name": "get_my_order_status",
-                "description": "Check the authenticated customer's own order status. Never expose another customer's order.",
+                "description": "Check the authenticated customer's own order.",
                 "parameters": {
                     "type": "object",
                     "properties": {"order_id": {"type": "integer"}},
                     "required": ["order_id"],
-                    "additionalProperties": False
-                }
-            }
+                    "additionalProperties": False,
+                },
+            },
         ]
 
     session = {
@@ -248,8 +250,15 @@ def realtime_call(request):
         "model": os.getenv("OPENAI_REALTIME_MODEL", "gpt-realtime-2.1"),
         "output_modalities": ["audio"],
         "audio": {
-            "input": {"turn_detection": {"type": "semantic_vad", "eagerness": "auto"}},
-            "output": {"voice": os.getenv("OPENAI_REALTIME_VOICE", "marin")},
+            "input": {
+                "turn_detection": {
+                    "type": "semantic_vad",
+                    "eagerness": "auto",
+                }
+            },
+            "output": {
+                "voice": os.getenv("OPENAI_REALTIME_VOICE", "marin"),
+            },
         },
         "instructions": instructions,
         "tools": tools,
@@ -257,10 +266,14 @@ def realtime_call(request):
     }
 
     try:
-        answer_sdp = _openai_multipart_sdp(request.body.decode("utf-8"), session)
+        offer_sdp = request.body.decode("utf-8")
+        answer_sdp = _openai_multipart_sdp(offer_sdp, session)
         return HttpResponse(answer_sdp, content_type="application/sdp")
     except Exception:
-        return JsonResponse({"ok": False, "error": "Could not start the realtime voice session."}, status=502)
+        return JsonResponse(
+            {"ok": False, "error": "Could not start the realtime voice session."},
+            status=502,
+        )
 
 
 @require_POST
