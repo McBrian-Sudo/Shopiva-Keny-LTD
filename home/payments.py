@@ -208,7 +208,10 @@ def checkout_mpesa(request):
             payment = PaymentTransaction.objects.select_for_update().get(pk=payment.pk)
             payment.status = "failed"
             payment.raw_response = {"error": str(exc)}
-            payment.save(update_fields=["status", "raw_response", "updated_at"])
+            if not payment.inventory_released:
+                _release_reserved_inventory(order)
+                payment.inventory_released = True
+            payment.save(update_fields=["status", "raw_response", "inventory_released", "updated_at"])
             order.payment_status = "failed"
             order.save(update_fields=["payment_status"])
         return render(request, "checkout.html", {"items": items, "total": total, "error": f"M-PESA could not be started: {exc}"})
@@ -262,6 +265,8 @@ def mpesa_callback(request):
         order = Order.objects.select_for_update().get(pk=payment.order_id)
         payment.raw_response = payload
         if str(result_code) == "0":
+            if payment.status == "paid":
+                return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
             metadata = {item.get("Name"): item.get("Value") for item in callback.get("CallbackMetadata", {}).get("Item", [])}
             receipt = str(metadata.get("MpesaReceiptNumber", ""))
             payment.status = "paid"
@@ -276,12 +281,22 @@ def mpesa_callback(request):
             _create_seller_settlements(order)
         else:
             payment.status = "failed"
+            if not payment.inventory_released:
+                _release_reserved_inventory(order)
+                payment.inventory_released = True
             order.payment_status = "failed"
             order.save(update_fields=["payment_status"])
             OrderEvent.objects.create(order=order, event_type="cancelled", note=f"M-PESA payment failed: {result_desc}")
-        payment.save(update_fields=["status", "provider_reference", "paid_at", "raw_response", "updated_at"])
+        payment.save(update_fields=["status", "provider_reference", "paid_at", "raw_response", "inventory_released", "updated_at"])
     return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
 
+
+def _release_reserved_inventory(order):
+    """Return reserved stock exactly once after a payment is definitively failed."""
+    for item in order.items.select_related("product").select_for_update():
+        product = item.product
+        product.stock_quantity += item.quantity
+        product.save(update_fields=["stock_quantity"])
 
 def _create_seller_settlements(order):
     """Create the seller/platform split only after confirmed provider payment."""
@@ -303,10 +318,17 @@ def _create_seller_settlements(order):
             wallet.save(update_fields=["pending_balance", "total_sales", "total_commission", "updated_at"])
 def mpesa_payment_status(request, order_id):
     order = get_object_or_404(Order, id=order_id)
+    allowed = bool(
+        request.session.get("payment_order_id") == order.id
+        or (request.user.is_authenticated and (request.user.is_staff or order.email.lower() == request.user.email.lower()))
+    )
+    if not allowed:
+        return JsonResponse({"ok": False, "error": "You are not authorized to view this payment."}, status=403)
     payment = order.payments.filter(method="mpesa").order_by("-created_at").first()
     return JsonResponse({"ok": True, "order_id": order.id, "payment_status": order.payment_status, "order_status": order.status, "reference": order.payment_reference, "transaction_status": payment.status if payment else None})
 
 
 def mpesa_waiting(request, order_id):
     order = get_object_or_404(Order, id=order_id)
+    request.session["payment_order_id"] = order.id
     return render(request, "mpesa_waiting.html", {"order": order})
