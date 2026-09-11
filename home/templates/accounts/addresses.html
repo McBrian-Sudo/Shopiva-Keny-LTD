@@ -1,13 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saved Addresses | Shopiva Kenya</title>
-    <style>body{margin:0;font-family:Arial,sans-serif;background:#f5f8f6;color:#17211d}.top{background:#087f5b;color:#fff;padding:18px 24px}.wrap{max-width:800px;margin:30px auto;padding:0 20px}.top a{color:#fff;text-decoration:none;font-weight:700}.card{background:#fff;border-radius:18px;padding:30px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.06)}.tag{display:inline-block;padding:8px 12px;background:#eefaf4;color:#087f5b;border-radius:20px;font-weight:700}</style>
-</head>
-<body>
-<div class="top"><div class="wrap"><a href="{% url 'customer_dashboard' %}">← My Account</a></div></div>
-<main class="wrap"><section class="card"><div class="tag">Coming next</div><h1>Saved Addresses</h1><p>Your delivery addresses area is ready for the next data-model upgrade. We will add multiple Kenyan delivery addresses, default-address selection and smarter checkout autofill here.</p></section></main>
-</body>
-</html>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Saved Addresses | Shopiva Kenya</title>
+<style>
+body{margin:0;font-family:Inter,Arial,sans-serif;background:#f4f7fb;color:#17211d}.top{background:#0f766e;color:#fff;padding:18px 24px}.wrap{max-width:1000px;margin:auto;padding:0 20px}.top a{color:#fff;text-decoration:none;font-weight:800}.grid{display:grid;grid-template-columns:1fr 1.2fr;gap:20px;margin:30px auto}.card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:24px;box-shadow:0 8px 24px rgba(15,23,42,.06)}h1{margin:30px auto 0}.sub{color:#64748b}label{display:block;font-weight:700;margin:13px 0 6px}input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbd5e1;border-radius:10px}button{border:0;border-radius:10px;padding:11px 14px;font-weight:800;cursor:pointer;background:#0f766e;color:white}.address{padding:16px;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:12px}.default{display:inline-block;padding:4px 8px;border-radius:99px;background:#dcfce7;color:#166534;font-size:11px;font-weight:800}.actions{display:flex;gap:8px;margin-top:12px}.danger{background:#fee2e2;color:#991b1b}.msg{padding:12px;border-radius:10px;background:#ecfdf5;color:#166534;margin-top:18px}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body><div class="top"><div class="wrap"><a href="{% url 'customer_dashboard' %}">← My Account</a></div></div>
+<main class="wrap"><h1>📍 Saved Delivery Addresses</h1><p class="sub">Save Kenyan delivery locations and choose a default address for faster checkout.</p>
+{% if messages %}{% for message in messages %}<div class="msg">{{ message }}</div>{% endfor %}{% endif %}
+<div class="grid"><section class="card"><h2>Add an address</h2><form method="post">{% csrf_token %}
+<label>Label</label><input name="label" value="Home" placeholder="Home, Work, etc.">
+<label>Full name</label><input name="full_name" required>
+<label>Phone</label><input name="phone" required placeholder="07XXXXXXXX">
+<label>County</label><input name="county" required placeholder="Uasin Gishu">
+<label>Town / City</label><input name="town" required placeholder="Eldoret">
+<label>Address</label><input name="address_line" required placeholder="Estate, street, building">
+<label>Landmark (optional)</label><input name="landmark" placeholder="Near...">
+<button type="submit">Save Address</button></form></section>
+<section class="card"><h2>Your addresses</h2>{% for address in addresses %}<div class="address"><strong>{{ address.label }}</strong>{% if address.is_default %} <span class="default">DEFAULT</span>{% endif %}<p>{{ address.full_name }} · {{ address.phone }}<br>{{ address.address_line }}, {{ address.town }}, {{ address.county }}{% if address.landmark %}<br>Landmark: {{ address.landmark }}{% endif %}</p><div class="actions">{% if not address.is_default %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="default"><input type="hidden" name="address_id" value="{{ address.id }}"><button type="submit">Make Default</button></form>{% endif %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="address_id" value="{{ address.id }}"><button class="danger" type="submit">Remove</button></form></div></div>{% empty %}<p class="sub">No saved addresses yet.</p>{% endfor %}</section></div></main></body></html>
