@@ -13,7 +13,7 @@ from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils import timezone
 
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, Product, WishlistItem
+from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, PaymentTransaction, Product, WishlistItem
 
 
 class ProductForm(forms.ModelForm):
@@ -206,6 +206,7 @@ class ShopivaAdminSite(admin.AdminSite):
         products = Product.objects.all()
         orders = Order.objects.all()
         agents = DeliveryAgent.objects.filter(is_active=True)
+        payments = PaymentTransaction.objects.select_related("order")
 
         if not question:
             answer = "Please type a question. I can help with products, orders, stock, revenue and delivery operations."
@@ -222,6 +223,20 @@ class ShopivaAdminSite(admin.AdminSite):
             answer = f"There are {orders.filter(status='pending').count()} pending order(s) waiting for attention."
         elif any(word in question for word in ("today", "today's")) and "order" in question:
             answer = f"Shopiva has received {orders.filter(created_at__date=timezone.localdate()).count()} order(s) today."
+        elif any(word in question for word in ("failed", "attention", "problem")) and any(word in question for word in ("payment", "mpesa", "m-pesa")):
+            failed = payments.filter(method="mpesa", status="failed").order_by("-created_at")[:8]
+            pending = payments.filter(method="mpesa", status="pending").order_by("-created_at")[:8]
+            answer = (
+                f"M-PESA needs attention: {failed.count()} failed transaction(s) in the latest set and {pending.count()} transaction(s) still pending."
+                if failed or pending
+                else "No failed or pending M-PESA transactions are currently recorded."
+            )
+        elif any(word in question for word in ("pending", "waiting")) and any(word in question for word in ("payment", "mpesa", "m-pesa")):
+            pending = payments.filter(method="mpesa", status="pending").count()
+            answer = f"There are {pending} M-PESA transaction(s) awaiting confirmed provider results. Pending does not mean paid."
+        elif any(word in question for word in ("failed", "failure")) and any(word in question for word in ("payment", "mpesa", "m-pesa")):
+            failed = payments.filter(method="mpesa", status="failed").count()
+            answer = f"There are {failed} recorded failed M-PESA transaction(s)."
         elif any(word in question for word in ("revenue", "sales", "income")):
             revenue = orders.exclude(status="cancelled").aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
             answer = f"Current recorded revenue excluding cancelled orders is KSh {revenue:,.2f}."
@@ -230,7 +245,7 @@ class ShopivaAdminSite(admin.AdminSite):
         elif "help" in question or "what can" in question:
             answer = "I can answer questions about product counts, low stock, pending orders, today's orders, revenue and delivery operations."
         else:
-            answer = "Try: 'How many products do we have?', 'Which products are low stock?', 'How many pending orders?', or 'How many delivery riders are active?'"
+            answer = "Try: 'How many products do we have?', 'Which products are low stock?', 'How many pending orders?', or 'How many delivery riders are active?', 'Are there any M-PESA payments needing attention?', or 'How many M-PESA payments are pending?'"
 
         return JsonResponse({"answer": answer})
 
