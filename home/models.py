@@ -212,7 +212,7 @@ class WishlistItem(models.Model):
 
 class SellerSettlement(models.Model):
     STATUS_CHOICES = [("pending", "Pending delivery"), ("available", "Available for payout"), ("paid", "Paid to seller"), ("held", "Held"), ("refunded", "Refunded")]
-    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="seller_settlement")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="seller_settlements")
     seller = models.ForeignKey(SellerProfile, on_delete=models.PROTECT, related_name="settlements")
     gross_amount = models.DecimalField(max_digits=12, decimal_places=2)
     platform_commission = models.DecimalField(max_digits=12, decimal_places=2)
@@ -225,6 +225,10 @@ class SellerSettlement(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [models.UniqueConstraint(fields=("order", "seller"), name="unique_order_seller_settlement")]
 
     def __str__(self):
         return f"Settlement #{self.id} - Order #{self.order_id}"
