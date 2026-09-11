@@ -168,17 +168,51 @@ def realtime_call(request):
         ]
     else:
         instructions = _customer_instructions(request)
-
-                "description": "Add a real Shopiva product to the current customer's browser cart. Use only a product id from the supplied catalogue.",
+        tools = [
+            {
+                "type": "function",
+                "name": "search_products",
+                "description": "Search the live Shopiva product catalogue using a natural-language request.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string"},
+                        "category": {"type": "string"},
+                        "max_price": {"type": "number"}
+                    },
+                    "additionalProperties": False
+                }
+            },
+            {
+                "type": "function",
+                "name": "get_cart_summary",
+                "description": "Read the current browser cart and return its real contents and total.",
+                "parameters": {"type": "object", "properties": {}, "additionalProperties": False}
+            },
+            {
+                "type": "function",
+                "name": "get_product_details",
+                "description": "Return current details for one real Shopiva product.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"product_id": {"type": "integer"}},
+                    "required": ["product_id"],
+                    "additionalProperties": False
+                }
+            },
+            {
+                "type": "function",
+                "name": "add_to_cart",
+                "description": "Add a real Shopiva product to the current customer's browser cart. Use only a product id from the live catalogue.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "product_id": {"type": "integer"},
-                        "quantity": {"type": "integer", "minimum": 1, "maximum": 20},
+                        "quantity": {"type": "integer", "minimum": 1, "maximum": 20}
                     },
                     "required": ["product_id", "quantity"],
-                    "additionalProperties": False,
-                },
+                    "additionalProperties": False
+                }
             },
             {
                 "type": "function",
@@ -188,9 +222,9 @@ def realtime_call(request):
                     "type": "object",
                     "properties": {"order_id": {"type": "integer"}},
                     "required": ["order_id"],
-                    "additionalProperties": False,
-                },
-            },
+                    "additionalProperties": False
+                }
+            }
         ]
 
     session = {
