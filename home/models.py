@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from cloudinary.models import CloudinaryField
 
 
 class SellerProfile(models.Model):
@@ -34,7 +35,7 @@ class Product(models.Model):
     stock_quantity = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     category = models.CharField(max_length=100, blank=True, default="General")
-    image = models.ImageField(upload_to="products/", blank=True, null=True)
+    image = CloudinaryField("image", folder="shopiva/products", blank=True, null=True)
     discount_percent = models.PositiveIntegerField(default=0)
     promo_text = models.CharField(max_length=120, blank=True)
     is_featured = models.BooleanField(default=False)
@@ -52,6 +53,15 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def average_rating(self):
+        from django.db.models import Avg
+        return self.reviews.aggregate(value=Avg("rating"))["value"] or 0
+
+    @property
+    def review_count(self):
+        return self.reviews.count()
 
 
 class DeliveryAgent(models.Model):
@@ -257,3 +267,37 @@ class SellerSettlement(models.Model):
 
     def __str__(self):
         return f"Settlement #{self.id} - Order #{self.order_id}"
+
+
+class ProductReview(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="shopiva_reviews")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="product_reviews")
+    rating = models.PositiveSmallIntegerField()
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [models.UniqueConstraint(fields=("product", "customer", "order"), name="unique_product_review_per_order")]
+
+    def __str__(self):
+        return f"{self.product.name} - {self.rating}/5"
+
+
+class Notification(models.Model):
+    TYPE_CHOICES = [("order", "Order"), ("payment", "Payment"), ("delivery", "Delivery"), ("payout", "Payout"), ("system", "System")]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="shopiva_notifications")
+    notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default="system")
+    title = models.CharField(max_length=160)
+    message = models.TextField()
+    link = models.CharField(max_length=255, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.user.username}: {self.title}"
