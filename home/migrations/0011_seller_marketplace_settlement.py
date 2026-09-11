@@ -75,6 +75,9 @@ class Migration(migrations.Migration):
                 ("seller", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="settlements", to="home.sellerprofile")),
             ],
             options={"ordering": ("-created_at",)},
-            constraints=[models.UniqueConstraint(fields=("order", "seller"), name="unique_order_seller_settlement")],
+        ),
+        migrations.AddConstraint(
+            model_name="sellersettlement",
+            constraint=models.UniqueConstraint(fields=("order", "seller"), name="unique_order_seller_settlement"),
         ),
     ]
