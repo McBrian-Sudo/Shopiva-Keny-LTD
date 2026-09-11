@@ -18,6 +18,9 @@ jobs:
       - name: Apply customer delivery enhancement
         run: python scripts/enhance_customer_delivery.py
 
+      - name: Apply customer delivery journey v3
+        run: python scripts/apply_customer_delivery_timeline.py
+
       - name: Commit generated changes
         run: |
           git config user.name "shopiva-bot"
@@ -26,6 +29,6 @@ jobs:
             echo "No customer delivery changes needed."
             exit 0
           fi
-          git add home/views.py home/templates/includes/delivery_network_map.html
-          git commit -m "Show delivery vehicle details to customers [skip ci]"
+          git add home/views.py home/templates/includes/delivery_network_map.html scripts/apply_customer_delivery_timeline.py
+          git commit -m "Polish customer delivery timeline and rider card [skip ci]"
           git push
