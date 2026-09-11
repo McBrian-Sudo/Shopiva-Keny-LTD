@@ -2,6 +2,30 @@ from django.conf import settings
 from django.db import models
 
 
+class SellerProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="seller_profile")
+    business_name = models.CharField(max_length=200, blank=True)
+    mpesa_phone = models.CharField(max_length=30, blank=True)
+    commission_percent = models.DecimalField(max_digits=5, decimal_places=2, default=10)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.business_name or self.user.get_full_name() or self.user.username
+
+
+class SellerWallet(models.Model):
+    seller = models.OneToOneField(SellerProfile, on_delete=models.CASCADE, related_name="wallet")
+    pending_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    available_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_commission = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.seller} wallet"
+
+
 class Product(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -14,6 +38,7 @@ class Product(models.Model):
     discount_percent = models.PositiveIntegerField(default=0)
     promo_text = models.CharField(max_length=120, blank=True)
     is_featured = models.BooleanField(default=False)
+    seller = models.ForeignKey(SellerProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name="products")
 
     @property
     def discounted_price(self):
@@ -84,6 +109,10 @@ class OrderItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=12, decimal_places=2)
+    seller = models.ForeignKey(SellerProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name="order_items")
+    seller_gross = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    platform_commission = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    seller_net = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"
@@ -179,3 +208,23 @@ class WishlistItem(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.product.name}"
+
+
+class SellerSettlement(models.Model):
+    STATUS_CHOICES = [("pending", "Pending delivery"), ("available", "Available for payout"), ("paid", "Paid to seller"), ("held", "Held"), ("refunded", "Refunded")]
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="seller_settlement")
+    seller = models.ForeignKey(SellerProfile, on_delete=models.PROTECT, related_name="settlements")
+    gross_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    platform_commission = models.DecimalField(max_digits=12, decimal_places=2)
+    seller_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    provider_reference = models.CharField(max_length=120, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    released_at = models.DateTimeField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"Settlement #{self.id} - Order #{self.order_id}"
