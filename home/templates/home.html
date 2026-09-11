@@ -929,15 +929,27 @@
 </style>
 <div class="ai-card">
 <div><h2>🤖 Shopiva AI Shopping Assistant</h2><p>Tell me what you want in normal language — budget, product type, use case or preferences.</p></div>
-<form class="ai-form" id="shopiva-ai-form"><input id="shopiva-ai-input" name="question" placeholder="e.g. Find me a phone under KSh 30,000" required><button type="submit">Ask AI</button></form>
+<form class="ai-form" id="shopiva-ai-form"><input id="shopiva-ai-input" name="question" placeholder="e.g. Find me a phone under KSh 30,000" required><button type="submit">Ask AI</button><button type="button" id="shopiva-voice-btn" title="Record a voice question">🎙️ Voice</button></form>
 <div class="ai-result" id="shopiva-ai-result"><strong id="shopiva-ai-answer"></strong><div class="ai-products" id="shopiva-ai-products"></div><div class="ai-status" id="shopiva-ai-status"></div></div>
 </div>
 <script>
-document.getElementById("shopiva-ai-form")?.addEventListener("submit", async function(e){
- e.preventDefault();
+async function shopivaSpeak(text) {
+ const body=new URLSearchParams(); body.set("text", text);
+ const r=await fetch("{% url 'voice_speak' %}", {method:"POST", headers:{"X-CSRFToken":"{{ csrf_token }}"}, body});
+ if (!r.ok) return;
+ const blob=await r.blob();
+ const url=URL.createObjectURL(blob);
+ const audio=new Audio(url);
+ audio.play().catch(()=>{});
+ audio.onended=()=>URL.revokeObjectURL(url);
+}
+
+async function shopivaAsk(question) {
  const input=document.getElementById("shopiva-ai-input"), result=document.getElementById("shopiva-ai-result"), answer=document.getElementById("shopiva-ai-answer"), products=document.getElementById("shopiva-ai-products"), status=document.getElementById("shopiva-ai-status");
+ if(!question.trim()) return;
+ input.value=question;
  result.classList.add("show"); answer.textContent="Thinking…"; products.innerHTML=""; status.textContent="";
- const body=new URLSearchParams(); body.set("question",input.value);
+ const body=new URLSearchParams(); body.set("question",question);
  try{
    const r=await fetch("{% url 'shop_assistant' %}",{method:"POST",headers:{"X-CSRFToken":"{{ csrf_token }}"},body});
    const data=await r.json();
@@ -945,8 +957,48 @@ document.getElementById("shopiva-ai-form")?.addEventListener("submit", async fun
    answer.textContent=data.answer||"I couldn't find a recommendation.";
    (data.products||[]).forEach(p=>{const a=document.createElement("a");a.className="ai-product";a.href="/product/"+p.id+"/";a.textContent=p.name+" · KSh "+Number(p.price).toLocaleString();products.appendChild(a);});
    status.textContent=data.ai?"Powered by Shopiva AI":"Smart catalog mode — connect OPENAI_API_KEY for full generative recommendations.";
+   if(data.answer) shopivaSpeak(data.answer);
  }catch(err){answer.textContent="Sorry, the shopping assistant is temporarily unavailable.";status.textContent=err.message||"";}
+}
+
+document.getElementById("shopiva-ai-form")?.addEventListener("submit", function(e){
+ e.preventDefault();
+ shopivaAsk(document.getElementById("shopiva-ai-input").value);
 });
+
+(function(){
+ const button=document.getElementById("shopiva-voice-btn");
+ if(!button || !navigator.mediaDevices || !window.MediaRecorder) return;
+ let recorder=null, chunks=[];
+ button.addEventListener("click", async function(){
+   if(recorder && recorder.state==="recording"){ recorder.stop(); return; }
+   try{
+     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+     chunks=[];
+     recorder=new MediaRecorder(stream);
+     button.textContent="⏹️ Stop";
+     button.dataset.recording="1";
+     recorder.ondataavailable=e=>{if(e.data.size) chunks.push(e.data);};
+     recorder.onstop=async()=>{
+       stream.getTracks().forEach(t=>t.stop());
+       button.textContent="🎙️ Voice"; button.dataset.recording="";
+       const form=new FormData();
+       form.append("audio",new Blob(chunks,{type:recorder.mimeType||"audio/webm"}),"shopiva-voice.webm");
+       const input=document.getElementById("shopiva-ai-input");
+       input.placeholder="Transcribing your voice…";
+       try{
+         const r=await fetch("{% url 'voice_transcribe' %}",{method:"POST",headers:{"X-CSRFToken":"{{ csrf_token }}"},body:form});
+         const data=await r.json();
+         if(!r.ok) throw new Error(data.error||"Transcription failed");
+         input.value=data.text||"";
+         if(data.text) shopivaAsk(data.text);
+       }catch(err){document.getElementById("shopiva-ai-status").textContent=err.message||"Voice recording failed.";}
+       input.placeholder="e.g. Find me a phone under KSh 30,000";
+     };
+     recorder.start();
+   }catch(err){document.getElementById("shopiva-ai-status").textContent="Microphone permission is required for voice AI.";}
+ });
+})();
 </script>
 </section>
 
