@@ -354,6 +354,15 @@ class OrderAdmin(admin.ModelAdmin):
             )
             return
 
+        if previous.status != obj.status and obj.status == "delivered":
+            for settlement in SellerSettlement.objects.select_for_update().filter(order=obj, status="pending"):
+                wallet = SellerWallet.objects.select_for_update().get(seller=settlement.seller)
+                wallet.pending_balance = max(Decimal("0.00"), wallet.pending_balance - settlement.seller_amount)
+                wallet.available_balance += settlement.seller_amount
+                wallet.save(update_fields=("pending_balance", "available_balance", "updated_at"))
+                settlement.status = "available"
+                settlement.released_at = now
+                settlement.save(update_fields=("status", "released_at"))
         if previous.status != obj.status:
             event_map = {
                 "confirmed": "confirmed",
