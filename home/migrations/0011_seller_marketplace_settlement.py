@@ -71,9 +71,10 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("released_at", models.DateTimeField(blank=True, null=True)),
                 ("paid_at", models.DateTimeField(blank=True, null=True)),
-                ("order", models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name="seller_settlement", to="home.order")),
+                ("order", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="seller_settlements", to="home.order")),
                 ("seller", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="settlements", to="home.sellerprofile")),
             ],
             options={"ordering": ("-created_at",)},
+            constraints=[migrations.models.UniqueConstraint(fields=("order", "seller"), name="unique_order_seller_settlement")],
         ),
     ]
