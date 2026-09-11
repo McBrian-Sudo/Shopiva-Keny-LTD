@@ -1,0 +1,29 @@
+name: Wire Seller Login
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Apply seller login wiring
+        run: python scripts/wire_seller_login.py
+      - name: Commit generated changes
+        run: |
+          git config user.name "shopiva-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No seller login wiring changes needed."
+            exit 0
+          fi
+          git add home/views.py
+          git commit -m "Wire seller protected views to seller login [skip ci]"
+          git push
