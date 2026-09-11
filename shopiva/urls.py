@@ -8,6 +8,7 @@ from home.ai import shop_assistant
 from home.customer_tracking import customer_order_tracking
 from home.platform import app_install, app_manifest, service_worker
 from home.payments import checkout_mpesa, mpesa_callback, mpesa_payment_status, mpesa_waiting
+from home.seller_auth import seller_login, seller_logout
 from home.voice_ai import realtime_action, realtime_call, speak_text, transcribe_voice
 from home.views import (
     add_to_cart,
@@ -58,14 +59,18 @@ urlpatterns = [
     path("payments/mpesa/waiting/<int:order_id>/", mpesa_waiting, name="mpesa_waiting"),
     path("order-success/<int:order_id>/", order_success, name="order_success"),
 
-    # Customer account
+    # Seller portal
     path("seller/register/", seller_register, name="seller_register"),
+    path("seller/login/", seller_login, name="seller_login"),
+    path("seller/logout/", seller_logout, name="seller_logout"),
     path("seller/", seller_dashboard, name="seller_dashboard"),
     path("seller/products/add/", seller_product_add, name="seller_product_add"),
     path("seller/products/<int:product_id>/edit/", seller_product_edit, name="seller_product_edit"),
     path("seller/products/<int:product_id>/toggle/", seller_product_toggle, name="seller_product_toggle"),
     path("seller/products/<int:product_id>/hide/", seller_product_delete, name="seller_product_delete"),
     path("seller/payout/request/", seller_request_payout, name="seller_request_payout"),
+
+    # Customer account
     path("customer/register/", customer_register, name="customer_register"),
     path("customer/login/", customer_login, name="customer_login"),
     path("customer/logout/", customer_logout, name="customer_logout"),
