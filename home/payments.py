@@ -177,6 +177,8 @@ def checkout_mpesa(request):
             tracking_code=f"SPV-{__import__('uuid').uuid4().hex[:10].upper()}",
         )
         OrderEvent.objects.create(order=order, event_type="placed", note="Order placed through Shopiva checkout.", actor=request.user if request.user.is_authenticated else None)
+        if request.user.is_authenticated and not request.user.is_staff:
+            notify_user(request.user, "Order placed", f"Your Shopiva order {order.tracking_code} has been placed and is awaiting payment confirmation.", "order", f"/account/orders/{order.id}/")
         for product, quantity, unit_price in locked_items:
             seller = product.seller if product.seller_id and product.seller and product.seller.is_active else None
             gross = unit_price * quantity
