@@ -112,6 +112,7 @@
                     <input id="ai-question" name="question" type="text" autocomplete="off" placeholder="Ask Shopiva AI...">
                     <button type="submit">Ask AI</button>
                     <button id="ai-voice-button" type="button" title="Record an admin voice question">🎙️ Voice</button>
+                    <button id="ai-live-button" type="button" title="Start a natural admin voice conversation">🗣️ Talk Live</button>
                 </form>
                 <audio id="ai-audio" controls style="width:100%;margin-top:10px;display:none;"></audio>
                 <div class="ai-suggestions">
@@ -195,6 +196,122 @@
     document.querySelectorAll(".ai-suggestions button").forEach(function (button) {
         button.addEventListener("click", function () { ask(button.dataset.q); });
     });
+    const liveButton = document.getElementById("ai-live-button");
+    let livePc = null, liveDc = null, liveStream = null, liveActive = false;
+
+    function liveStatus(text) {
+        answer.textContent = text;
+    }
+
+    async function liveAction(name, args) {
+        const response = await fetch("{% url 'realtime_action' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value
+            },
+            body: JSON.stringify(Object.assign({action: name}, args))
+        });
+        return response.json();
+    }
+
+    function sendLiveEvent(event) {
+        if (liveDc && liveDc.readyState === "open") liveDc.send(JSON.stringify(event));
+    }
+
+    async function handleLiveEvent(event) {
+        if (event.type === "error") {
+            liveStatus(event.error && event.error.message ? event.error.message : "Voice AI error.");
+            return;
+        }
+        if (event.type === "response.audio_transcript.done") {
+            liveStatus(event.transcript || "Shopiva Voice answered.");
+        }
+        if (event.type === "response.function_call_arguments.done") {
+            try {
+                const args = JSON.parse(event.arguments || "{}");
+                const result = await liveAction(event.name, args);
+                sendLiveEvent({
+                    type: "conversation.item.create",
+                    item: {
+                        type: "function_call_output",
+                        call_id: event.call_id,
+                        output: JSON.stringify(result)
+                    }
+                });
+                sendLiveEvent({type: "response.create"});
+            } catch (error) {
+                sendLiveEvent({
+                    type: "conversation.item.create",
+                    item: {
+                        type: "function_call_output",
+                        call_id: event.call_id,
+                        output: JSON.stringify({ok:false, error:error.message})
+                    }
+                });
+                sendLiveEvent({type: "response.create"});
+            }
+        }
+    }
+
+    async function startLive() {
+        if (liveActive) {
+            stopLive();
+            return;
+        }
+        if (!window.RTCPeerConnection || !navigator.mediaDevices?.getUserMedia) {
+            liveStatus("This browser does not support realtime voice.");
+            return;
+        }
+        try {
+            liveStatus("Starting Shopiva Admin Voice…");
+            liveStream = await navigator.mediaDevices.getUserMedia({audio:true});
+            livePc = new RTCPeerConnection();
+            const audioElement = document.createElement("audio");
+            audioElement.autoplay = true;
+            audioElement.style.display = "none";
+            document.body.appendChild(audioElement);
+            livePc.ontrack = event => { audioElement.srcObject = event.streams[0]; };
+            liveStream.getTracks().forEach(track => livePc.addTrack(track, liveStream));
+            liveDc = livePc.createDataChannel("oai-events");
+            liveDc.onopen = () => {
+                liveActive = true;
+                liveButton.textContent = "⏹️ End Voice";
+                liveStatus("🟢 Admin Voice is listening. Ask about Shopiva operations naturally.");
+            };
+            liveDc.onclose = () => { if (liveActive) stopLive(); };
+            liveDc.onmessage = event => {
+                try { handleLiveEvent(JSON.parse(event.data)); } catch (_) {}
+            };
+            const offer = await livePc.createOffer();
+            await livePc.setLocalDescription(offer);
+            const response = await fetch("{% url 'realtime_call' %}", {
+                method: "POST",
+                headers: {"Content-Type":"application/sdp"},
+                body: offer.sdp
+            });
+            if (!response.ok) throw new Error("Could not connect to Shopiva Admin Voice.");
+            const answerSdp = await response.text();
+            await livePc.setRemoteDescription({type:"answer", sdp:answerSdp});
+        } catch (error) {
+            liveStatus(error.message || "Unable to start realtime voice.");
+            stopLive();
+        }
+    }
+
+    function stopLive() {
+        liveActive = false;
+        if (liveDc) liveDc.close();
+        if (livePc) livePc.close();
+        if (liveStream) liveStream.getTracks().forEach(track => track.stop());
+        liveDc = null;
+        livePc = null;
+        liveStream = null;
+        if (liveButton) liveButton.textContent = "🗣️ Talk Live";
+    }
+
+    liveButton?.addEventListener("click", startLive);
+
 
     if (voiceButton && navigator.mediaDevices && window.MediaRecorder) {
         voiceButton.addEventListener("click", async function () {
