@@ -381,6 +381,37 @@ def _cart_items(cart_data):
 
 def cart(request):
     cart_data = request.session.get("cart", {})
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+        product_id = request.POST.get("product_id", "").strip()
+
+        if product_id:
+            try:
+                product = Product.objects.get(id=product_id, is_active=True)
+            except (Product.DoesNotExist, ValueError, TypeError):
+                product = None
+
+            if product is not None:
+                if action == "remove":
+                    cart_data.pop(str(product.id), None)
+                elif action == "update":
+                    try:
+                        quantity = int(request.POST.get("quantity", "1"))
+                    except (TypeError, ValueError):
+                        quantity = 1
+
+                    quantity = max(0, min(quantity, product.stock_quantity))
+                    if quantity == 0:
+                        cart_data.pop(str(product.id), None)
+                    else:
+                        cart_data[str(product.id)] = quantity
+
+                request.session["cart"] = cart_data
+                request.session.modified = True
+
+        return redirect("cart")
+
     items, total = _cart_items(cart_data)
     request.session["cart"] = {
         str(item["product"].id): item["quantity"] for item in items
