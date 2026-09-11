@@ -17,6 +17,7 @@ from django.urls import path
 from django.utils import timezone
 
 from .voice_ai import speak_text, transcribe_voice
+from .payments import _create_seller_settlements
 from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
 
@@ -386,6 +387,7 @@ class OrderAdmin(admin.ModelAdmin):
                 )
 
         if previous.payment_status != obj.payment_status and obj.payment_status == "paid":
+            _create_seller_settlements(obj)
             OrderEvent.objects.create(
                 order=obj,
                 event_type="paid",
