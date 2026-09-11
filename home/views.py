@@ -313,8 +313,18 @@ def delivery_ping_location(request):
 
 def home(request):
     products = Product.objects.filter(is_active=True).order_by("-id")
-    featured_products = products.filter(is_featured=True)
     discounted_products = products.filter(discount_percent__gt=0)
+
+    # Build a rich hero rotation from featured items first, then live offers,
+    # then the newest products so the homepage slideshow stays useful even
+    # when an admin has not explicitly marked enough products as featured.
+    featured_products = list(products.filter(is_featured=True)[:6])
+    for product in discounted_products[:6]:
+        if product not in featured_products and len(featured_products) < 6:
+            featured_products.append(product)
+    for product in products[:6]:
+        if product not in featured_products and len(featured_products) < 6:
+            featured_products.append(product)
 
     return render(
         request,
