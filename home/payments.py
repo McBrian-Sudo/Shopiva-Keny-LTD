@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
+from .notifications import notify_user
 from .models import Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerSettlement, SellerWallet
 
 
@@ -279,6 +280,14 @@ def mpesa_callback(request):
             order.save(update_fields=["payment_status", "status", "payment_reference", "paid_at"])
             OrderEvent.objects.create(order=order, event_type="paid", note=f"M-PESA payment confirmed: {receipt}")
             _create_seller_settlements(order)
+            if order.email:
+                from django.contrib.auth.models import User
+                customer = User.objects.filter(email__iexact=order.email, is_active=True).first()
+                if customer:
+                    notify_user(customer, "M-PESA payment confirmed", f"Your Shopiva order {order.tracking_code} is confirmed. M-PESA receipt: {receipt}", "payment", f"/account/orders/{order.id}/")
+            for item in order.items.select_related("seller"):
+                if item.seller_id and item.seller:
+                    notify_user(item.seller.user, "Order payment confirmed", f"Payment for order {order.tracking_code} is confirmed. Your seller earnings are now pending delivery.", "payment", "/seller/")
         else:
             payment.status = "failed"
             if not payment.inventory_released:
