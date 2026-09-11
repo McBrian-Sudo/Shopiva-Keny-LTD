@@ -15,8 +15,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Apply homepage redesign
-        run: python scripts/redesign_homepage.py
+      - name: Apply homepage hero refresh
+        run: python scripts/refresh_homepage_hero_v4.py
 
       - name: Commit generated homepage changes
         run: |
@@ -27,5 +27,5 @@ jobs:
             exit 0
           fi
           git add home/templates/home.html
-          git commit -m "Redesign Shopiva homepage hero [skip ci]"
+          git commit -m "Refresh Shopiva homepage with clearer service visuals [skip ci]"
           git push
