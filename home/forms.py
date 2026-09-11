@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from .models import Product, ProductReview
 
 
 class CustomerRegistrationForm(UserCreationForm):
@@ -77,3 +78,32 @@ class SellerRegistrationForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+
+class SellerProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ("name", "description", "category", "sku", "price", "stock_quantity", "discount_percent", "promo_text", "image", "is_active", "is_featured")
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 5}),
+            "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
+        }
+
+    def clean_sku(self):
+        sku = (self.cleaned_data.get("sku") or "").strip()
+        if sku:
+            qs = Product.objects.filter(sku=sku)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("SKU already exists.")
+        return sku or None
+
+class ProductReviewForm(forms.ModelForm):
+    class Meta:
+        model = ProductReview
+        fields = ("rating", "comment")
+        widgets = {
+            "rating": forms.Select(choices=[(i, f"{i} / 5") for i in range(5, 0, -1)]),
+            "comment": forms.Textarea(attrs={"rows": 4, "placeholder": "Tell other shoppers about your experience."}),
+        }
