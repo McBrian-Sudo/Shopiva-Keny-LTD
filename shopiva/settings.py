@@ -88,6 +88,7 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "resend")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Shopiva <no-reply@shopiva.co.ke>")
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
