@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from .voice_ai import speak_text, transcribe_voice
 from .payments import _create_seller_settlements
+from .notifications import notify_user
 from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
 
@@ -366,6 +367,7 @@ class OrderAdmin(admin.ModelAdmin):
                     settlement.status = "available"
                     settlement.released_at = now
                     settlement.save(update_fields=("status", "released_at"))
+                    notify_user(settlement.seller.user, "Seller earnings released", f"Order {obj.tracking_code} was delivered. KSh {settlement.seller_amount:,.2f} is now available for payout.", "delivery", "/seller/")
         if previous.status != obj.status:
             event_map = {
                 "confirmed": "confirmed",
@@ -509,6 +511,7 @@ class SellerPayoutRequestAdmin(admin.ModelAdmin):
             if obj.status == "paid":
                 obj.paid_at = timezone.now()
                 obj.save(update_fields=("paid_at", "updated_at"))
+                notify_user(obj.seller.user, "Seller payout confirmed", f"Your Shopiva payout #{obj.id} for KSh {obj.amount:,.2f} has been marked paid by the admin.", "payout", "/seller/")
             elif obj.status in {"failed", "cancelled"} and previous_status not in {"failed", "cancelled"}:
                 wallet.available_balance += obj.amount
                 wallet.save(update_fields=("available_balance", "updated_at"))
