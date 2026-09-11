@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: shopiva-keny-ltd
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python manage.py migrate --noinput && python manage.py collectstatic --noinput
+    startCommand: gunicorn shopiva.wsgi:application
