@@ -47,3 +47,33 @@ class CustomerRegistrationForm(UserCreationForm):
             user.save()
 
         return user
+
+
+
+class SellerRegistrationForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+    business_name = forms.CharField(max_length=200)
+    mpesa_phone = forms.CharField(max_length=30, help_text="Kenyan M-PESA number for future seller payouts.")
+
+    class Meta:
+        model = User
+        fields = ("username", "email", "password1", "password2")
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("Username exists. Please choose another username.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("This email is already registered.")
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"].strip().lower()
+        if commit:
+            user.save()
+        return user
