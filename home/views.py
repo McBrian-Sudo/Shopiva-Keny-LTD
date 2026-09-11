@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal, InvalidOperation
 import uuid
 
@@ -13,6 +14,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.db.models import Sum
+
+logger = logging.getLogger(__name__)
 
 from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
@@ -731,8 +734,25 @@ def seller_product_edit(request, product_id):
     if request.method == "POST":
         form = SellerProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
-            form.save()
-            messages.success(request, f"{product.name} has been updated.")
+            updated_product = form.save(commit=False)
+            try:
+                updated_product.save()
+            except Exception as exc:
+                logger.exception("Seller product image update failed", exc_info=exc)
+                # Preserve the existing image when a replacement upload fails.
+                updated_product.image = Product.objects.get(pk=product.pk).image
+                updated_product.save(update_fields=[
+                    "name", "description", "category", "sku", "price",
+                    "stock_quantity", "discount_percent", "promo_text",
+                    "is_active", "is_featured", "seller",
+                ])
+                messages.warning(
+                    request,
+                    "Product details were updated, but the new image could not be uploaded. "
+                    "The previous image was kept.",
+                )
+            else:
+                messages.success(request, f"{updated_product.name} has been updated.")
             return redirect("seller_dashboard")
     else:
         form = SellerProductForm(instance=product)
@@ -761,8 +781,27 @@ def seller_product_add(request):
             product = form.save(commit=False)
             product.seller = seller
             product.is_active = True
-            product.save()
-            messages.success(request, f"{product.name} is now listed on Shopiva.")
+            try:
+                product.save()
+            except Exception as exc:
+                # Do not turn a product listing into a generic 500 when the
+                # external image storage provider is unavailable/misconfigured.
+                # Save the product without the optional image and tell the seller
+                # exactly what happened.
+                logger.exception("Seller product image upload failed", exc_info=exc)
+                product.image = None
+                product.save(update_fields=[
+                    "name", "description", "category", "sku", "price",
+                    "stock_quantity", "discount_percent", "promo_text",
+                    "is_active", "is_featured", "seller",
+                ])
+                messages.warning(
+                    request,
+                    "Product listed successfully, but the image could not be uploaded. "
+                    "The image-storage connection needs attention; you can edit the product and try the image again.",
+                )
+            else:
+                messages.success(request, f"{product.name} is now listed on Shopiva.")
             return redirect("seller_dashboard")
     else:
         form = SellerProductForm()
