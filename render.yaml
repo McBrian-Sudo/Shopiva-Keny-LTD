@@ -17,7 +17,7 @@ services:
       - key: CLOUDINARY_URL
         sync: false
       - key: EMAIL_NOTIFICATIONS_ENABLED
-        value: "false"
+        value: "true"
       - key: EMAIL_HOST
         value: "smtp.resend.com"
       - key: EMAIL_PORT
@@ -30,8 +30,10 @@ services:
         value: "true"
       - key: DEFAULT_FROM_EMAIL
         sync: false
+      - key: EMAIL_TIMEOUT
+        value: "20"
       - key: SMS_NOTIFICATIONS_ENABLED
-        value: "false"
+        value: "true"
       - key: AFRICASTALKING_USERNAME
         sync: false
       - key: AFRICASTALKING_API_KEY
@@ -39,7 +41,7 @@ services:
       - key: AFRICASTALKING_SENDER_ID
         sync: false
       - key: WHATSAPP_NOTIFICATIONS_ENABLED
-        value: "false"
+        value: "true"
       - key: WHATSAPP_ACCESS_TOKEN
         sync: false
       - key: WHATSAPP_PHONE_NUMBER_ID
