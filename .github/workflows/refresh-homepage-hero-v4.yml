@@ -1,0 +1,31 @@
+name: Refresh Shopiva Homepage Hero
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  hero:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Refresh homepage hero
+        run: python scripts/refresh_homepage_hero_v4.py
+
+      - name: Commit generated homepage changes
+        run: |
+          git config user.name "shopiva-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No homepage hero changes needed."
+            exit 0
+          fi
+          git add home/templates/home.html
+          git commit -m "Refresh homepage hero with clearer visuals and service slides [skip ci]"
+          git push
