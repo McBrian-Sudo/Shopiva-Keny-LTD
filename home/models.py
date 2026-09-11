@@ -301,3 +301,44 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.user.username}: {self.title}"
+
+
+class NotificationDelivery(models.Model):
+    CHANNEL_CHOICES = (
+        ("email", "Email"),
+        ("sms", "SMS"),
+        ("whatsapp", "WhatsApp"),
+    )
+    STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("accepted", "Accepted by provider"),
+        ("delivered", "Delivered"),
+        ("failed", "Failed"),
+        ("skipped", "Skipped"),
+    )
+
+    notification = models.ForeignKey(
+        "Notification",
+        on_delete=models.CASCADE,
+        related_name="deliveries",
+    )
+    channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    provider_message_id = models.CharField(max_length=255, blank=True)
+    provider_status = models.CharField(max_length=100, blank=True)
+    error_message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("notification", "channel"),
+                name="unique_notification_delivery_channel",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.notification_id}:{self.channel}:{self.status}"
