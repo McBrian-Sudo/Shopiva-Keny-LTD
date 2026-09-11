@@ -225,9 +225,6 @@ class SellerSettlement(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
-
-    class Meta:
-        ordering = ("-created_at",)
         constraints = [models.UniqueConstraint(fields=("order", "seller"), name="unique_order_seller_settlement")]
 
     def __str__(self):
