@@ -19,13 +19,15 @@ services:
       - key: EMAIL_NOTIFICATIONS_ENABLED
         value: "false"
       - key: EMAIL_HOST
-        sync: false
+        value: "smtp.resend.com"
       - key: EMAIL_PORT
         value: "587"
       - key: EMAIL_HOST_USER
-        sync: false
+        value: "resend"
       - key: EMAIL_HOST_PASSWORD
         sync: false
+      - key: EMAIL_USE_TLS
+        value: "true"
       - key: DEFAULT_FROM_EMAIL
         sync: false
       - key: SMS_NOTIFICATIONS_ENABLED
@@ -42,3 +44,9 @@ services:
         sync: false
       - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
+      - key: WHATSAPP_GRAPH_VERSION
+        value: "v23.0"
+      - key: WHATSAPP_TEMPLATE_NAME
+        sync: false
+      - key: WHATSAPP_TEMPLATE_LANGUAGE
+        value: "en_US"
