@@ -7,3 +7,4 @@ psycopg-binary==3.3.5
 python-dotenv==1.2.3
 sqlparse==0.6.0
 Pillow==11.3.0
+openai>=2.0.0,<3
