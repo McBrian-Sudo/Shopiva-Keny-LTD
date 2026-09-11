@@ -19,7 +19,7 @@ from django.utils import timezone
 from .voice_ai import speak_text, transcribe_voice
 from .payments import _create_seller_settlements
 from .notifications import notify_user
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification
 
 
 class ProductForm(forms.ModelForm):
@@ -516,3 +516,20 @@ class SellerPayoutRequestAdmin(admin.ModelAdmin):
                 wallet.available_balance += obj.amount
                 wallet.save(update_fields=("available_balance", "updated_at"))
                 obj.save(update_fields=("updated_at",))
+
+
+@admin.register(ProductReview, site=shopiva_admin_site)
+class ProductReviewAdmin(admin.ModelAdmin):
+    list_display = ("product", "customer", "order", "rating", "created_at")
+    list_filter = ("rating", "created_at")
+    search_fields = ("product__name", "customer__username", "customer__email", "comment")
+    readonly_fields = ("product", "customer", "order", "rating", "comment", "created_at", "updated_at")
+
+
+@admin.register(Notification, site=shopiva_admin_site)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("user", "notification_type", "title", "is_read", "created_at")
+    list_filter = ("notification_type", "is_read", "created_at")
+    search_fields = ("user__username", "user__email", "title", "message")
+    list_editable = ("is_read",)
+    ordering = ("-created_at",)
