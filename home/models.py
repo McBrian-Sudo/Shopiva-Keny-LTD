@@ -166,6 +166,7 @@ class PaymentTransaction(models.Model):
     provider_reference = models.CharField(max_length=120, blank=True, db_index=True)
     idempotency_key = models.CharField(max_length=120, unique=True)
     raw_response = models.JSONField(default=dict, blank=True)
+    inventory_released = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     paid_at = models.DateTimeField(null=True, blank=True)
@@ -208,6 +209,33 @@ class WishlistItem(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.product.name}"
+
+
+class SellerPayoutRequest(models.Model):
+    STATUS_CHOICES = [
+        ("requested", "Requested"),
+        ("processing", "Processing"),
+        ("paid", "Paid"),
+        ("failed", "Failed"),
+        ("cancelled", "Cancelled"),
+    ]
+    seller = models.ForeignKey(SellerProfile, on_delete=models.PROTECT, related_name="payout_requests")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    phone = models.CharField(max_length=30)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="requested")
+    provider_reference = models.CharField(max_length=120, blank=True)
+    provider_response = models.JSONField(default=dict, blank=True)
+    failure_reason = models.CharField(max_length=255, blank=True)
+    idempotency_key = models.CharField(max_length=120, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"Payout #{self.id} - {self.seller} - KSh {self.amount}"
 
 
 class SellerSettlement(models.Model):
