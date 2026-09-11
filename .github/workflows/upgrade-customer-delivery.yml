@@ -1,0 +1,31 @@
+name: Upgrade Customer Delivery Dashboard
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply customer delivery dashboard upgrade
+        run: python scripts/upgrade_customer_delivery.py
+
+      - name: Commit generated changes
+        run: |
+          git config user.name "shopiva-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No customer delivery changes needed."
+            exit 0
+          fi
+          git add home/views.py home/templates/includes/delivery_network_map.html
+          git commit -m "Upgrade customer delivery tracking dashboard [skip ci]"
+          git push
