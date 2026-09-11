@@ -929,7 +929,7 @@
 </style>
 <div class="ai-card">
 <div><h2>🤖 Shopiva AI Shopping Assistant</h2><p>Tell me what you want in normal language — budget, product type, use case or preferences.</p></div>
-<form class="ai-form" id="shopiva-ai-form"><input id="shopiva-ai-input" name="question" placeholder="e.g. Find me a phone under KSh 30,000" required><button type="submit">Ask AI</button><button type="button" id="shopiva-voice-btn" title="Record a voice question">🎙️ Voice</button></form>
+<form class="ai-form" id="shopiva-ai-form"><input id="shopiva-ai-input" name="question" placeholder="e.g. Find me a phone under KSh 30,000" required><button type="submit">Ask AI</button><button type="button" id="shopiva-voice-btn" title="Record a voice question">🎙️ Voice</button><button type="button" id="shopiva-live-btn" title="Start a natural conversation with Shopiva AI">🗣️ Talk Live</button></form><div id="shopiva-live-status" class="ai-status">Voice conversation is off.</div>
 <div class="ai-result" id="shopiva-ai-result"><strong id="shopiva-ai-answer"></strong><div class="ai-products" id="shopiva-ai-products"></div><div class="ai-status" id="shopiva-ai-status"></div></div>
 </div>
 <script>
@@ -998,6 +998,89 @@ document.getElementById("shopiva-ai-form")?.addEventListener("submit", function(
      recorder.start();
    }catch(err){document.getElementById("shopiva-ai-status").textContent="Microphone permission is required for voice AI.";}
  });
+})();
+</script>
+<script>
+(function(){
+ const button=document.getElementById("shopiva-live-btn");
+ const status=document.getElementById("shopiva-live-status");
+ const answer=document.getElementById("shopiva-ai-answer");
+ const csrf="{{ csrf_token }}";
+ let pc=null, dc=null, stream=null, live=false;
+
+ function setStatus(t){ if(status) status.textContent=t; }
+ async function callAction(name,args){
+   const r=await fetch("{% url 'realtime_action' %}",{
+     method:"POST",
+     headers:{"Content-Type":"application/json","X-CSRFToken":csrf},
+     body:JSON.stringify({action:name,...args})
+   });
+   return await r.json();
+ }
+ function sendEvent(obj){ if(dc && dc.readyState==="open") dc.send(JSON.stringify(obj)); }
+
+ async function handleEvent(evt){
+   if(evt.type==="error"){ setStatus(evt.error?.message||"Voice AI error."); return; }
+   if(evt.type==="conversation.item.input_audio_transcription.completed"){
+      answer.textContent=evt.transcript||"Listening…";
+   }
+   if(evt.type==="response.audio_transcript.done"){
+      answer.textContent=evt.transcript||answer.textContent;
+   }
+   if(evt.type==="response.function_call_arguments.done"){
+      try{
+        const args=JSON.parse(evt.arguments||"{}");
+        const result=await callAction(evt.name,args);
+        sendEvent({type:"conversation.item.create",item:{type:"function_call_output",call_id:evt.call_id,output:JSON.stringify(result)}});
+        sendEvent({type:"response.create"});
+      }catch(e){
+        sendEvent({type:"conversation.item.create",item:{type:"function_call_output",call_id:evt.call_id,output:JSON.stringify({ok:false,error:e.message})}});
+        sendEvent({type:"response.create"});
+      }
+   }
+ }
+
+ async function start(){
+   if(live){ stop(); return; }
+   if(!window.RTCPeerConnection || !navigator.mediaDevices?.getUserMedia){
+     setStatus("Your browser does not support live voice conversations."); return;
+   }
+   try{
+     setStatus("Starting Shopiva Voice…");
+     stream=await navigator.mediaDevices.getUserMedia({audio:true});
+     pc=new RTCPeerConnection();
+     const audio=document.createElement("audio");
+     audio.autoplay=true;
+     audio.setAttribute("aria-label","Shopiva AI voice response");
+     audio.style.display="none";
+     document.body.appendChild(audio);
+     pc.ontrack=e=>{audio.srcObject=e.streams[0];};
+     stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+     dc=pc.createDataChannel("oai-events");
+     dc.onopen=()=>{live=true;button.textContent="⏹️ End Voice";setStatus("🟢 Shopiva Voice is listening. Speak naturally.");};
+     dc.onclose=()=>{if(live) stop();};
+     dc.onmessage=e=>{try{handleEvent(JSON.parse(e.data));}catch(_){}};
+     const offer=await pc.createOffer();
+     await pc.setLocalDescription(offer);
+     const r=await fetch("{% url 'realtime_call' %}",{method:"POST",headers:{"Content-Type":"application/sdp"},body:offer.sdp});
+     if(!r.ok) throw new Error("Could not connect to Shopiva Voice.");
+     const answerSdp=await r.text();
+     await pc.setRemoteDescription({type:"answer",sdp:answerSdp});
+   }catch(e){
+     setStatus(e.message||"Unable to start voice.");
+     stop();
+   }
+ }
+ function stop(){
+   live=false;
+   if(dc) dc.close();
+   if(pc) pc.close();
+   if(stream) stream.getTracks().forEach(t=>t.stop());
+   dc=null;pc=null;stream=null;
+   button.textContent="🗣️ Talk Live";
+   setStatus("Voice conversation is off.");
+ }
+ button?.addEventListener("click",start);
 })();
 </script>
 </section>
