@@ -1,4 +1,6 @@
 from decimal import Decimal
+import json
+import os
 import uuid
 
 from django import forms
@@ -202,11 +204,52 @@ class ShopivaAdminSite(admin.AdminSite):
         if request.method != "POST":
             return JsonResponse({"answer": "Ask me about products, orders, stock, revenue, deliveries, or Shopiva operations."})
 
-        question = request.POST.get("question", "").strip().lower()
+        question = request.POST.get("question", "").strip()
         products = Product.objects.all()
         orders = Order.objects.all()
         agents = DeliveryAgent.objects.filter(is_active=True)
         payments = PaymentTransaction.objects.select_related("order")
+
+        # When configured, use a real generative model for richer operational
+        # answers. The deterministic rules below remain as a safe fallback.
+        api_key = os.getenv("OPENAI_API_KEY", "").strip()
+        if api_key and question:
+            try:
+                from openai import OpenAI
+
+                snapshot = {
+                    "products": products.count(),
+                    "active_products": products.filter(is_active=True).count(),
+                    "low_stock": list(products.filter(is_active=True, stock_quantity__lte=5).values("id", "name", "stock_quantity")[:15]),
+                    "pending_orders": orders.filter(status="pending").count(),
+                    "today_orders": orders.filter(created_at__date=timezone.localdate()).count(),
+                    "revenue_recorded": str(orders.exclude(status="cancelled").aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")),
+                    "mpesa_pending": payments.filter(method="mpesa", status="pending").count(),
+                    "mpesa_paid": payments.filter(method="mpesa", status="paid").count(),
+                    "mpesa_failed": payments.filter(method="mpesa", status="failed").count(),
+                    "recent_payments": list(
+                        payments.order_by("-created_at").values(
+                            "id", "order_id", "status", "amount", "provider_reference", "created_at"
+                        )[:12]
+                    ),
+                }
+                prompt = f"""
+You are Shopiva Kenya's admin intelligence assistant.
+Answer the administrator's question using ONLY this database snapshot.
+Be concise and actionable. Do not invent facts.
+For M-PESA, never call a payment successful unless its recorded status is exactly 'paid'.
+Pending means awaiting confirmed provider data. Failed means failed.
+If data is insufficient, say so clearly.
+Database snapshot: {json.dumps(snapshot, default=str)}
+Administrator question: {question}
+"""
+                response = OpenAI(api_key=api_key).responses.create(
+                    model=os.getenv("OPENAI_MODEL", "gpt-5.6-luna"),
+                    input=prompt,
+                )
+                return JsonResponse({"answer": response.output_text.strip(), "ai": True})
+            except Exception:
+                pass
 
         if not question:
             answer = "Please type a question. I can help with products, orders, stock, revenue and delivery operations."
