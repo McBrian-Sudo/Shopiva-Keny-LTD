@@ -1,0 +1,43 @@
+name: Ensure Customer Map Provider
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix-map:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Replace OpenFreeMap Leaflet raster source
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("home/templates/includes/delivery_network_map.html")
+          text = p.read_text(encoding="utf-8")
+          replacements = {
+              "https://tile.openfreemap.org/{z}/{x}/{y}.png": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}.jpg",
+              "© <a href=\"https://openfreemap.org\" target=\"_blank\" rel=\"noopener\">OpenFreeMap</a> © OpenMapTiles © OpenStreetMap contributors": "Tiles © Esri — World Street Map",
+          }
+          for old, new in replacements.items():
+              text = text.replace(old, new)
+          p.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Commit map fix
+        run: |
+          git config user.name "shopiva-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Customer map provider already fixed."
+            exit 0
+          fi
+          git add home/templates/includes/delivery_network_map.html
+          git commit -m "Fix customer delivery map tiles [skip ci]"
+          git push origin main
