@@ -8,6 +8,7 @@ from home.ai import shop_assistant
 from home.customer_tracking import customer_order_tracking
 from home.platform import app_install, app_manifest, service_worker
 from home.payments import checkout_mpesa, mpesa_callback, mpesa_payment_status, mpesa_waiting
+from home.voice_ai import speak_text, transcribe_voice
 from home.views import (
     add_to_cart,
     cart,
@@ -68,6 +69,8 @@ urlpatterns = [
     # Admin / intelligence
     path("admin/business-intelligence/", business_intelligence, name="business_intelligence"),
     path("ai/shop-assistant/", shop_assistant, name="shop_assistant"),
+    path("ai/voice/transcribe/", transcribe_voice, name="voice_transcribe"),
+    path("ai/voice/speak/", speak_text, name="voice_speak"),
     path("admin/", shopiva_admin_site.urls),
 ]
 
