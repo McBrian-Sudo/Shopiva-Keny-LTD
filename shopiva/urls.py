@@ -4,6 +4,7 @@ from django.urls import path
 
 from home.admin import shopiva_admin_site
 from home.business_intelligence import business_intelligence
+from home.ai import shop_assistant
 from home.customer_tracking import customer_order_tracking
 from home.platform import app_install, app_manifest, service_worker
 from home.payments import checkout_mpesa, mpesa_callback, mpesa_payment_status, mpesa_waiting
@@ -66,6 +67,7 @@ urlpatterns = [
 
     # Admin / intelligence
     path("admin/business-intelligence/", business_intelligence, name="business_intelligence"),
+    path("ai/shop-assistant/", shop_assistant, name="shop_assistant"),
     path("admin/", shopiva_admin_site.urls),
 ]
 
