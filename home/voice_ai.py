@@ -164,6 +164,22 @@ def realtime_call(request):
                 "name": "get_mpesa_attention",
                 "description": "Return the latest M-PESA transactions that are pending or failed. Never treat pending as paid.",
                 "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+            },
+            {
+                "type": "function",
+                "name": "get_low_stock",
+                "description": "Return active products with low stock so the admin can act before they sell out.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"threshold": {"type": "integer", "minimum": 0, "maximum": 100}},
+                    "additionalProperties": False
+                }
+            },
+            {
+                "type": "function",
+                "name": "get_order_attention",
+                "description": "Return recent orders that need operational attention, including unpaid, pending-payment, failed-payment, or cancelled orders.",
+                "parameters": {"type": "object", "properties": {}, "additionalProperties": False}
             }
         ]
     else:
@@ -341,6 +357,31 @@ def realtime_action(request):
                 "payment_status": order.get_payment_status_display(),
             }
         )
+
+    if action == "get_low_stock":
+        if not request.user.is_staff:
+            return JsonResponse({"ok": False, "error": "Admin access required."}, status=403)
+        try:
+            threshold = max(0, min(int(payload.get("threshold", 5)), 100))
+        except (TypeError, ValueError):
+            threshold = 5
+        rows = list(
+            Product.objects.filter(is_active=True, stock_quantity__lte=threshold)
+            .order_by("stock_quantity", "name")
+            .values("id", "name", "stock_quantity", "price", "discount_percent")[:30]
+        )
+        return JsonResponse({"ok": True, "products": rows})
+
+    if action == "get_order_attention":
+        if not request.user.is_staff:
+            return JsonResponse({"ok": False, "error": "Admin access required."}, status=403)
+        rows = list(
+            Order.objects.filter(
+                payment_status__in=["unpaid", "pending", "failed"]
+            ).exclude(status="cancelled").order_by("-created_at")
+            .values("id", "tracking_code", "status", "payment_status", "total_amount", "email", "created_at")[:30]
+        )
+        return JsonResponse({"ok": True, "orders": rows})
 
     if action == "get_mpesa_attention":
         if not request.user.is_staff:
