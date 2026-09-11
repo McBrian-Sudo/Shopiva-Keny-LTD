@@ -1,0 +1,31 @@
+name: Apply Seller Product 500 Fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply seller product safeguard
+        run: python scripts/fix_seller_product_500.py
+
+      - name: Commit patched seller product view
+        run: |
+          git config user.name "shopiva-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No seller product changes needed."
+            exit 0
+          fi
+          git add home/views.py
+          git commit -m "Fix seller product 500 upload errors [skip ci]"
+          git push
