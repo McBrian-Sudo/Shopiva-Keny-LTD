@@ -2,6 +2,7 @@ from decimal import Decimal, InvalidOperation
 import uuid
 
 from django.contrib import messages
+from django.db import IntegrityError, transaction
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
@@ -39,10 +40,18 @@ def customer_register(request):
     if request.method == "POST":
         form = CustomerRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            auth_login(request, user)
-            messages.success(request, f"Welcome to Shopiva, {user.username}!")
-            return redirect("customer_dashboard")
+            try:
+                with transaction.atomic():
+                    user = form.save()
+            except IntegrityError:
+                form.add_error(
+                    "username",
+                    "Username exists. Please choose a different username.",
+                )
+            else:
+                auth_login(request, user)
+                messages.success(request, f"Welcome to Shopiva, {user.username}!")
+                return redirect("customer_dashboard")
     else:
         form = CustomerRegistrationForm()
 
