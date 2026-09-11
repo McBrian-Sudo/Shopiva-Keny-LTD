@@ -19,7 +19,7 @@ from django.utils import timezone
 from .voice_ai import speak_text, transcribe_voice
 from .payments import _create_seller_settlements
 from .notifications import notify_user
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery
 
 
 class ProductForm(forms.ModelForm):
@@ -532,4 +532,13 @@ class NotificationAdmin(admin.ModelAdmin):
     list_filter = ("notification_type", "is_read", "created_at")
     search_fields = ("user__username", "user__email", "title", "message")
     list_editable = ("is_read",)
+    ordering = ("-created_at",)
+
+
+@admin.register(NotificationDelivery, site=shopiva_admin_site)
+class NotificationDeliveryAdmin(admin.ModelAdmin):
+    list_display = ("notification", "channel", "status", "provider_status", "provider_message_id", "created_at", "delivered_at")
+    list_filter = ("channel", "status", "created_at")
+    search_fields = ("notification__user__username", "notification__user__email", "provider_message_id", "provider_status", "error_message")
+    readonly_fields = ("notification", "channel", "status", "provider_status", "provider_message_id", "error_message", "created_at", "updated_at", "delivered_at")
     ordering = ("-created_at",)
