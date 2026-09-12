@@ -3,7 +3,8 @@
     <application
         android:allowBackup="false"
         android:label="Shopiva Kenya"
-        android:icon="@android:drawable/sym_def_app_icon"
+        android:icon="@drawable/shopiva_logo"
+        android:roundIcon="@drawable/shopiva_logo"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false">
         <activity
