@@ -27,6 +27,7 @@ jobs:
           python manage.py makemigrations --check --dry-run
           python manage.py migrate --noinput
           python manage.py migrate --check
+          python manage.py system_preflight
           python manage.py test --verbosity 1
       - name: Python compile check
         run: python -m compileall -q home shopiva
