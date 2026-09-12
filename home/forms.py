@@ -87,6 +87,8 @@ class SellerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"].strip().lower()
         user.username = self.cleaned_data["username"].strip()
+        if commit:
+            user.save()
         return user
 
 
