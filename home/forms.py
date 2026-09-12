@@ -7,20 +7,12 @@ import uuid
 from .models import Product, ProductReview
 
 
-def _username_exists_case_insensitive(username):
-    """Return True when an existing account uses the same username ignoring case."""
-    normalized = str(username or "").strip().casefold()
-    if not normalized:
-        return False
-
-    existing_usernames = list(
-        User.objects.values_list("username", flat=True)
-    )
-    normalized_usernames = {
-        str(existing or "").strip().casefold()
-        for existing in existing_usernames
-    }
-    return normalized in normalized_usernames
+def _validate_unique_username(username, *, error_message):
+    """Normalize and enforce Shopiva's case-insensitive username rule in one place."""
+    normalized = str(username or "").strip()
+    if normalized and User.objects.filter(username__iexact=normalized).exists():
+        raise forms.ValidationError(error_message)
+    return normalized
 
 
 class CustomerRegistrationForm(UserCreationForm):
@@ -38,13 +30,19 @@ class CustomerRegistrationForm(UserCreationForm):
         model = User
         fields = ("username", "email", "password1", "password2")
 
-    def clean_username(self):
-        username = self.cleaned_data.get("username", "").strip()
-        if _username_exists_case_insensitive(username):
-            raise forms.ValidationError(
-                "Username exists. Please choose a different username."
-            )
-        return username
+    def clean(self):
+        """Apply the customer uniqueness boundary once after base-form cleaning."""
+        data = super().clean()
+        username = data.get("username", "")
+        if username:
+            try:
+                data["username"] = _validate_unique_username(
+                    username,
+                    error_message="Username exists. Please choose a different username.",
+                )
+            except forms.ValidationError as exc:
+                self.add_error("username", exc)
+        return data
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").strip().lower()
@@ -53,18 +51,6 @@ class CustomerRegistrationForm(UserCreationForm):
                 "This email is already registered. Please use a different email or sign in."
             )
         return email
-
-    def is_valid(self):
-        """Run the uniqueness guard after Django's UserCreationForm validation."""
-        valid = super().is_valid()
-        raw_username = self.data.get("username", "")
-        if raw_username and _username_exists_case_insensitive(raw_username):
-            self.add_error(
-                "username",
-                "Username exists. Please choose a different username.",
-            )
-            return False
-        return valid and not self.errors
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -87,25 +73,25 @@ class SellerRegistrationForm(UserCreationForm):
         model = User
         fields = ("username", "email", "password1", "password2")
 
-    def clean_username(self):
-        username = self.cleaned_data["username"].strip()
-        if _username_exists_case_insensitive(username):
-            raise forms.ValidationError("Username exists. Please choose another username.")
-        return username
+    def clean(self):
+        """Apply the seller uniqueness boundary once after base-form cleaning."""
+        data = super().clean()
+        username = data.get("username", "")
+        if username:
+            try:
+                data["username"] = _validate_unique_username(
+                    username,
+                    error_message="Username exists. Please choose another username.",
+                )
+            except forms.ValidationError as exc:
+                self.add_error("username", exc)
+        return data
 
     def clean_email(self):
-        email = self.cleaned_data["email"].strip().lower()
+        email = self.cleaned_data.get("email", "").strip().lower()
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("This email is already registered.")
         return email
-
-    def is_valid(self):
-        valid = super().is_valid()
-        raw_username = self.data.get("username", "")
-        if raw_username and _username_exists_case_insensitive(raw_username):
-            self.add_error("username", "Username exists. Please choose another username.")
-            return False
-        return valid and not self.errors
 
     def save(self, commit=True):
         user = super().save(commit=False)
