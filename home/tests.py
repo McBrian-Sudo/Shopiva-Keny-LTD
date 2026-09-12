@@ -21,7 +21,10 @@ class CustomerRegistrationTests(TestCase):
                 "password2": "StrongPass123!",
             }
         )
-        self.assertFalse(form.is_valid())
+        is_valid = form.is_valid()
+        print("DEBUG duplicate username users:", list(User.objects.values_list("username", flat=True)))
+        print("DEBUG duplicate username form errors:", form.errors.as_data())
+        self.assertFalse(is_valid)
         self.assertIn("Username exists", str(form.errors["username"]))
 
     def test_duplicate_email_is_rejected_case_insensitively(self):
