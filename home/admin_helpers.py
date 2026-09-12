@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.db.models import Sum
 from django.http import JsonResponse, HttpResponseRedirect
@@ -18,12 +18,7 @@ def _require_admin(request):
 
 
 def admin_login(request):
-    """Dedicated Shopiva admin login that authenticates staff directly.
-
-    This bypasses the browser-facing custom login hang while keeping Django's
-    normal session/authentication system. Non-staff accounts are never allowed
-    into the Control Center.
-    """
+    """Dedicated Shopiva admin login using Django's validated authentication form."""
     if request.user.is_authenticated and request.user.is_staff:
         return redirect("shopiva_admin:index")
 
@@ -31,17 +26,17 @@ def admin_login(request):
     next_url = request.POST.get("next") or request.GET.get("next") or ""
 
     if request.method == "POST" and form.is_valid():
-        username = form.cleaned_data.get("username")
-        password = form.cleaned_data.get("password")
-        user = authenticate(request, username=username, password=password)
-        if user is None:
-            form.add_error(None, "Unable to authenticate with those credentials.")
-        elif not user.is_active:
+        user = form.get_user()
+        if not user.is_active:
             form.add_error(None, "This administrator account is inactive.")
         elif not user.is_staff:
             form.add_error(None, "This account is not authorized for the Shopiva Control Center.")
         else:
-            login(request, user)
+            # AuthenticationForm has already validated the credentials. Reuse
+            # that authenticated user instead of performing a second database
+            # authentication query, then explicitly use Django's standard
+            # ModelBackend so the session is created deterministically.
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             if next_url and url_has_allowed_host_and_scheme(
                 next_url,
                 allowed_hosts={request.get_host()},
