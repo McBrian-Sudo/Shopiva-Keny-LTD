@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: shopiva-keny-ltd
+    runtime: python
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      python manage.py check --deploy &&
+      python manage.py check &&
+      python manage.py migrate --noinput &&
+      python manage.py migrate --check &&
+      python manage.py collectstatic --noinput
+    startCommand: gunicorn shopiva.wsgi:application
+    envVars:
+      - key: DEBUG
+        value: "false"
+      - key: ALLOWED_HOSTS
+        value: "shopiva-keny-ltd.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://shopiva-keny-ltd.onrender.com"
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
