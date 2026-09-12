@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.db import migrations, models
+from django.db import migrations
 
 
 def normalize_legacy_commissions(apps, schema_editor):
@@ -14,16 +14,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Normalize legacy records. The SellerProfile.save() guard below
+        # enforces the same 10% platform rate on every future save.
         migrations.RunPython(normalize_legacy_commissions, migrations.RunPython.noop),
-        migrations.AlterField(
-            model_name="sellerprofile",
-            name="commission_percent",
-            field=models.DecimalField(
-                decimal_places=2,
-                default=10,
-                editable=False,
-                help_text="Managed by Shopiva platform policy; sellers cannot change this.",
-                max_digits=5,
-            ),
-        ),
     ]
