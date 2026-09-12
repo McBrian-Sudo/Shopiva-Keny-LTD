@@ -1,4 +1,5 @@
 from django.conf import settings
+from decimal import Decimal
 from django.db import models
 from cloudinary.models import CloudinaryField
 
@@ -7,17 +8,19 @@ class SellerProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="seller_profile")
     business_name = models.CharField(max_length=200, blank=True)
     mpesa_phone = models.CharField(max_length=30, blank=True)
-    # Legacy field retained for database compatibility. Shopiva now enforces the
-    # platform-wide commission rate from settings and sellers cannot edit it.
     commission_percent = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         default=10,
-        editable=False,
-        help_text="Managed by Shopiva platform policy; sellers cannot change this.",
+        help_text="Shopiva platform commission. Sellers cannot set or change this rate.",
     )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # The platform, not the seller, controls the marketplace commission.
+        self.commission_percent = Decimal("10.00")
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.business_name or self.user.get_full_name() or self.user.username
@@ -51,7 +54,6 @@ class Product(models.Model):
 
     @property
     def discounted_price(self):
-        from decimal import Decimal
         discount = Decimal(self.discount_percent or 0)
         return self.price * (Decimal("100") - discount) / Decimal("100")
 
