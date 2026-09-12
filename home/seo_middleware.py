@@ -21,7 +21,6 @@ def _absolute_image(product):
 class ShopivaSeoMiddleware:
     """Adds crawl-friendly metadata without requiring every template to share a base file."""
 
-    PUBLIC_PREFIXES = ("/", "/products/", "/categories/", "/product/", "/install/")
     PRIVATE_PREFIXES = (
         "/admin/",
         "/account/",
@@ -40,14 +39,15 @@ class ShopivaSeoMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-
         path = request.path or "/"
-        if any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in self.PRIVATE_PREFIXES if prefix != "/"):
+
+        if any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in self.PRIVATE_PREFIXES):
             response["X-Robots-Tag"] = "noindex, nofollow"
             return response
 
-        content_type = response.get("Content-Type", "")
-        if "text/html" not in content_type.lower() or not getattr(response, "streaming", False) is False:
+        if response.get("Content-Type", "").lower().split(";", 1)[0].strip() != "text/html":
+            return response
+        if getattr(response, "streaming", False):
             return response
 
         try:
@@ -63,6 +63,7 @@ class ShopivaSeoMiddleware:
             "M-PESA payments and delivery across Kenya."
         )
         image = ""
+        schema = None
 
         if path.startswith("/product/"):
             try:
@@ -75,7 +76,7 @@ class ShopivaSeoMiddleware:
                     raw_description = strip_tags(product.description or "").strip()
                     description = raw_description[:155] or f"Shop {product.name} on Shopiva Kenya."
                     image = _absolute_image(product)
-                    product_schema = {
+                    schema = {
                         "@context": "https://schema.org",
                         "@type": "Product",
                         "name": product.name,
@@ -86,15 +87,16 @@ class ShopivaSeoMiddleware:
                             "@type": "Offer",
                             "url": canonical,
                             "priceCurrency": "KES",
-                            "price": str(product.discounted_price.quantize(product.price.as_tuple()._replace(exponent=-2).exponent and 0.01)),
-                            "availability": "https://schema.org/InStock" if product.stock_quantity > 0 else "https://schema.org/OutOfStock",
+                            "price": f"{product.discounted_price:.2f}",
+                            "availability": (
+                                "https://schema.org/InStock"
+                                if product.stock_quantity > 0
+                                else "https://schema.org/OutOfStock"
+                            ),
                         },
                     }
                     if image:
-                        product_schema["image"] = [image]
-                    schema = product_schema
-                else:
-                    schema = None
+                        schema["image"] = [image]
             except Exception:
                 schema = None
         else:
@@ -108,16 +110,17 @@ class ShopivaSeoMiddleware:
                 "areaServed": "KE",
             }
 
+        page_type = "product" if path.startswith("/product/") else "website"
         tags = [
             f'<link rel="canonical" href="{escape(canonical, quote=True)}">',
             f'<meta name="description" content="{escape(description, quote=True)}">',
             '<meta name="robots" content="index, follow, max-image-preview:large">',
-            f'<meta property="og:type" content="{"product" if path.startswith("/product/") else "website"}">',
-            f'<meta property="og:site_name" content="Shopiva Kenya">',
+            f'<meta property="og:type" content="{page_type}">',
+            '<meta property="og:site_name" content="Shopiva Kenya">',
             f'<meta property="og:title" content="{escape(title, quote=True)}">',
             f'<meta property="og:description" content="{escape(description, quote=True)}">',
             f'<meta property="og:url" content="{escape(canonical, quote=True)}">',
-            f'<meta name="twitter:card" content="summary_large_image">',
+            '<meta name="twitter:card" content="summary_large_image">',
             f'<meta name="twitter:title" content="{escape(title, quote=True)}">',
             f'<meta name="twitter:description" content="{escape(description, quote=True)}">',
         ]
@@ -127,12 +130,18 @@ class ShopivaSeoMiddleware:
                 f'<meta name="twitter:image" content="{escape(image, quote=True)}">',
             ])
         if schema:
-            tags.append('<script type="application/ld+json">%s</script>' % json.dumps(schema, ensure_ascii=False))
+            tags.append(
+                '<script type="application/ld+json">%s</script>'
+                % json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
+            )
 
         injection = "\n".join(tags)
-        if "</head>" in html.lower():
-            idx = html.lower().find("</head>")
-            html = html[:idx] + injection + "\n" + html[idx:]
-            response.content = html.encode(response.charset or "utf-8")
-            response["Content-Length"] = str(len(response.content))
+        marker = "</head>"
+        lower_html = html.lower()
+        index = lower_html.find(marker)
+        if index >= 0:
+            html = html[:index] + injection + "\n" + html[index:]
+            encoded = html.encode(response.charset or "utf-8")
+            response.content = encoded
+            response["Content-Length"] = str(len(encoded))
         return response
