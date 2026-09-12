@@ -3,6 +3,9 @@ import json
 import os
 import urllib.error
 import urllib.request
+import hmac
+import hashlib
+import time
 from datetime import datetime
 from decimal import Decimal
 
@@ -130,6 +133,121 @@ def initiate_mpesa_stk(order, payment, phone):
     return response
 
 
+
+def _stripe_secret_key():
+    return _env("STRIPE_SECRET_KEY")
+
+
+def _stripe_webhook_secret():
+    return _env("STRIPE_WEBHOOK_SECRET")
+
+
+def _public_site_url():
+    return _env("PUBLIC_SITE_URL", "https://shopiva-keny-ltd.onrender.com").rstrip("/")
+
+
+def create_stripe_checkout_session(order, payment):
+    secret = _stripe_secret_key()
+    if not secret:
+        raise RuntimeError("Card payments are not activated yet. Add STRIPE_SECRET_KEY in Render.")
+    import requests
+    success_url = f"{_public_site_url()}/payments/card/success/{order.id}/?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{_public_site_url()}/payments/card/cancel/{order.id}/"
+    data = {
+        "mode": "payment",
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "customer_email": order.email,
+        "client_reference_id": str(order.id),
+        "metadata[order_id]": str(order.id),
+        "metadata[payment_id]": str(payment.id),
+        "line_items[0][price_data][currency]": "kes",
+        "line_items[0][price_data][product_data][name]": f"Shopiva Order {order.tracking_code}",
+        "line_items[0][price_data][product_data][description]": "Shopiva Kenya marketplace order",
+        "line_items[0][price_data][unit_amount]": str(int(Decimal(order.total_amount) * 100)),
+        "line_items[0][quantity]": "1",
+    }
+    response = requests.post(
+        "https://api.stripe.com/v1/checkout/sessions",
+        data=data,
+        auth=(secret, ""),
+        timeout=30,
+    )
+    payload = response.json()
+    if response.status_code >= 400 or not payload.get("url"):
+        raise RuntimeError(payload.get("error", {}).get("message") or "Stripe could not create the card checkout session.")
+    payment.provider_reference = payload["id"]
+    payment.raw_response = {"id": payload.get("id"), "url": payload.get("url"), "status": payload.get("status")}
+    payment.status = "pending"
+    payment.save(update_fields=["provider_reference", "raw_response", "status", "updated_at"])
+    return payload["url"]
+
+
+def _verify_stripe_signature(payload, signature_header, secret):
+    if not signature_header or not secret:
+        return False
+    parts = {}
+    for item in signature_header.split(","):
+        if "=" in item:
+            key, value = item.split("=", 1)
+            parts.setdefault(key, []).append(value)
+    try:
+        timestamp = int(parts["t"][0])
+        signatures = parts.get("v1", [])
+    except (KeyError, ValueError):
+        return False
+    if abs(int(time.time()) - timestamp) > 300:
+        return False
+    signed = f"{timestamp}.{payload.decode('utf-8')}".encode("utf-8")
+    expected = hmac.new(secret.encode("utf-8"), signed, hashlib.sha256).hexdigest()
+    return any(hmac.compare_digest(expected, value) for value in signatures)
+
+
+def _mark_card_paid(payment_id, session_payload):
+    with transaction.atomic():
+        payment = PaymentTransaction.objects.select_for_update().get(pk=payment_id)
+        order = Order.objects.select_for_update().get(pk=payment.order_id)
+        if payment.status == "paid":
+            return
+        amount_total = session_payload.get("amount_total")
+        currency = str(session_payload.get("currency") or "").lower()
+        if amount_total != int(Decimal(payment.amount) * 100) or currency != "kes":
+            payment.status = "failed"
+            payment.raw_response = {"error": "Stripe amount/currency validation failed", "session": session_payload}
+            payment.save(update_fields=["status", "raw_response", "updated_at"])
+            order.payment_status = "failed"
+            order.save(update_fields=["payment_status"])
+            return
+        payment.status = "paid"
+        payment.provider_reference = str(session_payload.get("payment_intent") or payment.provider_reference)
+        payment.paid_at = timezone.now()
+        payment.raw_response = session_payload
+        payment.save(update_fields=["status", "provider_reference", "paid_at", "raw_response", "updated_at"])
+        order.payment_status = "paid"
+        order.status = "paid"
+        order.payment_reference = payment.provider_reference
+        order.paid_at = timezone.now()
+        order.save(update_fields=["payment_status", "status", "payment_reference", "paid_at"])
+        OrderEvent.objects.create(order=order, event_type="paid", note="Card payment confirmed by Stripe.")
+        _create_seller_settlements(order)
+
+
+def _cancel_card_order(order):
+    with transaction.atomic():
+        order = Order.objects.select_for_update().get(pk=order.pk)
+        payment = order.payments.filter(method="card").order_by("-created_at").first()
+        if not payment or payment.status == "paid":
+            return
+        payment.status = "cancelled"
+        if not payment.inventory_released:
+            _release_reserved_inventory(order)
+            payment.inventory_released = True
+        payment.save(update_fields=["status", "inventory_released", "updated_at"])
+        order.payment_status = "failed"
+        order.save(update_fields=["payment_status"])
+        OrderEvent.objects.create(order=order, event_type="cancelled", note="Card payment was cancelled.")
+
+
 def checkout_mpesa(request):
     cart_data = request.session.get("cart", {})
     items = []
@@ -157,8 +275,8 @@ def checkout_mpesa(request):
 
     if not all([customer_name, email, phone, address]) or not items:
         return render(request, "checkout.html", {"items": items, "total": total, "error": "Please complete all customer details and make sure your cart is not empty."})
-    if payment_method not in {"mpesa", "cod"}:
-        return render(request, "checkout.html", {"items": items, "total": total, "error": "Card payments will be enabled after the M-PESA flow is verified."})
+    if payment_method not in {"mpesa", "card", "cod"}:
+        return render(request, "checkout.html", {"items": items, "total": total, "error": "Please select a valid payment method."})
 
     with transaction.atomic():
         locked_items = []
@@ -213,10 +331,37 @@ def checkout_mpesa(request):
             request.session.modified = True
             return redirect("order_success", order_id=order.id)
 
-        payment = PaymentTransaction.objects.create(order=order, method="mpesa", status="initiated", provider="daraja", amount=final_total, phone=normalize_phone(phone), idempotency_key=f"MPESA-{order.id}")
+        if payment_method == "card":
+            payment = PaymentTransaction.objects.create(order=order, method="card", status="initiated", provider="stripe", amount=final_total, phone=phone, idempotency_key=f"CARD-{order.id}")
+            order.payment_status = "pending"
+            order.save(update_fields=["payment_status"])
+            OrderEvent.objects.create(order=order, event_type="payment_pending", note="Waiting for secure card payment.")
+        else:
+            payment = PaymentTransaction.objects.create(order=order, method="mpesa", status="initiated", provider="daraja", amount=final_total, phone=normalize_phone(phone), idempotency_key=f"MPESA-{order.id}")
         order.payment_status = "pending"
         order.save(update_fields=["payment_status"])
         OrderEvent.objects.create(order=order, event_type="payment_pending", note="Waiting for M-PESA STK payment.")
+
+    if payment_method == "card":
+        try:
+            checkout_url = create_stripe_checkout_session(order, payment)
+        except Exception as exc:
+            with transaction.atomic():
+                order = Order.objects.select_for_update().get(pk=order.pk)
+                payment = PaymentTransaction.objects.select_for_update().get(pk=payment.pk)
+                payment.status = "failed"
+                payment.raw_response = {"error": str(exc)}
+                if not payment.inventory_released:
+                    _release_reserved_inventory(order)
+                    payment.inventory_released = True
+                payment.save(update_fields=["status", "raw_response", "inventory_released", "updated_at"])
+                order.payment_status = "failed"
+                order.save(update_fields=["payment_status"])
+            return render(request, "checkout.html", {"items": items, "total": total, "error": str(exc)})
+        request.session["cart"] = {}
+        request.session["payment_order_id"] = order.id
+        request.session.modified = True
+        return redirect(checkout_url)
 
     try:
         initiate_mpesa_stk(order, payment, payment.phone)
@@ -399,6 +544,48 @@ def _create_seller_settlements(order):
             wallet.total_sales += data["gross"]
             wallet.total_commission += data["commission"]
             wallet.save(update_fields=["pending_balance", "total_sales", "total_commission", "updated_at"])
+
+
+
+def card_payment_success(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    allowed = request.session.get("payment_order_id") == order.id or (request.user.is_authenticated and (request.user.is_staff or order.email.lower() == request.user.email.lower()))
+    if not allowed:
+        return JsonResponse({"ok": False, "error": "You are not authorized to view this payment."}, status=403)
+    request.session["payment_order_id"] = order.id
+    request.session.modified = True
+    return render(request, "card_payment_result.html", {"order": order, "success": order.payment_status == "paid"})
+
+
+def card_payment_cancel(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    allowed = request.session.get("payment_order_id") == order.id or (request.user.is_authenticated and (request.user.is_staff or order.email.lower() == request.user.email.lower()))
+    if not allowed:
+        return JsonResponse({"ok": False, "error": "You are not authorized to cancel this payment."}, status=403)
+    _cancel_card_order(order)
+    return redirect("order_success", order_id=order.id)
+
+@csrf_exempt
+def stripe_webhook(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+    secret = _stripe_webhook_secret()
+    if not secret or not _verify_stripe_signature(request.body, request.headers.get("Stripe-Signature", ""), secret):
+        return JsonResponse({"ok": False, "error": "Invalid webhook signature."}, status=400)
+    try:
+        event = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "error": "Invalid JSON."}, status=400)
+    if event.get("type") == "checkout.session.completed":
+        session = event.get("data", {}).get("object", {})
+        metadata = session.get("metadata", {})
+        payment_id = metadata.get("payment_id")
+        if payment_id:
+            try:
+                _mark_card_paid(int(payment_id), session)
+            except (PaymentTransaction.DoesNotExist, Order.DoesNotExist, ValueError):
+                return JsonResponse({"ok": False, "error": "Payment transaction not found."}, status=404)
+    return JsonResponse({"received": True})
 
 
 def mpesa_payment_status(request, order_id):
