@@ -1,29 +1,23 @@
-name: Wire Seller Login
+name: Seller Login Protection Check
 
 on:
   push:
     branches: [main]
-
-permissions:
-  contents: write
+  pull_request:
+    branches: [main]
 
 jobs:
-  wire:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+  check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Apply seller login wiring
-        run: python scripts/wire_seller_login.py
-      - name: Commit generated changes
+      - uses: actions/checkout@v4
+      - name: Verify dedicated seller login protection
         run: |
-          git config user.name "shopiva-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet; then
-            echo "No seller login wiring changes needed."
-            exit 0
-          fi
-          git add home/views.py
-          git commit -m "Wire seller protected views to seller login [skip ci]"
-          git push
+          grep -q "def seller_login_required" home/seller_auth.py
+          grep -q "seller_login_required(seller_dashboard)" shopiva/urls.py
+          grep -q "seller_login_required(seller_product_add)" shopiva/urls.py
+          grep -q "seller_login_required(seller_product_edit)" shopiva/urls.py
+          grep -q "seller_login_required(seller_product_toggle)" shopiva/urls.py
+          grep -q "seller_login_required(seller_product_delete)" shopiva/urls.py
+          grep -q "seller_login_required(seller_request_payout)" shopiva/urls.py
+          echo "Dedicated seller authentication is enforced."
