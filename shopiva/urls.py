@@ -7,6 +7,7 @@ from home.admin_helpers import admin_ai_assistant, admin_login, admin_logout
 from home.business_intelligence import business_intelligence
 from home.ai import shop_assistant
 from home.customer_tracking import customer_order_tracking
+from home.map_views import customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
 from home.platform import app_install, app_manifest, service_worker
 from home.payments import checkout_mpesa, mpesa_callback, mpesa_payment_status, mpesa_waiting
 from home.seller_auth import seller_login, seller_logout, seller_login_required
@@ -16,7 +17,6 @@ from home.views import (
     add_to_cart,
     cart,
     categories,
-    customer_addresses,
     customer_dashboard,
     customer_delivery_location,
     customer_login,
@@ -26,8 +26,6 @@ from home.views import (
     customer_register,
     customer_wishlist,
     seller_dashboard,
-    seller_product_add,
-    seller_product_edit,
     seller_product_toggle,
     seller_product_delete,
     product_review,
@@ -65,8 +63,8 @@ urlpatterns = [
     path("seller/login/", seller_login, name="seller_login"),
     path("seller/logout/", seller_logout, name="seller_logout"),
     path("seller/", seller_login_required(seller_dashboard), name="seller_dashboard"),
-    path("seller/products/add/", seller_login_required(seller_product_add), name="seller_product_add"),
-    path("seller/products/<int:product_id>/edit/", seller_login_required(seller_product_edit), name="seller_product_edit"),
+    path("seller/products/add/", seller_login_required(seller_product_add_map), name="seller_product_add"),
+    path("seller/products/<int:product_id>/edit/", seller_login_required(seller_product_edit_map), name="seller_product_edit"),
     path("seller/products/<int:product_id>/toggle/", seller_login_required(seller_product_toggle), name="seller_product_toggle"),
     path("seller/products/<int:product_id>/hide/", seller_login_required(seller_product_delete), name="seller_product_delete"),
     path("seller/payout/request/", seller_login_required(seller_request_payout), name="seller_request_payout"),
@@ -78,11 +76,11 @@ urlpatterns = [
     path("account/orders/", customer_orders, name="customer_orders"),
     path("account/orders/<int:order_id>/", customer_order_tracking, name="customer_order_tracking"),
     path("account/profile/", customer_profile, name="customer_profile"),
-    path("account/addresses/", customer_addresses, name="customer_addresses"),
+    path("account/addresses/", customer_addresses_map, name="customer_addresses"),
     path("account/wishlist/", customer_wishlist, name="customer_wishlist"),
     path("account/notifications/", customer_notifications, name="customer_notifications"),
     path("product/<int:product_id>/review/", product_review, name="product_review"),
-    path("account/delivery-location/", customer_delivery_location, name="customer_delivery_location"),
+    path("account/delivery-location/", customer_delivery_location_map, name="customer_delivery_location"),
 
     path("delivery/", delivery_portal, name="delivery_portal"),
     path("delivery/location/", delivery_update_location, name="delivery_update_location"),
