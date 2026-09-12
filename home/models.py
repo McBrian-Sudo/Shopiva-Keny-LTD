@@ -7,7 +7,15 @@ class SellerProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="seller_profile")
     business_name = models.CharField(max_length=200, blank=True)
     mpesa_phone = models.CharField(max_length=30, blank=True)
-    commission_percent = models.DecimalField(max_digits=5, decimal_places=2, default=10)
+    # Legacy field retained for database compatibility. Shopiva now enforces the
+    # platform-wide commission rate from settings and sellers cannot edit it.
+    commission_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=10,
+        editable=False,
+        help_text="Managed by Shopiva platform policy; sellers cannot change this.",
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -324,8 +332,8 @@ class NotificationDelivery(models.Model):
     )
     channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
-    provider_message_id = models.CharField(max_length=255, blank=True)
-    provider_status = models.CharField(max_length=100, blank=True)
+    provider_message_id = models.CharField(max_length=160, blank=True)
+    provider_status = models.CharField(max_length=120, blank=True)
     error_message = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -333,12 +341,7 @@ class NotificationDelivery(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
-        constraints = [
-            models.UniqueConstraint(
-                fields=("notification", "channel"),
-                name="unique_notification_delivery_channel",
-            )
-        ]
+        constraints = [models.UniqueConstraint(fields=("notification", "channel"), name="unique_notification_delivery_channel")]
 
     def __str__(self):
-        return f"{self.notification_id}:{self.channel}:{self.status}"
+        return f"{self.notification_id} · {self.channel} · {self.status}"
