@@ -1,10 +1,13 @@
 from decimal import Decimal
 
-from django.contrib.auth import logout
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.forms import AuthenticationForm
 from django.db.models import Sum
 from django.http import JsonResponse, HttpResponseRedirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import DeliveryAgent, Order, PaymentTransaction, Product
@@ -14,9 +17,52 @@ def _require_admin(request):
     return bool(request.user.is_authenticated and request.user.is_staff)
 
 
+def admin_login(request):
+    """Dedicated Shopiva admin login that authenticates staff directly.
+
+    This bypasses the browser-facing custom login hang while keeping Django's
+    normal session/authentication system. Non-staff accounts are never allowed
+    into the Control Center.
+    """
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect("shopiva_admin:index")
+
+    form = AuthenticationForm(request, data=request.POST or None)
+    next_url = request.POST.get("next") or request.GET.get("next") or ""
+
+    if request.method == "POST" and form.is_valid():
+        username = form.cleaned_data.get("username")
+        password = form.cleaned_data.get("password")
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            form.add_error(None, "Unable to authenticate with those credentials.")
+        elif not user.is_active:
+            form.add_error(None, "This administrator account is inactive.")
+        elif not user.is_staff:
+            form.add_error(None, "This account is not authorized for the Shopiva Control Center.")
+        else:
+            login(request, user)
+            if next_url and url_has_allowed_host_and_scheme(
+                next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                return HttpResponseRedirect(next_url)
+            return redirect("shopiva_admin:index")
+
+    context = {
+        "form": form,
+        "app_path": request.path,
+        "next": next_url,
+        "site_header": "Shopiva Control Center",
+        "site_title": "Shopiva Admin",
+    }
+    return render(request, "admin/login.html", context)
+
+
 @csrf_exempt
 def admin_logout(request):
-    """Reliable admin sign-out that does not fail on a stale CSRF token."""
+    """Reliable admin sign-out that safely destroys the current session."""
     if request.method not in {"GET", "POST"}:
         return JsonResponse({"ok": False, "error": "Method not allowed."}, status=405)
     if not _require_admin(request):
@@ -27,11 +73,7 @@ def admin_logout(request):
 
 @csrf_exempt
 def admin_ai_assistant(request):
-    """Always-available admin operations assistant backed by live Shopiva data.
-
-    The assistant remains useful even when an external LLM is unavailable and
-    returns a normal JSON response instead of exposing provider errors to the UI.
-    """
+    """Always-available admin operations assistant backed by live Shopiva data."""
     if request.method != "POST":
         return JsonResponse({"ok": True, "answer": "Ask me about products, stock, orders, revenue, deliveries, or M-PESA."})
     if not _require_admin(request):
