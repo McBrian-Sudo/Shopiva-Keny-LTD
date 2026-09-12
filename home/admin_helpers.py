@@ -3,8 +3,9 @@ from decimal import Decimal
 from django.contrib.auth import logout
 from django.db.models import Sum
 from django.http import JsonResponse, HttpResponseRedirect
-from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import DeliveryAgent, Order, PaymentTransaction, Product
 
@@ -15,12 +16,7 @@ def _require_admin(request):
 
 @csrf_exempt
 def admin_logout(request):
-    """Reliable admin sign-out that does not fail on a stale CSRF token.
-
-    Django's admin logout is safe to invoke here because the endpoint only
-    destroys the current authenticated session; it does not mutate marketplace
-    data. Staff access is checked before logout.
-    """
+    """Reliable admin sign-out that does not fail on a stale CSRF token."""
     if request.method not in {"GET", "POST"}:
         return JsonResponse({"ok": False, "error": "Method not allowed."}, status=405)
     if not _require_admin(request):
@@ -33,9 +29,8 @@ def admin_logout(request):
 def admin_ai_assistant(request):
     """Always-available admin operations assistant backed by live Shopiva data.
 
-    This endpoint intentionally remains useful even when an external LLM is
-    unavailable. It returns HTTP 200 for valid staff questions so the dashboard
-    never gets stuck on a generic connection error.
+    The assistant remains useful even when an external LLM is unavailable and
+    returns a normal JSON response instead of exposing provider errors to the UI.
     """
     if request.method != "POST":
         return JsonResponse({"ok": True, "answer": "Ask me about products, stock, orders, revenue, deliveries, or M-PESA."})
@@ -62,7 +57,7 @@ def admin_ai_assistant(request):
     elif any(word in question for word in ("pending", "awaiting")) and "order" in question:
         answer = f"There are {orders.filter(status='pending').count()} pending order(s)."
     elif any(word in question for word in ("today", "today's")) and "order" in question:
-        answer = f"Shopiva has received {orders.filter(created_at__date=__import__('django.utils.timezone', fromlist=['timezone']).timezone.localdate()).count()} order(s) today."
+        answer = f"Shopiva has received {orders.filter(created_at__date=timezone.localdate()).count()} order(s) today."
     elif any(word in question for word in ("revenue", "sales", "income")):
         revenue = orders.exclude(status="cancelled").aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
         answer = f"Recorded revenue excluding cancelled orders is KSh {revenue:,.2f}."
