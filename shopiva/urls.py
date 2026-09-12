@@ -11,6 +11,7 @@ from home.platform import app_install, app_manifest, service_worker
 from home.payments import checkout_mpesa, mpesa_callback, mpesa_payment_status, mpesa_waiting
 from home.seller_auth import seller_login, seller_logout, seller_login_required
 from home.voice_ai import realtime_action, realtime_call, speak_text, transcribe_voice
+from shopiva.health import health
 from home.views import (
     add_to_cart,
     cart,
@@ -44,6 +45,7 @@ from home.views import (
 
 urlpatterns = [
     path("", home, name="home"),
+    path("health/", health, name="health"),
     path("products/", products, name="products"),
     path("categories/", categories, name="categories"),
     path("product/<int:product_id>/", product_detail, name="product_detail"),
