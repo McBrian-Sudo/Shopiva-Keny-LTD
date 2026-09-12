@@ -20,7 +20,7 @@ jobs:
       - name: Django system, deployment, migration and complete regression checks
         env:
           DATABASE_URL: sqlite:///ci.sqlite3
-          SECRET_KEY: ci-only-secret
+          SECRET_KEY: ci-only-secret-key-9f2d8a7c4e1b6f3a0d5c9b2e7f4a1d8c6b3e0f5a2
           DEBUG: "false"
           ALLOWED_HOSTS: "localhost,127.0.0.1,testserver"
           CSRF_TRUSTED_ORIGINS: "https://example.invalid"
