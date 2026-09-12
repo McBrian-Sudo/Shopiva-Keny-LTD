@@ -12,12 +12,8 @@ def _username_exists_case_insensitive(username):
     normalized = (username or "").strip().casefold()
     if not normalized:
         return False
-    # Iterate real User instances instead of relying on database collation or
-    # SQL LOWER/LIKE behavior. This keeps the policy deterministic on both the
-    # CI SQLite database and production PostgreSQL.
     for existing_user in User.objects.all():
-        existing = (existing_user.username or "").strip().casefold()
-        if existing == normalized:
+        if (existing_user.username or "").strip().casefold() == normalized:
             return True
     return False
 
@@ -55,19 +51,19 @@ class CustomerRegistrationForm(UserCreationForm):
 
     def clean(self):
         cleaned = super().clean()
-        username = (cleaned.get("username") or "").strip()
-        email = (cleaned.get("email") or "").strip().lower()
-        if username and _username_exists_case_insensitive(username):
+        return cleaned
+
+    def is_valid(self):
+        """Run the uniqueness guard after Django's UserCreationForm validation."""
+        valid = super().is_valid()
+        raw_username = self.data.get("username", "")
+        if raw_username and _username_exists_case_insensitive(raw_username):
             self.add_error(
                 "username",
                 "Username exists. Please choose a different username.",
             )
-        if email and User.objects.filter(email__iexact=email).exists():
-            self.add_error(
-                "email",
-                "This email is already registered. Please use a different email or sign in.",
-            )
-        return cleaned
+            return False
+        return valid and not self.errors
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -104,17 +100,20 @@ class SellerRegistrationForm(UserCreationForm):
 
     def clean(self):
         cleaned = super().clean()
-        username = (cleaned.get("username") or "").strip()
-        email = (cleaned.get("email") or "").strip().lower()
-        if username and _username_exists_case_insensitive(username):
-            self.add_error("username", "Username exists. Please choose another username.")
-        if email and User.objects.filter(email__iexact=email).exists():
-            self.add_error("email", "This email is already registered.")
         return cleaned
+
+    def is_valid(self):
+        valid = super().is_valid()
+        raw_username = self.data.get("username", "")
+        if raw_username and _username_exists_case_insensitive(raw_username):
+            self.add_error("username", "Username exists. Please choose another username.")
+            return False
+        return valid and not self.errors
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"].strip().lower()
+        user.username = self.cleaned_data["username"].strip()
         if commit:
             user.save()
         return user
