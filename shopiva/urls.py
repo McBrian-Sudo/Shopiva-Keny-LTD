@@ -9,6 +9,7 @@ from home.admin import SellerProfileAdmin, shopiva_admin_site
 SellerProfileAdmin.list_display = ("business_name", "user", "mpesa_phone", "is_active", "created_at")
 SellerProfileAdmin.list_filter = ("is_active",)
 SellerProfileAdmin.list_editable = ("is_active",)
+from home.admin_helpers import admin_ai_assistant, admin_logout
 
 from home.business_intelligence import business_intelligence
 from home.ai import shop_assistant
@@ -104,6 +105,11 @@ urlpatterns = [
     path("ai/realtime/call/", realtime_call, name="realtime_call"),
     path("ai/realtime/action/", realtime_action, name="realtime_action"),
     path("ai/voice/speak/", speak_text, name="voice_speak"),
+
+    # Resilient custom admin endpoints. These appear before the nested admin
+    # site so stale CSRF tokens cannot break sign-out or the DB assistant.
+    path("admin/ai-assistant/", admin_ai_assistant, name="admin_ai_assistant"),
+    path("admin/logout/", admin_logout, name="admin_logout"),
     path("admin/", shopiva_admin_site.urls),
 ]
 
