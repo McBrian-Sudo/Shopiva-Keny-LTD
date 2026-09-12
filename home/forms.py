@@ -15,7 +15,24 @@ def _validate_unique_username(username, *, error_message):
     return normalized
 
 
-class CustomerRegistrationForm(UserCreationForm):
+class _ShopivaUsernameBoundary:
+    """Shared deterministic username validation boundary for registration forms."""
+
+    def _clean_shopiva_username(self, cleaned_data, *, error_message):
+        username = cleaned_data.get("username", "")
+        if username:
+            cleaned_data["username"] = _validate_unique_username(
+                username,
+                error_message=error_message,
+            )
+        return cleaned_data
+
+    def validate_unique(self):
+        """Disable Django's second model-level username validation pass."""
+        return None
+
+
+class CustomerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(
@@ -31,19 +48,11 @@ class CustomerRegistrationForm(UserCreationForm):
         fields = ("username", "email", "password1", "password2")
 
     def clean(self):
-        """Apply the customer uniqueness boundary exactly once."""
-        self._validate_unique = False
         data = super().clean()
-        username = data.get("username", "")
-        if username:
-            try:
-                data["username"] = _validate_unique_username(
-                    username,
-                    error_message="Username exists. Please choose a different username.",
-                )
-            except forms.ValidationError as exc:
-                self.add_error("username", exc)
-        return data
+        return self._clean_shopiva_username(
+            data,
+            error_message="Username exists. Please choose a different username.",
+        )
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").strip().lower()
@@ -62,7 +71,7 @@ class CustomerRegistrationForm(UserCreationForm):
         return user
 
 
-class SellerRegistrationForm(UserCreationForm):
+class SellerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
     email = forms.EmailField(required=True)
     business_name = forms.CharField(max_length=200)
     mpesa_phone = forms.CharField(
@@ -75,19 +84,11 @@ class SellerRegistrationForm(UserCreationForm):
         fields = ("username", "email", "password1", "password2")
 
     def clean(self):
-        """Apply the seller uniqueness boundary exactly once."""
-        self._validate_unique = False
         data = super().clean()
-        username = data.get("username", "")
-        if username:
-            try:
-                data["username"] = _validate_unique_username(
-                    username,
-                    error_message="Username exists. Please choose another username.",
-                )
-            except forms.ValidationError as exc:
-                self.add_error("username", exc)
-        return data
+        return self._clean_shopiva_username(
+            data,
+            error_message="Username exists. Please choose another username.",
+        )
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").strip().lower()
