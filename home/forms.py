@@ -50,7 +50,6 @@ class CustomerRegistrationForm(UserCreationForm):
         return user
 
 
-
 class SellerRegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True)
     business_name = forms.CharField(max_length=200)
@@ -83,21 +82,13 @@ class SellerRegistrationForm(UserCreationForm):
 class SellerProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ("name", "description", "category", "sku", "price", "stock_quantity", "discount_percent", "promo_text", "image", "is_active", "is_featured")
+        # SKU is intentionally excluded: Shopiva assigns it automatically.
+        fields = ("name", "description", "category", "price", "stock_quantity", "discount_percent", "promo_text", "image", "is_active", "is_featured")
         widgets = {
             "description": forms.Textarea(attrs={"rows": 5}),
             "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
 
-    def clean_sku(self):
-        sku = (self.cleaned_data.get("sku") or "").strip()
-        if sku:
-            qs = Product.objects.filter(sku=sku)
-            if self.instance.pk:
-                qs = qs.exclude(pk=self.instance.pk)
-            if qs.exists():
-                raise forms.ValidationError("SKU already exists.")
-        return sku or None
 
 class ProductReviewForm(forms.ModelForm):
     class Meta:
