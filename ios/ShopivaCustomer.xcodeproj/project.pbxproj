@@ -5,7 +5,6 @@
  objects = {
 
   1A000001 /* ShopivaCustomerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000010 /* ShopivaCustomerApp.swift */; };
-  1A000002 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1A000012 /* Info.plist */; };
 
   1A000010 /* ShopivaCustomerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopivaCustomerApp.swift; sourceTree = "<group>"; };
   1A000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -15,7 +14,7 @@
   1A000031 /* Products */ = {isa = PBXGroup; children = (1A000020 /* ShopivaCustomer.app */,); name = Products; sourceTree = "<group>"; };
   1A000032 /* Main group */ = {isa = PBXGroup; children = (1A000030 /* ShopivaCustomer */, 1A000031 /* Products */); sourceTree = "<group>"; };
 
-  1A000040 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (1A000002 /* Info.plist in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
+  1A000040 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
   1A000041 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (1A000001 /* ShopivaCustomerApp.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
   1A000042 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 
