@@ -1,0 +1,48 @@
+name: Shopiva Clean Rebuild Gate
+
+on:
+  push:
+    branches: [clean-rebuild]
+  pull_request:
+    branches: [clean-rebuild]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: "false"
+      SECRET_KEY: "ci-only-release-validation-secret"
+      ALLOWED_HOSTS: "localhost,127.0.0.1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python manage.py check --deploy
+      - run: python manage.py check
+      - run: python manage.py migrate --noinput
+      - run: python manage.py migrate --check
+      - run: python manage.py test
+      - run: python -m compileall -q .
+
+  repository-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Reject tracked secrets
+        shell: bash
+        run: |
+          ! grep -RInE 'AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----|sk-[A-Za-z0-9]{20,}' .             --exclude-dir=.git             --exclude='*.md'
+      - name: Verify required deployment files
+        run: |
+          test -f manage.py
+          test -f requirements.txt
+          test -f render.yaml
+          test -f shopiva/settings.py
+          test -f shopiva/urls.py
