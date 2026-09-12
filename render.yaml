@@ -65,6 +65,14 @@ services:
         sync: false
       - key: GOOGLE_MAPS_MAP_ID
         sync: false
+      - key: PESAPAL_ENV
+        value: "sandbox"
+      - key: PESAPAL_CONSUMER_KEY
+        sync: false
+      - key: PESAPAL_CONSUMER_SECRET
+        sync: false
+      - key: PESAPAL_IPN_ID
+        sync: false
       - key: MPESA_ENV
         sync: false
       - key: MPESA_CONSUMER_KEY
