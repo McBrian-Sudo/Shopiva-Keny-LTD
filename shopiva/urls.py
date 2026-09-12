@@ -12,7 +12,7 @@ from home.checkout_map import checkout_mpesa_map
 from home.google_admin_map import google_admin_delivery_map
 from home.map_views import customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
 from home.platform import app_install, app_manifest, service_worker
-from home.payments import mpesa_callback, mpesa_payment_status, mpesa_waiting, card_payment_success, card_payment_cancel, stripe_webhook
+from home.payments import mpesa_callback, mpesa_payment_status, mpesa_waiting, pesapal_callback, pesapal_ipn, pesapal_cancel
 from home.seller_auth import seller_login, seller_logout, seller_login_required
 from home.voice_ai import realtime_action, realtime_call, speak_text, transcribe_voice
 from shopiva.health import health
@@ -37,9 +37,9 @@ urlpatterns = [
     path("payments/mpesa/callback/", mpesa_callback, name="mpesa_callback"),
     path("payments/mpesa/status/<int:order_id>/", mpesa_payment_status, name="mpesa_payment_status"),
     path("payments/mpesa/waiting/<int:order_id>/", mpesa_waiting, name="mpesa_waiting"),
-    path("payments/card/success/<int:order_id>/", card_payment_success, name="card_payment_success"),
-    path("payments/card/cancel/<int:order_id>/", card_payment_cancel, name="card_payment_cancel"),
-    path("payments/card/webhook/", stripe_webhook, name="stripe_webhook"),
+    path("payments/pesapal/callback/", pesapal_callback, name="pesapal_callback"),
+    path("payments/pesapal/ipn/", pesapal_ipn, name="pesapal_ipn"),
+    path("payments/pesapal/cancel/", pesapal_cancel, name="pesapal_cancel"),
     path("order-success/<int:order_id>/", order_success, name="order_success"),
 
     path("seller/register/", seller_register, name="seller_register"),
