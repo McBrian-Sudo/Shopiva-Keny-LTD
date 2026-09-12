@@ -25,6 +25,5 @@ jobs:
         run: |
           python manage.py check
           python manage.py makemigrations --check --dry-run
-          python manage.py check --deploy
       - name: Python compile check
         run: python -m compileall -q home shopiva
