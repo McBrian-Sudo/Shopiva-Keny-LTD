@@ -9,13 +9,18 @@ from .models import Product, ProductReview
 
 def _username_exists_case_insensitive(username):
     """Return True when an existing account uses the same username ignoring case."""
-    normalized = (username or "").strip().casefold()
+    normalized = str(username or "").strip().casefold()
     if not normalized:
         return False
-    for existing_user in User.objects.all():
-        if (existing_user.username or "").strip().casefold() == normalized:
-            return True
-    return False
+
+    existing_usernames = list(
+        User.objects.values_list("username", flat=True)
+    )
+    normalized_usernames = {
+        str(existing or "").strip().casefold()
+        for existing in existing_usernames
+    }
+    return normalized in normalized_usernames
 
 
 class CustomerRegistrationForm(UserCreationForm):
@@ -48,10 +53,6 @@ class CustomerRegistrationForm(UserCreationForm):
                 "This email is already registered. Please use a different email or sign in."
             )
         return email
-
-    def clean(self):
-        cleaned = super().clean()
-        return cleaned
 
     def is_valid(self):
         """Run the uniqueness guard after Django's UserCreationForm validation."""
@@ -97,10 +98,6 @@ class SellerRegistrationForm(UserCreationForm):
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("This email is already registered.")
         return email
-
-    def clean(self):
-        cleaned = super().clean()
-        return cleaned
 
     def is_valid(self):
         valid = super().is_valid()
