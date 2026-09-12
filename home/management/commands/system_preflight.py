@@ -1,5 +1,5 @@
-from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
+from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Count
 from django.db.models.functions import Lower
 
@@ -51,9 +51,9 @@ class Command(BaseCommand):
 
         inconsistent_settlements = 0
         for settlement in SellerSettlement.objects.all().only(
-            "seller_gross", "platform_commission", "seller_amount"
+            "gross_amount", "platform_commission", "seller_amount"
         ):
-            if settlement.seller_gross != settlement.platform_commission + settlement.seller_amount:
+            if settlement.gross_amount != settlement.platform_commission + settlement.seller_amount:
                 inconsistent_settlements += 1
         if inconsistent_settlements:
             failures.append(
