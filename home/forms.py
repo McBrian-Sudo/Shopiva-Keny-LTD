@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.db.models.functions import Lower
 from django.utils.text import slugify
 import uuid
 
@@ -8,20 +9,13 @@ from .models import Product, ProductReview
 
 
 def _username_exists_case_insensitive(username):
-    """Check username uniqueness independent of database collation.
-
-    Some CI/database combinations can handle Django's __iexact/LOWER lookup
-    differently. Comparing normalized usernames in Python after fetching the
-    single indexed username column makes the registration policy deterministic
-    across SQLite and PostgreSQL while remaining bounded to the username field.
-    """
+    """Return True when an existing account uses the same username ignoring case."""
     normalized = (username or "").strip().casefold()
     if not normalized:
         return False
-    return any(
-        (existing or "").strip().casefold() == normalized
-        for existing in User.objects.values_list("username", flat=True).iterator()
-    )
+    return User.objects.annotate(
+        _normalized_username=Lower("username")
+    ).filter(_normalized_username=normalized).exists()
 
 
 class CustomerRegistrationForm(UserCreationForm):
@@ -42,7 +36,9 @@ class CustomerRegistrationForm(UserCreationForm):
     def clean_username(self):
         username = self.cleaned_data.get("username", "").strip()
         if _username_exists_case_insensitive(username):
-            raise forms.ValidationError("Username exists. Please choose a different username.")
+            raise forms.ValidationError(
+                "Username exists. Please choose a different username."
+            )
         return username
 
     def clean_email(self):
@@ -58,9 +54,15 @@ class CustomerRegistrationForm(UserCreationForm):
         username = (cleaned.get("username") or "").strip()
         email = (cleaned.get("email") or "").strip().lower()
         if username and _username_exists_case_insensitive(username):
-            self.add_error("username", "Username exists. Please choose a different username.")
+            self.add_error(
+                "username",
+                "Username exists. Please choose a different username.",
+            )
         if email and User.objects.filter(email__iexact=email).exists():
-            self.add_error("email", "This email is already registered. Please use a different email or sign in.")
+            self.add_error(
+                "email",
+                "This email is already registered. Please use a different email or sign in.",
+            )
         return cleaned
 
     def save(self, commit=True):
@@ -75,7 +77,10 @@ class CustomerRegistrationForm(UserCreationForm):
 class SellerRegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True)
     business_name = forms.CharField(max_length=200)
-    mpesa_phone = forms.CharField(max_length=30, help_text="Kenyan M-PESA number for future seller payouts.")
+    mpesa_phone = forms.CharField(
+        max_length=30,
+        help_text="Kenyan M-PESA number for future seller payouts.",
+    )
 
     class Meta:
         model = User
@@ -115,7 +120,18 @@ class SellerProductForm(forms.ModelForm):
     class Meta:
         model = Product
         # SKU is intentionally excluded: Shopiva assigns it automatically.
-        fields = ("name", "description", "category", "price", "stock_quantity", "discount_percent", "promo_text", "image", "is_active", "is_featured")
+        fields = (
+            "name",
+            "description",
+            "category",
+            "price",
+            "stock_quantity",
+            "discount_percent",
+            "promo_text",
+            "image",
+            "is_active",
+            "is_featured",
+        )
         widgets = {
             "description": forms.Textarea(attrs={"rows": 5}),
             "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
@@ -137,5 +153,10 @@ class ProductReviewForm(forms.ModelForm):
         fields = ("rating", "comment")
         widgets = {
             "rating": forms.Select(choices=[(i, f"{i} / 5") for i in range(5, 0, -1)]),
-            "comment": forms.Textarea(attrs={"rows": 4, "placeholder": "Tell other shoppers about your experience."}),
+            "comment": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "placeholder": "Tell other shoppers about your experience.",
+                }
+            ),
         }
