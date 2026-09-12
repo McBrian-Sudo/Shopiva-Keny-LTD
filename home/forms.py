@@ -1,6 +1,9 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.utils.text import slugify
+import uuid
+
 from .models import Product, ProductReview
 
 
@@ -88,6 +91,15 @@ class SellerProductForm(forms.ModelForm):
             "description": forms.Textarea(attrs={"rows": 5}),
             "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
+
+    def save(self, commit=True):
+        product = super().save(commit=False)
+        if not product.sku:
+            prefix = slugify(product.name or "product").replace("-", "").upper()[:24] or "PRODUCT"
+            product.sku = f"SPV-{prefix}-{uuid.uuid4().hex[:8].upper()}"
+        if commit:
+            product.save()
+        return product
 
 
 class ProductReviewForm(forms.ModelForm):
