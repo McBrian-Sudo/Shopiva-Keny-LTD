@@ -9,6 +9,9 @@ class SellerProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="seller_profile")
     business_name = models.CharField(max_length=200, blank=True)
     mpesa_phone = models.CharField(max_length=30, blank=True)
+    business_address = models.CharField(max_length=255, blank=True, default="")
+    business_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    business_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     commission_percent = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -123,6 +126,8 @@ class Order(models.Model):
     email = models.EmailField()
     phone = models.CharField(max_length=30)
     address = models.TextField()
+    delivery_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    delivery_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="pending")
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="unpaid")
@@ -244,6 +249,8 @@ class CustomerAddress(models.Model):
     town = models.CharField(max_length=100)
     address_line = models.CharField(max_length=255)
     landmark = models.CharField(max_length=255, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
