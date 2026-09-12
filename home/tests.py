@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .commission import get_platform_commission_percent, split_sale_amount
-from .forms import CustomerRegistrationForm, _username_exists_case_insensitive
+from .forms import CustomerRegistrationForm, SellerRegistrationForm
 from .models import Order, OrderItem, SellerProfile, SellerSettlement, SellerWallet, Product
 from .payments import _create_seller_settlements
 
@@ -17,16 +17,14 @@ class CustomerRegistrationTests(TestCase):
             email="one@example.com",
             password="StrongPass123!",
         )
-        submitted_username = "mCbRiAnTeCh"
         form = CustomerRegistrationForm(
             data={
-                "username": submitted_username,
+                "username": "mCbRiAnTeCh",
                 "email": "two@example.com",
                 "password1": "StrongPass123!",
                 "password2": "StrongPass123!",
             }
         )
-        self.assertTrue(_username_exists_case_insensitive(submitted_username))
         self.assertFalse(form.is_valid())
         self.assertIn("Username exists", str(form.errors["username"]))
 
@@ -46,6 +44,25 @@ class CustomerRegistrationTests(TestCase):
         )
         self.assertFalse(form.is_valid())
         self.assertIn("already registered", str(form.errors["email"]))
+
+
+class SellerRegistrationTests(TestCase):
+    def test_duplicate_username_is_rejected_case_insensitively(self):
+        User.objects.create_user(
+            username="SellerPrime",
+            email="seller1@example.com",
+            password="StrongPass123!",
+        )
+        form = SellerRegistrationForm(
+            data={
+                "username": "sellerprime",
+                "email": "seller2@example.com",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("Username exists", str(form.errors["username"]))
 
 
 class CommissionScheduleTests(TestCase):
