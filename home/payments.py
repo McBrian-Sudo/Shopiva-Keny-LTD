@@ -3,9 +3,6 @@ import json
 import os
 import urllib.error
 import urllib.request
-import hmac
-import hashlib
-import time
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
@@ -323,120 +320,6 @@ def pesapal_cancel(request):
             order.payment_status = "failed"
             order.save(update_fields=["payment_status"])
     return redirect("order_success", order_id=payment.order_id) if payment else redirect("checkout")
-
-
-def _stripe_secret_key():
-    return _env("STRIPE_SECRET_KEY")
-
-
-def _stripe_webhook_secret():
-    return _env("STRIPE_WEBHOOK_SECRET")
-
-
-def _public_site_url():
-    return _env("PUBLIC_SITE_URL", "https://shopiva-keny-ltd.onrender.com").rstrip("/")
-
-
-def create_stripe_checkout_session(order, payment):
-    secret = _stripe_secret_key()
-    if not secret:
-        raise RuntimeError("Card payments are not activated yet. Add STRIPE_SECRET_KEY in Render.")
-    import requests
-    success_url = f"{_public_site_url()}/payments/card/success/{order.id}/?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{_public_site_url()}/payments/card/cancel/{order.id}/"
-    data = {
-        "mode": "payment",
-        "success_url": success_url,
-        "cancel_url": cancel_url,
-        "customer_email": order.email,
-        "client_reference_id": str(order.id),
-        "metadata[order_id]": str(order.id),
-        "metadata[payment_id]": str(payment.id),
-        "line_items[0][price_data][currency]": "kes",
-        "line_items[0][price_data][product_data][name]": f"Shopiva Order {order.tracking_code}",
-        "line_items[0][price_data][product_data][description]": "Shopiva Kenya marketplace order",
-        "line_items[0][price_data][unit_amount]": str(int(Decimal(order.total_amount) * 100)),
-        "line_items[0][quantity]": "1",
-    }
-    response = requests.post(
-        "https://api.stripe.com/v1/checkout/sessions",
-        data=data,
-        auth=(secret, ""),
-        timeout=30,
-    )
-    payload = response.json()
-    if response.status_code >= 400 or not payload.get("url"):
-        raise RuntimeError(payload.get("error", {}).get("message") or "Stripe could not create the card checkout session.")
-    payment.provider_reference = payload["id"]
-    payment.raw_response = {"id": payload.get("id"), "url": payload.get("url"), "status": payload.get("status")}
-    payment.status = "pending"
-    payment.save(update_fields=["provider_reference", "raw_response", "status", "updated_at"])
-    return payload["url"]
-
-
-def _verify_stripe_signature(payload, signature_header, secret):
-    if not signature_header or not secret:
-        return False
-    parts = {}
-    for item in signature_header.split(","):
-        if "=" in item:
-            key, value = item.split("=", 1)
-            parts.setdefault(key, []).append(value)
-    try:
-        timestamp = int(parts["t"][0])
-        signatures = parts.get("v1", [])
-    except (KeyError, ValueError):
-        return False
-    if abs(int(time.time()) - timestamp) > 300:
-        return False
-    signed = f"{timestamp}.{payload.decode('utf-8')}".encode("utf-8")
-    expected = hmac.new(secret.encode("utf-8"), signed, hashlib.sha256).hexdigest()
-    return any(hmac.compare_digest(expected, value) for value in signatures)
-
-
-def _mark_card_paid(payment_id, session_payload):
-    with transaction.atomic():
-        payment = PaymentTransaction.objects.select_for_update().get(pk=payment_id)
-        order = Order.objects.select_for_update().get(pk=payment.order_id)
-        if payment.status == "paid":
-            return
-        amount_total = session_payload.get("amount_total")
-        currency = str(session_payload.get("currency") or "").lower()
-        if amount_total != int(Decimal(payment.amount) * 100) or currency != "kes":
-            payment.status = "failed"
-            payment.raw_response = {"error": "Stripe amount/currency validation failed", "session": session_payload}
-            payment.save(update_fields=["status", "raw_response", "updated_at"])
-            order.payment_status = "failed"
-            order.save(update_fields=["payment_status"])
-            return
-        payment.status = "paid"
-        payment.provider_reference = str(session_payload.get("payment_intent") or payment.provider_reference)
-        payment.paid_at = timezone.now()
-        payment.raw_response = session_payload
-        payment.save(update_fields=["status", "provider_reference", "paid_at", "raw_response", "updated_at"])
-        order.payment_status = "paid"
-        order.status = "paid"
-        order.payment_reference = payment.provider_reference
-        order.paid_at = timezone.now()
-        order.save(update_fields=["payment_status", "status", "payment_reference", "paid_at"])
-        OrderEvent.objects.create(order=order, event_type="paid", note="Card payment confirmed by Stripe.")
-        _create_seller_settlements(order)
-
-
-def _cancel_card_order(order):
-    with transaction.atomic():
-        order = Order.objects.select_for_update().get(pk=order.pk)
-        payment = order.payments.filter(method="card").order_by("-created_at").first()
-        if not payment or payment.status == "paid":
-            return
-        payment.status = "cancelled"
-        if not payment.inventory_released:
-            _release_reserved_inventory(order)
-            payment.inventory_released = True
-        payment.save(update_fields=["status", "inventory_released", "updated_at"])
-        order.payment_status = "failed"
-        order.save(update_fields=["payment_status"])
-        OrderEvent.objects.create(order=order, event_type="cancelled", note="Card payment was cancelled.")
 
 
 def checkout_mpesa(request):
