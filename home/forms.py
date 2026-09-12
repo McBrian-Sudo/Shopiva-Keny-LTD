@@ -24,32 +24,43 @@ class CustomerRegistrationForm(UserCreationForm):
 
     def clean_username(self):
         username = self.cleaned_data.get("username", "").strip()
-
         if User.objects.filter(username__iexact=username).exists():
             raise forms.ValidationError(
                 "Username exists. Please choose a different username."
             )
-
         return username
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").strip().lower()
-
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError(
                 "This email is already registered. Please use a different email or sign in."
             )
-
         return email
+
+    def clean(self):
+        """Enforce case-insensitive uniqueness after all fields are normalized.
+
+        This is deliberately repeated at form-level because Django's built-in
+        username uniqueness validation is case-sensitive, while Shopiva's
+        marketplace policy is case-insensitive.
+        """
+        cleaned = super().clean()
+        username = (cleaned.get("username") or "").strip()
+        email = (cleaned.get("email") or "").strip().lower()
+
+        if username and User.objects.filter(username__iexact=username).exists():
+            self.add_error("username", "Username exists. Please choose a different username.")
+        if email and User.objects.filter(email__iexact=email).exists():
+            self.add_error("email", "This email is already registered. Please use a different email or sign in.")
+        return cleaned
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.username = self.cleaned_data["username"].strip()
         user.email = self.cleaned_data["email"].strip().lower()
-
         if commit:
             user.save()
-
         return user
 
 
@@ -73,6 +84,16 @@ class SellerRegistrationForm(UserCreationForm):
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("This email is already registered.")
         return email
+
+    def clean(self):
+        cleaned = super().clean()
+        username = (cleaned.get("username") or "").strip()
+        email = (cleaned.get("email") or "").strip().lower()
+        if username and User.objects.filter(username__iexact=username).exists():
+            self.add_error("username", "Username exists. Please choose another username.")
+        if email and User.objects.filter(email__iexact=email).exists():
+            self.add_error("email", "This email is already registered.")
+        return cleaned
 
     def save(self, commit=True):
         user = super().save(commit=False)
