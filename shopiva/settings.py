@@ -100,6 +100,8 @@ EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "").strip()
 GOOGLE_MAPS_MAP_ID = os.getenv("GOOGLE_MAPS_MAP_ID", "").strip()
 
+PUBLIC_SITE_URL = os.getenv("PUBLIC_SITE_URL", "https://shopiva-keny-ltd.onrender.com").strip().rstrip("/")
+
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "https://shopiva-keny-ltd.onrender.com").split(",")
