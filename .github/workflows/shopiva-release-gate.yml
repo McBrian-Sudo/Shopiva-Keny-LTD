@@ -85,6 +85,18 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
+
+  production_smoke:
+    name: Production health smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check live Render health endpoint
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-connrefused \
+            --max-time 30 \
+            https://shopiva-keny-ltd.onrender.com/health/
+
   gate:
     name: Release gate summary
     if: ${{ always() }}
