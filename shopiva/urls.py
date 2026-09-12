@@ -2,11 +2,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path
 
-# Import the custom admin site and normalize its legacy commission admin
-# configuration before Django runs admin system checks. Seller commissions are
-# now calculated from product price in the payment engine; sellers cannot set
-# the rate.
+# Normalize the custom admin's legacy commission field before Django runs its
+# admin system checks. Actual commissions are calculated from each product's
+# selling price in home.commission and home.payments.
 from home.admin import SellerProfileAdmin, shopiva_admin_site
+SellerProfileAdmin.list_display = ("business_name", "user", "mpesa_phone", "is_active", "created_at")
+SellerProfileAdmin.list_filter = ("is_active",)
 SellerProfileAdmin.list_editable = ("is_active",)
 
 from home.business_intelligence import business_intelligence
