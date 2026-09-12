@@ -1,0 +1,49 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ site_title|default:"Shopiva Admin" }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'shopiva_admin:index' %}">Shopiva Control Center</a></h1>
+{% endblock %}
+
+{% block nav-global %}
+{{ block.super }}
+<script>
+(function () {
+    const STATUS_URL = "{% url 'admin_session_status' %}";
+    const LOGIN_URL = "{% url 'shopiva_admin:login' %}";
+    let checking = false;
+
+    async function verifyAdminSession() {
+        if (checking) return;
+        checking = true;
+        try {
+            const response = await fetch(STATUS_URL, {
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {"X-Requested-With": "XMLHttpRequest"}
+            });
+            if (!response.ok) throw new Error("session check failed");
+            const state = await response.json();
+            if (!state.authenticated) {
+                window.location.replace(LOGIN_URL);
+            }
+        } catch (error) {
+            // Fail closed when the browser cannot verify the session.
+            window.location.replace(LOGIN_URL);
+        } finally {
+            checking = false;
+        }
+    }
+
+    window.addEventListener("pageshow", function () {
+        verifyAdminSession();
+    });
+
+    window.addEventListener("popstate", verifyAdminSession);
+
+    setTimeout(verifyAdminSession, 150);
+})();
+</script>
+{% endblock %}
