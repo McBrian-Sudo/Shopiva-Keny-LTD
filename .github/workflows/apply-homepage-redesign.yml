@@ -3,29 +3,18 @@ name: Apply Homepage Redesign
 on:
   push:
     branches: [main]
-
-permissions:
-  contents: write
+  pull_request:
+    branches: [main]
 
 jobs:
-  redesign:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Apply current homepage hero
-        run: python scripts/refresh_homepage_hero_v5.py
-
-      - name: Commit generated homepage changes
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Verify homepage hero generator
         run: |
-          git config user.name "shopiva-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet; then
-            echo "No homepage changes needed."
-            exit 0
-          fi
-          git add home/templates/home.html
-          git commit -m "Apply Shopiva homepage hero V5 [skip ci]"
-          git push
+          python scripts/refresh_homepage_hero_v5.py
+          git diff --exit-code -- home/templates/home.html
