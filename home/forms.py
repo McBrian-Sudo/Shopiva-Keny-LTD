@@ -16,19 +16,19 @@ def _validate_unique_username(username, *, error_message):
 
 
 class _ShopivaUsernameBoundary:
-    """Shared deterministic username validation boundary for registration forms."""
+    """Single deterministic username validation boundary for registration forms."""
 
-    def _clean_shopiva_username(self, cleaned_data, *, error_message):
-        username = cleaned_data.get("username", "")
-        if username:
-            cleaned_data["username"] = _validate_unique_username(
-                username,
-                error_message=error_message,
-            )
-        return cleaned_data
+    username_error_message = "Username exists. Please choose a different username."
+
+    def clean_username(self):
+        username = self.cleaned_data.get("username", "")
+        return _validate_unique_username(
+            username,
+            error_message=self.username_error_message,
+        )
 
     def validate_unique(self):
-        """Disable Django's second model-level username validation pass."""
+        """Prevent Django's second model-level username check from replacing our message."""
         return None
 
 
@@ -46,13 +46,6 @@ class CustomerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
     class Meta:
         model = User
         fields = ("username", "email", "password1", "password2")
-
-    def clean(self):
-        data = super().clean()
-        return self._clean_shopiva_username(
-            data,
-            error_message="Username exists. Please choose a different username.",
-        )
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").strip().lower()
@@ -72,6 +65,7 @@ class CustomerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
 
 
 class SellerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
+    username_error_message = "Username exists. Please choose another username."
     email = forms.EmailField(required=True)
     business_name = forms.CharField(max_length=200)
     mpesa_phone = forms.CharField(
@@ -82,13 +76,6 @@ class SellerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
     class Meta:
         model = User
         fields = ("username", "email", "password1", "password2")
-
-    def clean(self):
-        data = super().clean()
-        return self._clean_shopiva_username(
-            data,
-            error_message="Username exists. Please choose another username.",
-        )
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").strip().lower()
