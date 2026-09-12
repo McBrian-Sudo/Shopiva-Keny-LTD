@@ -8,13 +8,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import SellerProductForm
-from .models import CustomerAddress, DeliveryAgent, Product, DeliveryLocationPing
+from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, Product
 
 logger = logging.getLogger(__name__)
-
-
-KENYA_LATITUDE = Decimal("-0.0236")
-KENYA_LONGITUDE = Decimal("37.9062")
 
 
 def _coordinate(value, minimum, maximum):
@@ -27,18 +23,19 @@ def _coordinate(value, minimum, maximum):
     return coordinate.quantize(Decimal("0.000001"))
 
 
-def _location_from_post(request, address_key="business_address"):
-    address = request.POST.get(address_key, "").strip()
-    latitude = _coordinate(request.POST.get("business_latitude"), Decimal("-90"), Decimal("90"))
-    longitude = _coordinate(request.POST.get("business_longitude"), Decimal("-180"), Decimal("180"))
-    return address, latitude, longitude
+def _seller_location(request):
+    return (
+        request.POST.get("business_address", "").strip(),
+        _coordinate(request.POST.get("business_latitude"), Decimal("-90"), Decimal("90")),
+        _coordinate(request.POST.get("business_longitude"), Decimal("-180"), Decimal("180")),
+    )
 
 
-def _require_location(address, latitude, longitude):
+def _seller_location_error(address, latitude, longitude):
+    if not address:
+        return "Choose the business or pickup address from Google Maps."
     if latitude is None or longitude is None:
         return "Select an exact map pin or use your current location before saving."
-    if bool(address) is False:
-        return "Choose the business or delivery address from the Google Maps search box."
     return None
 
 
@@ -49,8 +46,8 @@ def seller_product_add_map(request):
 
     if request.method == "POST":
         form = SellerProductForm(request.POST, request.FILES)
-        business_address, latitude, longitude = _location_from_post(request)
-        location_error = _require_location(business_address, latitude, longitude)
+        business_address, latitude, longitude = _seller_location(request)
+        location_error = _seller_location_error(business_address, latitude, longitude)
         if location_error:
             messages.error(request, location_error)
         elif form.is_valid():
@@ -86,7 +83,6 @@ def seller_product_add_map(request):
     )
 
 
-@login_required(login_url="customer_login")
 def seller_product_edit_map(request, product_id):
     seller = getattr(request.user, "seller_profile", None)
     if not seller or not seller.is_active:
@@ -95,8 +91,8 @@ def seller_product_edit_map(request, product_id):
 
     if request.method == "POST":
         form = SellerProductForm(request.POST, request.FILES, instance=product)
-        business_address, latitude, longitude = _location_from_post(request)
-        location_error = _require_location(business_address, latitude, longitude)
+        business_address, latitude, longitude = _seller_location(request)
+        location_error = _seller_location_error(business_address, latitude, longitude)
         if location_error:
             messages.error(request, location_error)
         elif form.is_valid():
@@ -133,7 +129,7 @@ def seller_product_edit_map(request, product_id):
 
 @login_required(login_url="customer_login")
 def customer_addresses_map(request):
-    if not (request.user.is_authenticated and not request.user.is_staff and not request.user.is_superuser):
+    if request.user.is_staff or request.user.is_superuser:
         return redirect("/admin/")
 
     if request.method == "POST":
@@ -152,7 +148,6 @@ def customer_addresses_map(request):
             messages.success(request, "Default delivery address updated.")
             return redirect("customer_addresses")
 
-        address = request.POST.get("address_line", "").strip()
         latitude = _coordinate(request.POST.get("latitude"), Decimal("-90"), Decimal("90"))
         longitude = _coordinate(request.POST.get("longitude"), Decimal("-180"), Decimal("180"))
         fields = {
@@ -161,7 +156,7 @@ def customer_addresses_map(request):
             "phone": request.POST.get("phone", "").strip(),
             "county": request.POST.get("county", "").strip(),
             "town": request.POST.get("town", "").strip(),
-            "address_line": address,
+            "address_line": request.POST.get("address_line", "").strip(),
             "landmark": request.POST.get("landmark", "").strip(),
             "latitude": latitude,
             "longitude": longitude,
@@ -191,9 +186,9 @@ def customer_delivery_location_map(request):
         return JsonResponse({"ok": False, "error": "Admin accounts use the admin delivery map."}, status=403)
 
     latest_order = (
-        request.user.email
-        and __import__("home.models", fromlist=["Order"]).Order.objects.filter(email__iexact=request.user.email)
+        Order.objects.filter(email__iexact=request.user.email)
         .select_related("delivery_agent")
+        .prefetch_related("events")
         .order_by("-created_at")
         .first()
     )
