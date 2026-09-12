@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,18 +79,6 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-
-# Platform economics are controlled by Shopiva, never by an individual seller.
-# The default platform commission is 10%. Change the environment variable only
-# as a platform-level policy; existing paid orders keep their recorded split.
-try:
-    SHOPIVA_PLATFORM_COMMISSION_PERCENT = Decimal(
-        os.getenv("SHOPIVA_PLATFORM_COMMISSION_PERCENT", "10")
-    )
-except (InvalidOperation, ValueError):
-    SHOPIVA_PLATFORM_COMMISSION_PERCENT = Decimal("10")
-if not (Decimal("0") <= SHOPIVA_PLATFORM_COMMISSION_PERCENT < Decimal("100")):
-    SHOPIVA_PLATFORM_COMMISSION_PERCENT = Decimal("10")
 
 EMAIL_NOTIFICATIONS_ENABLED = os.getenv("EMAIL_NOTIFICATIONS_ENABLED", "false").lower() == "true"
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
