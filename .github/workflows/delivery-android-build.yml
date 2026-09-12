@@ -55,40 +55,59 @@ jobs:
           if-no-files-found: error
 
   signed-release:
-    if: ${{ secrets.SHOPIVA_ANDROID_KEYSTORE_BASE64 != '' && secrets.SHOPIVA_ANDROID_KEYSTORE_PASSWORD != '' && secrets.SHOPIVA_ANDROID_KEY_ALIAS != '' && secrets.SHOPIVA_ANDROID_KEY_PASSWORD != '' }}
     needs: build
     runs-on: ubuntu-latest
+    env:
+      SHOPIVA_ANDROID_KEYSTORE_BASE64: ${{ secrets.SHOPIVA_ANDROID_KEYSTORE_BASE64 }}
+      SHOPIVA_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.SHOPIVA_ANDROID_KEYSTORE_PASSWORD }}
+      SHOPIVA_ANDROID_KEY_ALIAS: ${{ secrets.SHOPIVA_ANDROID_KEY_ALIAS }}
+      SHOPIVA_ANDROID_KEY_PASSWORD: ${{ secrets.SHOPIVA_ANDROID_KEY_PASSWORD }}
     steps:
+      - name: Check release signing configuration
+        id: signing
+        shell: bash
+        run: |
+          if [ -n "$SHOPIVA_ANDROID_KEYSTORE_BASE64" ] &&
+             [ -n "$SHOPIVA_ANDROID_KEYSTORE_PASSWORD" ] &&
+             [ -n "$SHOPIVA_ANDROID_KEY_ALIAS" ] &&
+             [ -n "$SHOPIVA_ANDROID_KEY_PASSWORD" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Signing secrets are not configured; unsigned release artifacts remain the release output."
+          fi
+
       - name: Checkout
+        if: steps.signing.outputs.configured == 'true'
         uses: actions/checkout@v7
 
       - name: Set up Java 17
+        if: steps.signing.outputs.configured == 'true'
         uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
+        if: steps.signing.outputs.configured == 'true'
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.5.0'
 
       - name: Decode Admin release keystore
+        if: steps.signing.outputs.configured == 'true'
         shell: bash
-        env:
-          SHOPIVA_ANDROID_KEYSTORE_BASE64: ${{ secrets.SHOPIVA_ANDROID_KEYSTORE_BASE64 }}
         run: |
           echo "$SHOPIVA_ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/shopiva-admin-release.jks"
 
       - name: Build signed Admin APK and AAB
+        if: steps.signing.outputs.configured == 'true'
         env:
           SHOPIVA_ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/shopiva-admin-release.jks
-          SHOPIVA_ANDROID_STORE_PASSWORD: ${{ secrets.SHOPIVA_ANDROID_KEYSTORE_PASSWORD }}
-          SHOPIVA_ANDROID_KEY_ALIAS: ${{ secrets.SHOPIVA_ANDROID_KEY_ALIAS }}
-          SHOPIVA_ANDROID_KEY_PASSWORD: ${{ secrets.SHOPIVA_ANDROID_KEY_PASSWORD }}
         run: gradle -p delivery-android :app:assembleRelease :app:bundleRelease
 
       - name: Upload signed Admin APK and AAB
+        if: steps.signing.outputs.configured == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: shopiva-admin-release-signed
