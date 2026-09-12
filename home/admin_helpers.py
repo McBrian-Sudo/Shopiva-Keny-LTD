@@ -8,6 +8,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import DeliveryAgent, Order, PaymentTransaction, Product
@@ -17,6 +18,14 @@ def _require_admin(request):
     return bool(request.user.is_authenticated and request.user.is_staff)
 
 
+def _no_store(response):
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
+    response["Pragma"] = "no-cache"
+    response["Expires"] = "0"
+    return response
+
+
+@never_cache
 def admin_login(request):
     """Dedicated Shopiva admin login using Django's validated authentication form."""
     if request.user.is_authenticated and request.user.is_staff:
@@ -32,10 +41,6 @@ def admin_login(request):
         elif not user.is_staff:
             form.add_error(None, "This account is not authorized for the Shopiva Control Center.")
         else:
-            # AuthenticationForm has already validated the credentials. Reuse
-            # that authenticated user instead of performing a second database
-            # authentication query, then explicitly use Django's standard
-            # ModelBackend so the session is created deterministically.
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             if next_url and url_has_allowed_host_and_scheme(
                 next_url,
@@ -56,17 +61,19 @@ def admin_login(request):
 
 
 @csrf_exempt
+@never_cache
 def admin_logout(request):
-    """Reliable admin sign-out that safely destroys the current session."""
+    """Destroy the admin session and explicitly prevent cached authenticated pages."""
     if request.method not in {"GET", "POST"}:
-        return JsonResponse({"ok": False, "error": "Method not allowed."}, status=405)
+        return _no_store(JsonResponse({"ok": False, "error": "Method not allowed."}, status=405))
     if not _require_admin(request):
-        return HttpResponseRedirect(reverse("shopiva_admin:login"))
+        return _no_store(HttpResponseRedirect(reverse("shopiva_admin:login")))
     logout(request)
-    return HttpResponseRedirect(reverse("shopiva_admin:login"))
+    return _no_store(HttpResponseRedirect(reverse("shopiva_admin:login")))
 
 
 @csrf_exempt
+@never_cache
 def admin_ai_assistant(request):
     """Always-available admin operations assistant backed by live Shopiva data."""
     if request.method != "POST":
