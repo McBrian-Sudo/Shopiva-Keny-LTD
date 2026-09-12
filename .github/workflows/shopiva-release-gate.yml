@@ -100,7 +100,7 @@ jobs:
   gate:
     name: Release gate summary
     if: ${{ always() }}
-    needs: [backend, customer_android, admin_android, ios]
+    needs: [backend, customer_android, admin_android, ios, production_smoke]
     runs-on: ubuntu-latest
     steps:
       - name: Fail unless every release check passed
@@ -109,12 +109,15 @@ jobs:
           CUSTOMER_ANDROID: ${{ needs.customer_android.result }}
           ADMIN_ANDROID: ${{ needs.admin_android.result }}
           IOS: ${{ needs.ios.result }}
+          PRODUCTION_SMOKE: ${{ needs.production_smoke.result }}
         run: |
           echo "Backend: $BACKEND"
           echo "Customer Android: $CUSTOMER_ANDROID"
           echo "Admin Android: $ADMIN_ANDROID"
           echo "iOS: $IOS"
+          echo "Production smoke: $PRODUCTION_SMOKE"
           test "$BACKEND" = success
           test "$CUSTOMER_ANDROID" = success
           test "$ADMIN_ANDROID" = success
           test "$IOS" = success
+          test "$PRODUCTION_SMOKE" = success
