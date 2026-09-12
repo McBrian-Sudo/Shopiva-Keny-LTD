@@ -8,7 +8,17 @@ from django.urls import reverse
 
 from .commission import get_platform_commission_percent, split_sale_amount
 from .forms import CustomerRegistrationForm, SellerRegistrationForm
-from .models import Order, OrderItem, PaymentTransaction, SellerProfile, SellerSettlement, SellerWallet, Product, ProductReview
+from .models import (
+    CustomerAddress,
+    Order,
+    OrderItem,
+    PaymentTransaction,
+    SellerProfile,
+    SellerSettlement,
+    SellerWallet,
+    Product,
+    ProductReview,
+)
 from .payments import _create_seller_settlements
 
 
@@ -60,18 +70,26 @@ class CommissionScheduleTests(TestCase):
 
 class AdminLoginTests(TestCase):
     def test_admin_login_page_loads(self):
-        response = self.client.get(reverse("admin_login"))
+        response = self.client.get(reverse("admin_login"), secure=True)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Shopiva Control Center")
 
     def test_staff_can_login_to_control_center(self):
         User.objects.create_user(username="admin_test", email="admin@example.com", password="StrongPass123!", is_staff=True)
-        response = self.client.post(reverse("admin_login"), {"username": "admin_test", "password": "StrongPass123!"})
+        response = self.client.post(
+            reverse("admin_login"),
+            {"username": "admin_test", "password": "StrongPass123!"},
+            secure=True,
+        )
         self.assertRedirects(response, reverse("shopiva_admin:index"), fetch_redirect_response=False)
 
     def test_customer_cannot_login_to_control_center(self):
         User.objects.create_user(username="customer_test", email="customer@example.com", password="StrongPass123!", is_staff=False)
-        response = self.client.post(reverse("admin_login"), {"username": "customer_test", "password": "StrongPass123!"})
+        response = self.client.post(
+            reverse("admin_login"),
+            {"username": "customer_test", "password": "StrongPass123!"},
+            secure=True,
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "not authorized")
 
@@ -125,7 +143,6 @@ class DataIntegrityConstraintTests(TestCase):
             ProductReview.objects.create(product=product, customer=user, order=order, rating=6)
 
     def test_only_one_default_address_is_allowed(self):
-        from .models import CustomerAddress
         user = User.objects.create_user(username="addressuser", email="address@example.com", password="StrongPass123!")
         CustomerAddress.objects.create(user=user, label="Home", full_name="Buyer", phone="254700000003", county="Nairobi", town="Nairobi", address_line="One", is_default=True)
         with self.assertRaises(IntegrityError):
@@ -146,7 +163,7 @@ class MpesaCallbackSafetyTests(TestCase):
     def test_success_callback_missing_receipt_does_not_mark_paid(self):
         order, payment, _ = self._payment_fixture()
         payload = {"Body": {"stkCallback": {"CheckoutRequestID": payment.checkout_request_id, "ResultCode": 0, "ResultDesc": "Success", "CallbackMetadata": {"Item": [{"Name": "Amount", "Value": 1000}, {"Name": "PhoneNumber", "Value": 254712345678}]}}}}
-        response = self.client.post(reverse("mpesa_callback"), data=json.dumps(payload), content_type="application/json")
+        response = self.client.post(reverse("mpesa_callback"), data=json.dumps(payload), content_type="application/json", secure=True)
         self.assertEqual(response.status_code, 200)
         payment.refresh_from_db()
         order.refresh_from_db()
@@ -157,7 +174,7 @@ class MpesaCallbackSafetyTests(TestCase):
     def test_success_callback_amount_mismatch_does_not_mark_paid(self):
         order, payment, _ = self._payment_fixture()
         payload = {"Body": {"stkCallback": {"CheckoutRequestID": payment.checkout_request_id, "ResultCode": 0, "ResultDesc": "Success", "CallbackMetadata": {"Item": [{"Name": "Amount", "Value": 999}, {"Name": "MpesaReceiptNumber", "Value": "RCP123"}, {"Name": "PhoneNumber", "Value": 254712345678}]}}}}
-        response = self.client.post(reverse("mpesa_callback"), data=json.dumps(payload), content_type="application/json")
+        response = self.client.post(reverse("mpesa_callback"), data=json.dumps(payload), content_type="application/json", secure=True)
         self.assertEqual(response.status_code, 200)
         payment.refresh_from_db()
         order.refresh_from_db()
