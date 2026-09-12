@@ -1,0 +1,108 @@
+name: Shopiva Release Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend release checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: "pip"
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run Django release checks
+        env:
+          DATABASE_URL: sqlite:///ci.sqlite3
+          SECRET_KEY: ci-only-secret-key-9f2d8a7c4e1b6f3a0d5c9b2e7f4a1d8c6b3e0f5a2
+          DEBUG: "false"
+          ALLOWED_HOSTS: "localhost,127.0.0.1,testserver"
+          CSRF_TRUSTED_ORIGINS: "https://example.invalid"
+        run: |
+          python manage.py check --deploy
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+          python manage.py migrate --noinput
+          python manage.py migrate --check
+          python manage.py system_preflight
+          python manage.py test --verbosity 1
+          python -m compileall -q home shopiva
+
+  customer_android:
+    name: Customer Android release checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.5.0"
+      - name: Build customer Android debug, release and AAB
+        run: gradle -p customer-android :app:assembleDebug :app:assembleRelease :app:bundleRelease
+
+  admin_android:
+    name: Admin Android release checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.5.0"
+      - name: Build admin Android debug, release and AAB
+        run: gradle -p delivery-android :app:assembleDebug :app:assembleRelease :app:bundleRelease
+
+  ios:
+    name: Customer iOS release checks
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - name: Build customer iOS release without distribution signing
+        run: |
+          xcodebuild \
+            -project ios/ShopivaCustomer.xcodeproj \
+            -scheme ShopivaCustomer \
+            -sdk iphoneos \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+  gate:
+    name: Release gate summary
+    if: ${{ always() }}
+    needs: [backend, customer_android, admin_android, ios]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every release check passed
+        env:
+          BACKEND: ${{ needs.backend.result }}
+          CUSTOMER_ANDROID: ${{ needs.customer_android.result }}
+          ADMIN_ANDROID: ${{ needs.admin_android.result }}
+          IOS: ${{ needs.ios.result }}
+        run: |
+          echo "Backend: $BACKEND"
+          echo "Customer Android: $CUSTOMER_ANDROID"
+          echo "Admin Android: $ADMIN_ANDROID"
+          echo "iOS: $IOS"
+          test "$BACKEND" = success
+          test "$CUSTOMER_ANDROID" = success
+          test "$ADMIN_ANDROID" = success
+          test "$IOS" = success
