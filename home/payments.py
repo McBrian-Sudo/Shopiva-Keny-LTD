@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
+from .commission import get_platform_commission_percent
 from .notifications import notify_user
 from .models import Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerSettlement, SellerWallet
 
@@ -182,7 +183,8 @@ def checkout_mpesa(request):
         for product, quantity, unit_price in locked_items:
             seller = product.seller if product.seller_id and product.seller and product.seller.is_active else None
             gross = unit_price * quantity
-            commission = (gross * seller.commission_percent / Decimal("100")).quantize(Decimal("0.01")) if seller else Decimal("0.00")
+            commission_percent = get_platform_commission_percent(unit_price)
+            commission = (gross * commission_percent / Decimal("100")).quantize(Decimal("0.01")) if seller else Decimal("0.00")
             seller_net = gross - commission
             OrderItem.objects.create(order=order, product=product, quantity=quantity, price=unit_price, seller=seller, seller_gross=gross, platform_commission=commission, seller_net=seller_net)
             product.stock_quantity -= quantity
@@ -309,24 +311,45 @@ def _release_reserved_inventory(order):
         product.stock_quantity += item.quantity
         product.save(update_fields=["stock_quantity"])
 
+
 def _create_seller_settlements(order):
-    """Create the seller/platform split only after confirmed provider payment."""
+    """Create seller/platform balances from the immutable order-item split recorded at checkout."""
     seller_totals = {}
     for item in order.items.select_related("seller"):
         if not item.seller_id or not item.seller or not item.seller.is_active:
             continue
-        data = seller_totals.setdefault(item.seller_id, {"seller": item.seller, "gross": Decimal("0.00"), "commission": Decimal("0.00"), "net": Decimal("0.00")})
+        data = seller_totals.setdefault(
+            item.seller_id,
+            {
+                "seller": item.seller,
+                "gross": Decimal("0.00"),
+                "commission": Decimal("0.00"),
+                "net": Decimal("0.00"),
+            },
+        )
         data["gross"] += item.seller_gross
         data["commission"] += item.platform_commission
         data["net"] += item.seller_net
+
     for data in seller_totals.values():
-        settlement, created = SellerSettlement.objects.get_or_create(order=order, seller=data["seller"], defaults={"gross_amount": data["gross"], "platform_commission": data["commission"], "seller_amount": data["net"], "status": "pending"})
+        settlement, created = SellerSettlement.objects.get_or_create(
+            order=order,
+            seller=data["seller"],
+            defaults={
+                "gross_amount": data["gross"],
+                "platform_commission": data["commission"],
+                "seller_amount": data["net"],
+                "status": "pending",
+            },
+        )
         if created:
             wallet, _ = SellerWallet.objects.get_or_create(seller=data["seller"])
             wallet.pending_balance += data["net"]
             wallet.total_sales += data["gross"]
             wallet.total_commission += data["commission"]
             wallet.save(update_fields=["pending_balance", "total_sales", "total_commission", "updated_at"])
+
+
 def mpesa_payment_status(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     allowed = bool(
