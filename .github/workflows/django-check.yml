@@ -16,7 +16,7 @@ jobs:
           python-version: "3.14"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Django system check and migration check
+      - name: Django system, migration and regression checks
         env:
           DATABASE_URL: sqlite:///ci.sqlite3
           SECRET_KEY: ci-only-secret
@@ -25,5 +25,6 @@ jobs:
         run: |
           python manage.py check
           python manage.py makemigrations --check --dry-run
+          python manage.py test home --verbosity 1
       - name: Python compile check
         run: python -m compileall -q home shopiva
