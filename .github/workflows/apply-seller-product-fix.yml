@@ -1,31 +1,18 @@
-name: Apply Seller Product 500 Fix
+name: Seller Product Safeguard Check
 
 on:
   push:
     branches: [main]
-
-permissions:
-  contents: write
+  pull_request:
+    branches: [main]
 
 jobs:
-  fix:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+  check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Apply seller product safeguard
-        run: python scripts/fix_seller_product_500.py
-
-      - name: Commit patched seller product view
+      - uses: actions/checkout@v4
+      - name: Verify seller product safeguard exists
         run: |
-          git config user.name "shopiva-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet; then
-            echo "No seller product changes needed."
-            exit 0
-          fi
-          git add home/views.py
-          git commit -m "Fix seller product 500 upload errors [skip ci]"
-          git push
+          grep -q "Seller product image upload failed" home/views.py
+          grep -q "external image storage provider" home/views.py
+          echo "Seller product 500 safeguard is present."
