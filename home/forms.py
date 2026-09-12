@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from django.db.models.functions import Lower
 from django.utils.text import slugify
 import uuid
 
@@ -13,9 +12,14 @@ def _username_exists_case_insensitive(username):
     normalized = (username or "").strip().casefold()
     if not normalized:
         return False
-    return User.objects.annotate(
-        _normalized_username=Lower("username")
-    ).filter(_normalized_username=normalized).exists()
+    # Iterate real User instances instead of relying on database collation or
+    # SQL LOWER/LIKE behavior. This keeps the policy deterministic on both the
+    # CI SQLite database and production PostgreSQL.
+    for existing_user in User.objects.all():
+        existing = (existing_user.username or "").strip().casefold()
+        if existing == normalized:
+            return True
+    return False
 
 
 class CustomerRegistrationForm(UserCreationForm):
