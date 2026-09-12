@@ -41,6 +41,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "home.seo_middleware.ShopivaSeoMiddleware",
+    "home.branding_middleware.ShopivaBrandingMiddleware",
 ]
 
 ROOT_URLCONF = "shopiva.urls"
