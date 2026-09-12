@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.db.models.functions import Lower
 from django.utils.text import slugify
 import uuid
 
@@ -22,9 +23,18 @@ class CustomerRegistrationForm(UserCreationForm):
         model = User
         fields = ("username", "email", "password1", "password2")
 
+    @staticmethod
+    def _username_exists_case_insensitive(username):
+        normalized = (username or "").strip().casefold()
+        if not normalized:
+            return False
+        # Use a database LOWER() expression rather than relying on backend
+        # collation/LIKE behaviour. This is reliable on SQLite and PostgreSQL.
+        return User.objects.annotate(_username_ci=Lower("username")).filter(_username_ci=normalized).exists()
+
     def clean_username(self):
         username = self.cleaned_data.get("username", "").strip()
-        if User.objects.filter(username__iexact=username).exists():
+        if self._username_exists_case_insensitive(username):
             raise forms.ValidationError(
                 "Username exists. Please choose a different username."
             )
@@ -39,17 +49,10 @@ class CustomerRegistrationForm(UserCreationForm):
         return email
 
     def clean(self):
-        """Enforce case-insensitive uniqueness after all fields are normalized.
-
-        This is deliberately repeated at form-level because Django's built-in
-        username uniqueness validation is case-sensitive, while Shopiva's
-        marketplace policy is case-insensitive.
-        """
         cleaned = super().clean()
         username = (cleaned.get("username") or "").strip()
         email = (cleaned.get("email") or "").strip().lower()
-
-        if username and User.objects.filter(username__iexact=username).exists():
+        if username and self._username_exists_case_insensitive(username):
             self.add_error("username", "Username exists. Please choose a different username.")
         if email and User.objects.filter(email__iexact=email).exists():
             self.add_error("email", "This email is already registered. Please use a different email or sign in.")
@@ -73,9 +76,16 @@ class SellerRegistrationForm(UserCreationForm):
         model = User
         fields = ("username", "email", "password1", "password2")
 
+    @staticmethod
+    def _username_exists_case_insensitive(username):
+        normalized = (username or "").strip().casefold()
+        if not normalized:
+            return False
+        return User.objects.annotate(_username_ci=Lower("username")).filter(_username_ci=normalized).exists()
+
     def clean_username(self):
         username = self.cleaned_data["username"].strip()
-        if User.objects.filter(username__iexact=username).exists():
+        if self._username_exists_case_insensitive(username):
             raise forms.ValidationError("Username exists. Please choose another username.")
         return username
 
@@ -89,7 +99,7 @@ class SellerRegistrationForm(UserCreationForm):
         cleaned = super().clean()
         username = (cleaned.get("username") or "").strip()
         email = (cleaned.get("email") or "").strip().lower()
-        if username and User.objects.filter(username__iexact=username).exists():
+        if username and self._username_exists_case_insensitive(username):
             self.add_error("username", "Username exists. Please choose another username.")
         if email and User.objects.filter(email__iexact=email).exists():
             self.add_error("email", "This email is already registered.")
