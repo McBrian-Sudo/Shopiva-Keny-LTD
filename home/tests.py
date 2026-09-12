@@ -180,3 +180,62 @@ class MpesaCallbackSafetyTests(TestCase):
         order.refresh_from_db()
         self.assertEqual(payment.status, "pending")
         self.assertEqual(order.payment_status, "pending")
+
+
+class DeliveryGpsCertificationTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="rider_cert", email="rider-cert@example.com", password="StrongPass123!"
+        )
+        self.agent = DeliveryAgent.objects.create(
+            user=self.user, phone="254700000099", vehicle_type="Motorbike", is_active=True
+        )
+
+    def test_delivery_ping_requires_delivery_agent_and_records_gps(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("delivery_ping_location"),
+            {"latitude": "-1.292100", "longitude": "36.821900", "accuracy": "8.5", "speed": "4.2", "heading": "90"},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.agent.refresh_from_db()
+        self.assertEqual(self.agent.current_latitude, Decimal("-1.292100"))
+        self.assertEqual(self.agent.current_longitude, Decimal("36.821900"))
+        self.assertIsNotNone(self.agent.last_location_at)
+        self.assertEqual(DeliveryLocationPing.objects.filter(agent=self.agent).count(), 1)
+        self.assertEqual(DeliveryLocationPing.objects.get(agent=self.agent).accuracy_meters, Decimal("8.50"))
+
+    def test_delivery_ping_rejects_invalid_coordinates(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("delivery_ping_location"),
+            {"latitude": "91", "longitude": "36.821900"},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["ok"])
+        self.assertEqual(DeliveryLocationPing.objects.count(), 0)
+
+    def test_admin_delivery_locations_returns_latest_secure_feed(self):
+        admin_user = User.objects.create_user(
+            username="gps_admin", email="gps-admin@example.com", password="StrongPass123!", is_staff=True
+        )
+        self.client.force_login(self.user)
+        self.client.post(
+            reverse("delivery_ping_location"),
+            {"latitude": "-1.292100", "longitude": "36.821900"},
+        )
+        self.client.force_login(admin_user)
+        response = self.client.get(reverse("shopiva_admin:delivery_locations"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(len(payload["agents"]), 1)
+        self.assertEqual(payload["agents"][0]["id"], self.agent.id)
+        self.assertEqual(payload["agents"][0]["latitude"], -1.2921)
+        self.assertEqual(payload["agents"][0]["longitude"], 36.8219)
+
+    def test_admin_delivery_locations_rejects_anonymous_access(self):
+        response = self.client.get(reverse("shopiva_admin:delivery_locations"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("admin/login", response["Location"])
