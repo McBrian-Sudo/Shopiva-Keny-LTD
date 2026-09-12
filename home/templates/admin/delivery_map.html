@@ -7,27 +7,33 @@
 {{ block.super }}
 <style>
 :root{--sd-green:#08a66d;--sd-dark:#0b1720;--sd-ink:#17232d;--sd-muted:#6b7780;--sd-line:#e2e9ed;--sd-blue:#2188ff;--sd-red:#ef4444}
-body{background:#f3f6f8}.content,#content{max-width:none!important;padding:0!important}.delivery-shell{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--sd-ink);padding:0 18px 34px}.delivery-top{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 4px 18px}.delivery-title h1{margin:0;font-size:28px;line-height:1.1}.delivery-title p{margin:6px 0 0;color:var(--sd-muted);font-size:12px}.live-chip{display:flex;align-items:center;gap:7px;background:#eafff6;border:1px solid #b9f2d8;color:#06744e;border-radius:999px;padding:8px 11px;font-size:11px;font-weight:900}.live-chip i{width:8px;height:8px;border-radius:50%;background:#12b981;box-shadow:0 0 0 4px rgba(18,185,129,.12)}
+body{background:#f3f6f8}.content,#content{max-width:none!important;padding:0!important}.delivery-shell{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--sd-ink);padding:0 18px 34px}
+.delivery-top{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 4px 18px}.delivery-title h1{margin:0;font-size:28px;line-height:1.1}.delivery-title p{margin:6px 0 0;color:var(--sd-muted);font-size:12px}
+.live-chip{display:flex;align-items:center;gap:7px;background:#eafff6;border:1px solid #b9f2d8;color:#06744e;border-radius:999px;padding:8px 11px;font-size:11px;font-weight:900}.live-chip i{width:8px;height:8px;border-radius:50%;background:#12b981;box-shadow:0 0 0 4px rgba(18,185,129,.12)}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:13px}.stat{background:#fff;border:1px solid var(--sd-line);border-radius:13px;padding:13px 14px;display:flex;align-items:center;gap:11px;box-shadow:0 6px 20px rgba(25,40,50,.04)}.stat .ico{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-size:17px;background:#ecfaf4}.stat .ico.blue{background:#eef5ff}.stat .ico.red{background:#fff0f0}.stat .ico.teal{background:#edfafa}.stat small{display:block;color:#79858d;font-size:9px;text-transform:uppercase;letter-spacing:.04em}.stat strong{display:block;font-size:20px;line-height:1.15;margin-top:3px}
 .toolbar{background:#fff;border:1px solid var(--sd-line);border-radius:13px;padding:10px;display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:11px}.toolbar-left{display:flex;gap:8px;align-items:center}.toolbar select{border:1px solid #d7e0e6;border-radius:9px;padding:8px 10px;font-size:11px;background:#fff}.toolbar button,.toolbar a{border:0;border-radius:9px;padding:8px 11px;font-size:11px;font-weight:900;text-decoration:none;cursor:pointer}.toolbar button{background:var(--sd-green);color:#fff}.toolbar a{background:#f5f8fa;color:#33424c;border:1px solid var(--sd-line)}
-.main-grid{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(285px,.72fr);gap:12px}.map-panel,.side-panel{background:#fff;border:1px solid var(--sd-line);border-radius:15px;box-shadow:0 8px 25px rgba(25,40,50,.05);overflow:hidden}.map-wrap{height:520px;position:relative;background:#eef3f4}.map{height:100%;width:100%}.map-overlay{position:absolute;z-index:700;top:11px;left:11px;display:flex;gap:7px}.map-overlay span,.map-overlay a{background:rgba(255,255,255,.96);border:1px solid #e3e9ed;border-radius:999px;padding:7px 9px;font-size:10px;font-weight:900;color:#23323d;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,.08)}.map-overlay a{color:#06744e}.map-controls{position:absolute;right:11px;top:11px;z-index:700;display:grid;gap:6px}.map-controls button{width:34px;height:34px;border:1px solid #dfe7eb;background:#fff;border-radius:9px;font-size:15px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.08)}.legend{position:absolute;left:11px;right:11px;bottom:10px;z-index:700;display:flex;gap:14px;flex-wrap:wrap;background:rgba(255,255,255,.94);border:1px solid #e4ebee;border-radius:10px;padding:8px 10px;font-size:9px;color:#57636b}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}.green{background:#0ba976}.red{background:#ef4444}.gray{background:#7a8790}.blue{background:#2188ff}
-.side-panel{padding:12px}.side-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.side-title h2{font-size:13px;margin:0}.side-title a{font-size:9px;color:#2188ff;text-decoration:none;font-weight:900}.delivery-list{display:grid;gap:7px}.delivery-row,.rider-row{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center;border:1px solid #edf1f3;border-radius:10px;padding:8px;background:#fff}.mini-truck{width:26px;height:26px;border-radius:8px;background:#edf9f4;display:grid;place-items:center;font-size:13px}.delivery-row strong,.rider-row strong{font-size:10px}.delivery-row small,.rider-row small{display:block;color:#7b878e;font-size:8px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}.badge{padding:5px 7px;border-radius:999px;font-size:8px;font-weight:900;white-space:nowrap}.badge.on{background:#ddfaeb;color:#08764f}.badge.delayed{background:#ffe5e5;color:#c53636}.badge.delivered{background:#e7f0ff;color:#2563eb}.badge.pending{background:#eef1f4;color:#5d6972}.section-gap{height:13px}.rider-row{grid-template-columns:30px 1fr auto}.avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#d9efe6,#b9d6cc);font-size:13px}.online{background:#dcfaeb;color:#0b8f61}.offline{background:#eef1f3;color:#6b757d}.map-status{position:absolute;z-index:750;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.95);border:1px solid #dfe7ea;border-radius:12px;padding:13px 16px;text-align:center;box-shadow:0 16px 35px rgba(0,0,0,.12);display:none}.map-status.show{display:block}.map-status strong{display:block;font-size:12px}.map-status span{display:block;font-size:9px;color:#6d7a82;margin-top:4px}.bottom-strip{background:#042b24;color:#fff;margin-top:12px;border-radius:13px;padding:15px 18px;display:flex;justify-content:space-between;gap:16px}.bottom-strip strong{font-size:16px}.bottom-strip span{display:block;font-size:9px;color:#b9d7cf;margin-top:3px}
-@media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.main-grid{grid-template-columns:1fr}.map-wrap{height:470px}}@media(max-width:650px){.delivery-shell{padding:0 8px 25px}.stats{grid-template-columns:1fr 1fr}.delivery-top{align-items:flex-start}.toolbar{align-items:flex-start;flex-direction:column}.toolbar-left{width:100%;flex-wrap:wrap}.main-grid{grid-template-columns:1fr}.map-wrap{height:390px}.bottom-strip{flex-direction:column}}
+.main-grid{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(285px,.72fr);gap:12px}.map-panel,.side-panel{background:#fff;border:1px solid var(--sd-line);border-radius:15px;box-shadow:0 8px 25px rgba(25,40,50,.05);overflow:hidden}.map-wrap{height:560px;position:relative;background:#eef3f4}.map{height:100%;width:100%}
+.map-overlay{position:absolute;z-index:5;top:11px;left:11px;display:flex;gap:7px}.map-overlay span,.map-overlay a{background:rgba(255,255,255,.96);border:1px solid #e3e9ed;border-radius:999px;padding:7px 9px;font-size:10px;font-weight:900;color:#23323d;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,.08)}.map-overlay a{color:#06744e}
+.map-controls{position:absolute;right:11px;top:11px;z-index:5;display:grid;gap:6px}.map-controls button{width:34px;height:34px;border:1px solid #dfe7eb;background:#fff;border-radius:9px;font-size:15px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.legend{position:absolute;left:11px;right:11px;bottom:10px;z-index:5;display:flex;gap:14px;flex-wrap:wrap;background:rgba(255,255,255,.94);border:1px solid #e4ebee;border-radius:10px;padding:8px 10px;font-size:9px;color:#57636b}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}.green{background:#0ba976}.red{background:#ef4444}.gray{background:#7a8790}
+.map-status{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.96);border:1px solid #dfe7ea;border-radius:12px;padding:13px 16px;text-align:center;box-shadow:0 16px 35px rgba(0,0,0,.12);display:none;min-width:230px}.map-status.show{display:block}.map-status strong{display:block;font-size:12px}.map-status span{display:block;font-size:9px;color:#6d7a82;margin-top:4px}
+.side-panel{padding:12px}.side-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.side-title h2{font-size:13px;margin:0}.side-title a{font-size:9px;color:#2188ff;text-decoration:none;font-weight:900}.delivery-list{display:grid;gap:7px}.delivery-row,.rider-row{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center;border:1px solid #edf1f3;border-radius:10px;padding:8px;background:#fff}.mini-truck{width:26px;height:26px;border-radius:8px;background:#edf9f4;display:grid;place-items:center;font-size:13px}.delivery-row strong,.rider-row strong{font-size:10px}.delivery-row small,.rider-row small{display:block;color:#7b878e;font-size:8px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}.badge{padding:5px 7px;border-radius:999px;font-size:8px;font-weight:900;white-space:nowrap}.badge.on{background:#ddfaeb;color:#08764f}.badge.delayed{background:#ffe5e5;color:#c53636}.badge.delivered{background:#e7f0ff;color:#2563eb}.badge.pending{background:#eef1f4;color:#5d6972}.section-gap{height:13px}.rider-row{grid-template-columns:30px 1fr auto}.avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#d9efe6;font-size:13px}.online{background:#dcfaeb;color:#0b8f61}.offline{background:#eef1f3;color:#6b757d}.feed-line{font-size:9px;color:#66736d;margin-top:10px;padding:9px;border-radius:9px;background:#f5f8fa;border:1px solid #e6ecef}.bottom-strip{background:#042b24;color:#fff;margin-top:12px;border-radius:13px;padding:15px 18px;display:flex;justify-content:space-between;gap:16px}.bottom-strip strong{font-size:16px}.bottom-strip span{display:block;font-size:9px;color:#b9d7cf;margin-top:3px}
+@media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.main-grid{grid-template-columns:1fr}.map-wrap{height:470px}}@media(max-width:650px){.delivery-shell{padding:0 8px 25px}.stats{grid-template-columns:1fr 1fr}.delivery-top{align-items:flex-start}.toolbar{align-items:flex-start;flex-direction:column}.toolbar-left{width:100%;flex-wrap:wrap}.map-wrap{height:390px}.bottom-strip{flex-direction:column}}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="delivery-shell">
   <div class="delivery-top">
-    <div class="delivery-title"><h1>Live Delivery Map</h1><p>Monitor all Shopiva deliveries across Kenya in real-time.</p></div>
-    <div class="live-chip"><i></i> Live operations</div>
+    <div class="delivery-title"><h1>Live Delivery Map</h1><p>Google Maps operations view — live rider GPS updates from Shopiva delivery workspaces.</p></div>
+    <div class="live-chip"><i></i><span id="feed-state">Connecting live feed…</span></div>
   </div>
 
   <div class="stats">
     <div class="stat"><div class="ico">🚚</div><div><small>Active Deliveries</small><strong id="sd-active">{{ delivery_dashboard.active }}</strong></div></div>
-    <div class="stat"><div class="ico blue">●</div><div><small>On Time</small><strong id="sd-ontime">{{ delivery_dashboard.on_time }}</strong></div></div>
-    <div class="stat"><div class="ico red">◷</div><div><small>Delayed</small><strong id="sd-delayed">{{ delivery_dashboard.delayed }}</strong></div></div>
-    <div class="stat"><div class="ico teal">👤</div><div><small>Riders Online</small><strong id="sd-riders">{{ delivery_dashboard.riders_online }}</strong></div></div>
+    <div class="stat"><div class="ico blue">●</div><div><small>Live Riders</small><strong id="sd-riders">{{ delivery_dashboard.riders_online }}</strong></div></div>
+    <div class="stat"><div class="ico red">◷</div><div><small>Stale / Offline</small><strong id="sd-stale">{{ delivery_dashboard.delayed }}</strong></div></div>
+    <div class="stat"><div class="ico teal">📡</div><div><small>Feed Updates</small><strong id="sd-updates">0</strong></div></div>
   </div>
 
   <form class="toolbar" method="get">
@@ -39,17 +45,17 @@ body{background:#f3f6f8}.content,#content{max-width:none!important;padding:0!imp
       </select>
       <a href="{% url 'shopiva_admin:delivery_map' %}">Reset</a>
     </div>
-    <div><button type="button" id="sd-refresh">↻ Refresh</button></div>
+    <div><button type="button" id="sd-refresh">↻ Refresh now</button></div>
   </form>
 
   <div class="main-grid">
     <section class="map-panel">
       <div class="map-wrap">
         <div id="sd-map" class="map"></div>
-        <div class="map-overlay"><span>🇰🇪 Kenya</span><a id="sd-google" href="https://www.google.com/maps/search/?api=1&query=Kenya" target="_blank" rel="noopener">Open Google Maps ↗</a></div>
+        <div class="map-overlay"><span>🇰🇪 Shopiva Kenya</span><a id="sd-google" href="https://www.google.com/maps/search/?api=1&query=Kenya" target="_blank" rel="noopener">Open Google Maps ↗</a></div>
         <div class="map-controls"><button type="button" id="sd-zoom-in">+</button><button type="button" id="sd-zoom-out">−</button><button type="button" id="sd-home">⌂</button></div>
-        <div id="sd-map-status" class="map-status"><strong>Waiting for live rider GPS</strong><span>The map is ready. Rider markers appear when location data is shared.</span></div>
-        <div class="legend"><span><i class="dot green"></i>On Time</span><span><i class="dot red"></i>Delayed</span><span><i class="dot gray"></i>Not Started</span><span><i class="dot blue"></i>Delivered</span></div>
+        <div id="sd-map-status" class="map-status"><strong id="map-status-title">Waiting for live rider GPS</strong><span id="map-status-text">The Google map is ready. A rider marker appears as soon as a delivery workspace shares GPS.</span></div>
+        <div class="legend"><span><i class="dot green"></i>Live rider</span><span><i class="dot red"></i>Stale/offline</span><span>Updates every 5 seconds</span></div>
       </div>
     </section>
 
@@ -57,60 +63,161 @@ body{background:#f3f6f8}.content,#content{max-width:none!important;padding:0!imp
       <div class="side-title"><h2>Recent Deliveries</h2><a href="{% url 'shopiva_admin:home_order_changelist' %}">View All</a></div>
       <div class="delivery-list" id="sd-deliveries">
         {% for order in recent_deliveries|slice:":8" %}
-        <div class="delivery-row"><div class="mini-truck">{% if order.status == 'delivered' %}🚚{% elif order.status == 'cancelled' %}⛔{% else %}🚚{% endif %}</div><div><strong>#{{ order.tracking_code|default:order.id }}</strong><small>{{ order.delivery_agent.display_name|default:"Unassigned" }} · {{ order.address|truncatechars:28 }}</small></div><span class="badge {% if order.status == 'delivered' %}delivered{% elif order.status == 'out_for_delivery' %}on{% elif order.status == 'cancelled' %}delayed{% else %}pending{% endif %}">{{ order.get_status_display }}</span></div>
+        <div class="delivery-row"><div class="mini-truck">🚚</div><div><strong>#{{ order.tracking_code|default:order.id }}</strong><small>{{ order.delivery_agent.display_name|default:"Unassigned" }} · {{ order.address|truncatechars:28 }}</small></div><span class="badge {% if order.status == 'delivered' %}delivered{% elif order.status == 'out_for_delivery' %}on{% elif order.status == 'cancelled' %}delayed{% else %}pending{% endif %}">{{ order.get_status_display }}</span></div>
         {% empty %}<p style="font-size:10px;color:#7a858c">No deliveries recorded yet.</p>{% endfor %}
       </div>
       <div class="section-gap"></div>
       <div class="side-title"><h2>Rider Locations</h2><a href="{% url 'shopiva_admin:home_deliveryagent_changelist' %}">View All</a></div>
       <div class="delivery-list" id="sd-riders-list">
         {% for row in rider_rows|slice:":8" %}
-        <div class="rider-row"><div class="avatar">🧑🏽</div><div><strong>{{ row.agent.display_name }}</strong><small>{{ row.latest_order.address|truncatechars:28|default:"Kenya" }}</small></div><span class="badge {% if row.live %}online{% else %}offline{% endif %}">{% if row.live %}Online{% else %}Offline{% endif %}</span></div>
+        <div class="rider-row"><div class="avatar">🧑🏽</div><div><strong>{{ row.agent.display_name }}</strong><small>{% if row.agent.last_location_at %}Last GPS {{ row.agent.last_location_at|date:"H:i:s" }}{% else %}No GPS received yet{% endif %}</small></div><span class="badge {% if row.live %}online{% else %}offline{% endif %}">{% if row.live %}Live{% else %}Offline{% endif %}</span></div>
         {% empty %}<p style="font-size:10px;color:#7a858c">No active riders configured.</p>{% endfor %}
       </div>
+      <div class="feed-line">🔒 GPS positions are visible to authorized Shopiva staff only. The feed uses the authenticated admin endpoint and does not expose rider coordinates publicly.</div>
     </aside>
   </div>
 
-  <div class="bottom-strip"><div><strong>Stronger Admin Control</strong><span>Full logistics visibility</span><span>Happier customers</span></div><div><strong>Shopiva Kenya LTD</strong><span>More than a marketplace.</span><span>A smarter Kenya.</span></div></div>
+  <div class="bottom-strip"><div><strong>Stronger Admin Control</strong><span>Google-powered logistics visibility</span><span>Near-real-time rider tracking</span></div><div><strong>Shopiva Kenya LTD</strong><span>More than a marketplace.</span><span>A smarter Kenya.</span></div></div>
 </div>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+{% if google_maps_api_key %}
 <script>
 (function(){
- const el=document.getElementById('sd-map'); if(!el||typeof L==='undefined') return;
- const feedUrl="{% url 'shopiva_admin:delivery_locations' %}" + ("{% if selected_county %}?county={{ selected_county|urlencode }}{% endif %}");
- const home=[-1.2921,36.8219];
- const map=L.map(el,{zoomControl:false,scrollWheelZoom:false,minZoom:5}).setView(home,6);
- L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'Tiles © Esri'}).addTo(map);
- L.control.zoom({position:'bottomright'}).addTo(map);
- const markerLayer=L.layerGroup().addTo(map); let first=true;
- const markerIcons={green:L.divIcon({className:'',html:'<div style="width:25px;height:25px;border-radius:50%;background:#0ba976;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.25);display:grid;place-items:center;color:#fff;font-size:12px">🚚</div>',iconSize:[25,25],iconAnchor:[12,12]}),red:L.divIcon({className:'',html:'<div style="width:25px;height:25px;border-radius:50%;background:#ef4444;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.25);display:grid;place-items:center;color:#fff;font-size:12px">🚚</div>',iconSize:[25,25],iconAnchor:[12,12]})};
- function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
- async function refresh(){
-   try{
-     const r=await fetch(feedUrl,{credentials:'same-origin',cache:'no-store'}); if(!r.ok) throw new Error('feed');
-     const payload=await r.json(); markerLayer.clearLayers();
-     let count=0; let online=0; let delayed=0;
-     payload.agents.forEach(a=>{
-       count++; if(a.live) online++; else delayed++;
-       const pos=[Number(a.latitude),Number(a.longitude)];
-       const status=a.live?'On time':'Delayed';
-       const popup='<strong>'+esc(a.name)+'</strong><br>'+esc(a.vehicle_type||'Delivery vehicle')+(a.vehicle_number?' · '+esc(a.vehicle_number):'')+'<br>'+esc(status)+'<br>'+ (a.tracking_code?'Order '+esc(a.tracking_code)+'<br>':'') +'<a href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(a.latitude+','+a.longitude)+'" target="_blank" rel="noopener">🧭 Navigate in Google Maps</a>';
-       L.marker(pos,{icon:a.live?markerIcons.green:markerIcons.red}).addTo(markerLayer).bindPopup(popup);
-       if(first){map.setView(pos,7);first=false;}
-     });
-     document.getElementById('sd-active').textContent=count;
-     document.getElementById('sd-riders').textContent=online;
-     document.getElementById('sd-delayed').textContent=delayed;
-     document.getElementById('sd-ontime').textContent=Math.max(0,count-delayed);
-     document.getElementById('sd-map-status').classList.toggle('show',count===0);
-   }catch(e){document.getElementById('sd-map-status').classList.add('show');}
- }
- document.getElementById('sd-refresh')?.addEventListener('click',()=>{first=true;refresh()});
- document.getElementById('sd-zoom-in')?.addEventListener('click',()=>map.zoomIn());
- document.getElementById('sd-zoom-out')?.addEventListener('click',()=>map.zoomOut());
- document.getElementById('sd-home')?.addEventListener('click',()=>map.setView(home,6));
- refresh(); setInterval(refresh,15000); setTimeout(()=>map.invalidateSize(),300);
+  const API_KEY = "{{ google_maps_api_key|escapejs }}";
+  const MAP_ID = "{{ google_maps_map_id|default:'DEMO_MAP_ID'|escapejs }}";
+  const feedUrl = "{% url 'shopiva_admin:delivery_locations' %}" + ("{% if selected_county %}?county={{ selected_county|urlencode }}{% endif %}");
+  const home = {lat:-1.2921,lng:36.8219};
+  const markers = new Map();
+  let map = null;
+  let firstFix = true;
+  let updateCount = 0;
+
+  const statusBox=document.getElementById("sd-map-status");
+  const statusTitle=document.getElementById("map-status-title");
+  const statusText=document.getElementById("map-status-text");
+  const feedState=document.getElementById("feed-state");
+
+  function setStatus(show,title,text){
+    statusTitle.textContent=title;
+    statusText.textContent=text;
+    statusBox.classList.toggle("show",show);
+  }
+
+  function markerElement(live){
+    const el=document.createElement("div");
+    el.style.width="34px"; el.style.height="34px"; el.style.borderRadius="50%";
+    el.style.border="3px solid #fff"; el.style.boxShadow="0 3px 12px rgba(0,0,0,.28)";
+    el.style.display="grid"; el.style.placeItems="center"; el.style.fontSize="16px";
+    el.style.background=live?"#0ba976":"#ef4444";
+    el.textContent="🚚";
+    return el;
+  }
+
+  function popupContent(a){
+    const updated=a.updated ? new Date(a.updated).toLocaleString() : "Unknown";
+    const query=encodeURIComponent(String(a.latitude)+","+String(a.longitude));
+    return '<div style="min-width:210px;font-family:Arial,sans-serif">'+
+      '<strong style="font-size:14px">'+String(a.name||"Rider").replace(/[<>]/g,"")+'</strong>'+
+      '<div style="margin-top:5px;font-size:12px">'+String(a.vehicle_type||"Delivery vehicle").replace(/[<>]/g,"")+(a.vehicle_number?" · "+String(a.vehicle_number).replace(/[<>]/g,""):"")+'</div>'+
+      '<div style="margin-top:5px;font-size:12px"><b>'+ (a.live?"LIVE":"STALE") +'</b> · '+updated+'</div>'+
+      (a.tracking_code?'<div style="margin-top:5px;font-size:12px">Order '+String(a.tracking_code).replace(/[<>]/g,"")+'</div>':'')+
+      '<div style="margin-top:8px"><a href="https://www.google.com/maps/dir/?api=1&destination='+query+'" target="_blank" rel="noopener">Navigate in Google Maps ↗</a></div>'+
+      '</div>';
+  }
+
+  async function loadGoogle(){
+    if(window.google && window.google.maps) return;
+    await new Promise((resolve,reject)=>{
+      const script=document.createElement("script");
+      script.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(API_KEY)+"&v=weekly&loading=async";
+      script.async=true; script.defer=true;
+      script.onload=resolve; script.onerror=reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  async function init(){
+    try{
+      await loadGoogle();
+      const {Map}=await google.maps.importLibrary("maps");
+      const {AdvancedMarkerElement}=await google.maps.importLibrary("marker");
+      map=new Map(document.getElementById("sd-map"),{
+        center:home,zoom:6,mapId:MAP_ID,
+        mapTypeControl:true,streetViewControl:false,fullscreenControl:true,
+        gestureHandling:"greedy"
+      });
+
+      document.getElementById("sd-zoom-in").onclick=()=>map.setZoom((map.getZoom()||6)+1);
+      document.getElementById("sd-zoom-out").onclick=()=>map.setZoom(Math.max(3,(map.getZoom()||6)-1));
+      document.getElementById("sd-home").onclick=()=>map.setCenter(home);
+
+      async function refresh(){
+        try{
+          const response=await fetch(feedUrl,{credentials:"same-origin",cache:"no-store",headers:{"X-Requested-With":"XMLHttpRequest"}});
+          if(!response.ok) throw new Error("Live delivery feed returned "+response.status);
+          const payload=await response.json();
+          const seen=new Set();
+          let live=0,stale=0;
+
+          for(const a of (payload.agents||[])){
+            const lat=Number(a.latitude),lng=Number(a.longitude);
+            if(!Number.isFinite(lat)||!Number.isFinite(lng)) continue;
+            seen.add(String(a.id));
+            const position={lat,lng};
+            const isLive=Boolean(a.live);
+            if(isLive) live++; else stale++;
+
+            let item=markers.get(String(a.id));
+            if(!item){
+              const marker=new AdvancedMarkerElement({map,position,content:markerElement(isLive),title:(a.name||"Rider")+" · "+(isLive?"Live":"Stale")});
+              const info=new google.maps.InfoWindow();
+              marker.addListener("click",()=>{info.setContent(popupContent(a));info.open({map,anchor:marker});});
+              item={marker,info};
+              markers.set(String(a.id),item);
+            }else{
+              item.marker.position=position;
+              item.marker.content=markerElement(isLive);
+              item.marker.title=(a.name||"Rider")+" · "+(isLive?"Live":"Stale");
+              item.marker.addListener("click",()=>{item.info.setContent(popupContent(a));item.info.open({map,anchor:item.marker});});
+            }
+
+            if(firstFix){map.setCenter(position);map.setZoom(7);firstFix=false;}
+          }
+
+          for(const [id,item] of markers.entries()){
+            if(!seen.has(id)){item.marker.map=null;markers.delete(id);}
+          }
+
+          document.getElementById("sd-active").textContent=payload.agents?.filter(a=>a.order_id).length ?? 0;
+          document.getElementById("sd-riders").textContent=live;
+          document.getElementById("sd-stale").textContent=stale;
+          updateCount++;
+          document.getElementById("sd-updates").textContent=updateCount;
+          feedState.textContent="Live feed · "+new Date().toLocaleTimeString();
+          setStatus(live+stale===0,"Waiting for live rider GPS","Google Maps is connected. A marker appears when an active rider shares GPS from the delivery workspace.");
+        }catch(error){
+          feedState.textContent="Feed reconnecting…";
+          setStatus(true,"Live feed unavailable","Google Maps is loaded, but the authenticated rider feed could not be reached. The system will retry automatically.");
+        }
+      }
+
+      await refresh();
+      setInterval(refresh,5000);
+    }catch(error){
+      feedState.textContent="Google Maps error";
+      setStatus(true,"Google Maps could not start","Check GOOGLE_MAPS_API_KEY, Maps JavaScript API, billing, API restrictions and the Shopiva Map ID.");
+    }
+  }
+
+  init();
 })();
 </script>
+{% else %}
+<script>
+document.getElementById("feed-state").textContent="Maps not configured";
+document.getElementById("sd-map-status").classList.add("show");
+document.getElementById("map-status-title").textContent="Google Maps is not configured";
+document.getElementById("map-status-text").textContent="Add GOOGLE_MAPS_API_KEY and GOOGLE_MAPS_MAP_ID to the Shopiva deployment environment.";
+</script>
+{% endif %}
 {% endblock %}
