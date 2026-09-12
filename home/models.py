@@ -1,5 +1,6 @@
 from django.conf import settings
 from decimal import Decimal
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from cloudinary.models import CloudinaryField
 
@@ -18,7 +19,6 @@ class SellerProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        # The platform, not the seller, controls the marketplace commission.
         self.commission_percent = Decimal("10.00")
         return super().save(*args, **kwargs)
 
@@ -33,6 +33,14 @@ class SellerWallet(models.Model):
     total_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_commission = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(pending_balance__gte=0), name="sellerwallet_pending_gte_0"),
+            models.CheckConstraint(condition=models.Q(available_balance__gte=0), name="sellerwallet_available_gte_0"),
+            models.CheckConstraint(condition=models.Q(total_sales__gte=0), name="sellerwallet_sales_gte_0"),
+            models.CheckConstraint(condition=models.Q(total_commission__gte=0), name="sellerwallet_commission_gte_0"),
+        ]
 
     def __str__(self):
         return f"{self.seller} wallet"
@@ -72,6 +80,12 @@ class Product(models.Model):
     @property
     def review_count(self):
         return self.reviews.count()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(price__gt=0), name="product_price_gt_0"),
+            models.CheckConstraint(condition=models.Q(discount_percent__gte=0, discount_percent__lte=100), name="product_discount_0_100"),
+        ]
 
 
 class DeliveryAgent(models.Model):
@@ -120,6 +134,11 @@ class Order(models.Model):
     assigned_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(total_amount__gte=0), name="order_total_gte_0"),
+        ]
+
     def __str__(self):
         return f"Order #{self.id} - {self.customer_name}"
 
@@ -133,6 +152,15 @@ class OrderItem(models.Model):
     seller_gross = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     platform_commission = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     seller_net = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(quantity__gt=0), name="orderitem_quantity_gt_0"),
+            models.CheckConstraint(condition=models.Q(price__gte=0), name="orderitem_price_gte_0"),
+            models.CheckConstraint(condition=models.Q(seller_gross__gte=0), name="orderitem_gross_gte_0"),
+            models.CheckConstraint(condition=models.Q(platform_commission__gte=0), name="orderitem_commission_gte_0"),
+            models.CheckConstraint(condition=models.Q(seller_net__gte=0), name="orderitem_net_gte_0"),
+        ]
 
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"
@@ -155,7 +183,6 @@ class OrderEvent(models.Model):
 
 
 class DeliveryLocationPing(models.Model):
-    """Timestamped GPS sample shared by a delivery partner."""
     agent = models.ForeignKey(DeliveryAgent, on_delete=models.CASCADE, related_name="location_history")
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
@@ -167,6 +194,12 @@ class DeliveryLocationPing(models.Model):
     class Meta:
         ordering = ("-recorded_at",)
         indexes = [models.Index(fields=("agent", "-recorded_at"))]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(latitude__gte=-90, latitude__lte=90), name="deliveryping_latitude_range"),
+            models.CheckConstraint(condition=models.Q(longitude__gte=-180, longitude__lte=180), name="deliveryping_longitude_range"),
+            models.CheckConstraint(condition=models.Q(accuracy_meters__gte=0) | models.Q(accuracy_meters__isnull=True), name="deliveryping_accuracy_gte_0"),
+            models.CheckConstraint(condition=models.Q(speed_mps__gte=0) | models.Q(speed_mps__isnull=True), name="deliveryping_speed_gte_0"),
+        ]
 
     def __str__(self):
         return f"{self.agent.display_name} @ {self.recorded_at:%Y-%m-%d %H:%M:%S}"
@@ -194,6 +227,9 @@ class PaymentTransaction(models.Model):
     class Meta:
         ordering = ("-created_at",)
         indexes = [models.Index(fields=("order", "status"))]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(amount__gt=0), name="payment_amount_gt_0"),
+        ]
 
     def __str__(self):
         return f"{self.method.upper()} #{self.id} - Order #{self.order_id}"
@@ -213,6 +249,9 @@ class CustomerAddress(models.Model):
 
     class Meta:
         ordering = ("-is_default", "-created_at")
+        constraints = [
+            models.UniqueConstraint(fields=("user",), condition=models.Q(is_default=True), name="unique_default_shopiva_address"),
+        ]
 
     def __str__(self):
         return f"{self.label} - {self.town}, {self.county}"
@@ -253,6 +292,9 @@ class SellerPayoutRequest(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
+        constraints = [
+            models.CheckConstraint(condition=models.Q(amount__gt=0), name="sellerpayout_amount_gt_0"),
+        ]
 
     def __str__(self):
         return f"Payout #{self.id} - {self.seller} - KSh {self.amount}"
@@ -273,7 +315,12 @@ class SellerSettlement(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
-        constraints = [models.UniqueConstraint(fields=("order", "seller"), name="unique_order_seller_settlement")]
+        constraints = [
+            models.UniqueConstraint(fields=("order", "seller"), name="unique_order_seller_settlement"),
+            models.CheckConstraint(condition=models.Q(gross_amount__gte=0), name="settlement_gross_gte_0"),
+            models.CheckConstraint(condition=models.Q(platform_commission__gte=0), name="settlement_commission_gte_0"),
+            models.CheckConstraint(condition=models.Q(seller_amount__gte=0), name="settlement_seller_gte_0"),
+        ]
 
     def __str__(self):
         return f"Settlement #{self.id} - Order #{self.order_id}"
@@ -283,14 +330,17 @@ class ProductReview(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="shopiva_reviews")
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="product_reviews")
-    rating = models.PositiveSmallIntegerField()
+    rating = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ("-created_at",)
-        constraints = [models.UniqueConstraint(fields=("product", "customer", "order"), name="unique_product_review_per_order")]
+        constraints = [
+            models.UniqueConstraint(fields=("product", "customer", "order"), name="unique_product_review_per_order"),
+            models.CheckConstraint(condition=models.Q(rating__gte=1, rating__lte=5), name="productreview_rating_1_5"),
+        ]
 
     def __str__(self):
         return f"{self.product.name} - {self.rating}/5"
@@ -326,12 +376,7 @@ class NotificationDelivery(models.Model):
         ("failed", "Failed"),
         ("skipped", "Skipped"),
     )
-
-    notification = models.ForeignKey(
-        "Notification",
-        on_delete=models.CASCADE,
-        related_name="deliveries",
-    )
+    notification = models.ForeignKey("Notification", on_delete=models.CASCADE, related_name="deliveries")
     channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     provider_message_id = models.CharField(max_length=160, blank=True)

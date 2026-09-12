@@ -2,15 +2,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path
 
-# Normalize the custom admin's legacy commission field before Django runs its
-# admin system checks. Actual commissions are calculated from each product's
-# selling price in home.commission and home.payments.
-from home.admin import SellerProfileAdmin, shopiva_admin_site
-SellerProfileAdmin.list_display = ("business_name", "user", "mpesa_phone", "is_active", "created_at")
-SellerProfileAdmin.list_filter = ("is_active",)
-SellerProfileAdmin.list_editable = ("is_active",)
+from home.admin import shopiva_admin_site
 from home.admin_helpers import admin_ai_assistant, admin_login, admin_logout
-
 from home.business_intelligence import business_intelligence
 from home.ai import shop_assistant
 from home.customer_tracking import customer_order_tracking
@@ -60,15 +53,12 @@ urlpatterns = [
     path("cart/", cart, name="cart"),
     path("cart/add/<int:product_id>/", add_to_cart, name="add_to_cart"),
 
-    # Checkout / payments
     path("checkout/", checkout_mpesa, name="checkout"),
     path("payments/mpesa/callback/", mpesa_callback, name="mpesa_callback"),
     path("payments/mpesa/status/<int:order_id>/", mpesa_payment_status, name="mpesa_payment_status"),
     path("payments/mpesa/waiting/<int:order_id>/", mpesa_waiting, name="mpesa_waiting"),
     path("order-success/<int:order_id>/", order_success, name="order_success"),
 
-    # Seller portal — every operational seller endpoint is protected by
-    # the dedicated seller-login gate, so customer accounts cannot access it.
     path("seller/register/", seller_register, name="seller_register"),
     path("seller/login/", seller_login, name="seller_login"),
     path("seller/logout/", seller_logout, name="seller_logout"),
@@ -79,7 +69,6 @@ urlpatterns = [
     path("seller/products/<int:product_id>/hide/", seller_login_required(seller_product_delete), name="seller_product_delete"),
     path("seller/payout/request/", seller_login_required(seller_request_payout), name="seller_request_payout"),
 
-    # Customer account
     path("customer/register/", customer_register, name="customer_register"),
     path("customer/login/", customer_login, name="customer_login"),
     path("customer/logout/", customer_logout, name="customer_logout"),
@@ -93,12 +82,10 @@ urlpatterns = [
     path("product/<int:product_id>/review/", product_review, name="product_review"),
     path("account/delivery-location/", customer_delivery_location, name="customer_delivery_location"),
 
-    # Delivery portal
     path("delivery/", delivery_portal, name="delivery_portal"),
     path("delivery/location/", delivery_update_location, name="delivery_update_location"),
     path("delivery/location/ping/", delivery_ping_location, name="delivery_ping_location"),
 
-    # Admin / intelligence
     path("admin/business-intelligence/", business_intelligence, name="business_intelligence"),
     path("ai/shop-assistant/", shop_assistant, name="shop_assistant"),
     path("ai/voice/transcribe/", transcribe_voice, name="voice_transcribe"),
@@ -106,8 +93,6 @@ urlpatterns = [
     path("ai/realtime/action/", realtime_action, name="realtime_action"),
     path("ai/voice/speak/", speak_text, name="voice_speak"),
 
-    # Dedicated admin authentication and resilient endpoints must come before
-    # the nested AdminSite URL pattern.
     path("admin/login/", admin_login, name="admin_login"),
     path("admin/ai-assistant/", admin_ai_assistant, name="admin_ai_assistant"),
     path("admin/logout/", admin_logout, name="admin_logout"),

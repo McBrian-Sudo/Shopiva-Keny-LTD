@@ -1,17 +1,20 @@
 import os
+from pathlib import Path
 
 import dj_database_url
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from pathlib import Path
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-this-in-render")
+# Production must fail closed instead of starting with a known secret key.
+SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is required. Set it in the deployment environment.")
+
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
-ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "*").split(",") if host.strip()]
+ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "shopiva-keny-ltd.onrender.com").split(",") if host.strip()]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -88,9 +91,9 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "resend")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Shopiva <no-reply@shopiva.co.ke>")
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
-EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
@@ -99,16 +102,29 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 X_FRAME_OPTIONS = "DENY"
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "true").lower() == "true"
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+else:
+    SECURE_SSL_REDIRECT = False
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
-# Production messaging providers (credentials stay in Render environment variables)
 SMS_NOTIFICATIONS_ENABLED = os.getenv("SMS_NOTIFICATIONS_ENABLED", "false").lower() == "true"
 AFRICASTALKING_USERNAME = os.getenv("AFRICASTALKING_USERNAME", "")
 AFRICASTALKING_API_KEY = os.getenv("AFRICASTALKING_API_KEY", "")
@@ -116,3 +132,20 @@ AFRICASTALKING_SENDER_ID = os.getenv("AFRICASTALKING_SENDER_ID", "")
 WHATSAPP_NOTIFICATIONS_ENABLED = os.getenv("WHATSAPP_NOTIFICATIONS_ENABLED", "false").lower() == "true"
 WHATSAPP_ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
 WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+WHATSAPP_GRAPH_VERSION = os.getenv("WHATSAPP_GRAPH_VERSION", "v23.0")
+WHATSAPP_TEMPLATE_NAME = os.getenv("WHATSAPP_TEMPLATE_NAME", "")
+WHATSAPP_TEMPLATE_LANGUAGE = os.getenv("WHATSAPP_TEMPLATE_LANGUAGE", "en_US")
+
+# Payment and AI provider settings. Secrets are supplied only at deployment time.
+MPESA_ENV = os.getenv("MPESA_ENV", "sandbox").strip().lower()
+MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY", "")
+MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET", "")
+MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE", "")
+MPESA_TILL_NUMBER = os.getenv("MPESA_TILL_NUMBER", "")
+MPESA_PASSKEY = os.getenv("MPESA_PASSKEY", "")
+MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL", "https://shopiva-keny-ltd.onrender.com/payments/mpesa/callback/")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
+OPENAI_REALTIME_MODEL = os.getenv("OPENAI_REALTIME_MODEL", "gpt-realtime-2.1")
+OPENAI_REALTIME_VOICE = os.getenv("OPENAI_REALTIME_VOICE", "marin")
+CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")

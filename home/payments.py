@@ -13,8 +13,8 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from .commission import get_platform_commission_percent
-from .notifications import notify_user
 from .models import Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerSettlement, SellerWallet
+from .notifications import notify_user
 
 
 def _env(name, default=""):
@@ -52,7 +52,12 @@ def _request_json(url, data=None, headers=None, method=None):
     body = None
     if data is not None:
         body = json.dumps(data).encode("utf-8") if isinstance(data, (dict, list)) else data
-    request = urllib.request.Request(url, data=body, headers=headers or {}, method=method or ("POST" if body else "GET"))
+    request = urllib.request.Request(
+        url,
+        data=body,
+        headers=headers or {},
+        method=method or ("POST" if body else "GET"),
+    )
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             raw = response.read().decode("utf-8")
@@ -90,7 +95,7 @@ def initiate_mpesa_stk(order, payment, phone):
     shortcode = _shortcode()
     passkey = _passkey()
     if not shortcode or not passkey:
-        raise RuntimeError("M-PESA shortcode/passkey is not configured. Add MPESA_PASSKEY to Render.")
+        raise RuntimeError("M-PESA shortcode/passkey is not configured.")
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     password = base64.b64encode(f"{shortcode}{passkey}{timestamp}".encode()).decode()
@@ -179,7 +184,15 @@ def checkout_mpesa(request):
         )
         OrderEvent.objects.create(order=order, event_type="placed", note="Order placed through Shopiva checkout.", actor=request.user if request.user.is_authenticated else None)
         if request.user.is_authenticated and not request.user.is_staff:
-            notify_user(request.user, "Order placed", f"Your Shopiva order {order.tracking_code} has been placed and is awaiting payment confirmation.", "order", f"/account/orders/{order.id}/")
+            transaction.on_commit(
+                lambda user_id=request.user.id, order_id=order.id, tracking=order.tracking_code: notify_user(
+                    __import__("django.contrib.auth", fromlist=["get_user_model"]).get_user_model().objects.get(id=user_id),
+                    "Order placed",
+                    f"Your Shopiva order {tracking} has been placed and is awaiting payment confirmation.",
+                    "order",
+                    f"/account/orders/{order_id}/",
+                )
+            )
         for product, quantity, unit_price in locked_items:
             seller = product.seller if product.seller_id and product.seller and product.seller.is_active else None
             gross = unit_price * quantity
@@ -222,32 +235,9 @@ def checkout_mpesa(request):
         return render(request, "checkout.html", {"items": items, "total": total, "error": f"M-PESA could not be started: {exc}"})
 
     request.session["cart"] = {}
+    request.session["payment_order_id"] = order.id
     request.session.modified = True
     return redirect("mpesa_waiting", order_id=order.id)
-
-
-def create_mpesa_payment(request, order_id):
-    if request.method != "POST":
-        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
-    order = get_object_or_404(Order, id=order_id)
-    if order.payment_status == "paid":
-        return JsonResponse({"ok": True, "status": "paid"})
-    phone = normalize_phone(request.POST.get("phone") or order.phone)
-    if not phone.startswith("254") or len(phone) != 12:
-        return JsonResponse({"ok": False, "error": "Enter a valid Kenyan phone number."}, status=400)
-    payment = PaymentTransaction.objects.create(order=order, method="mpesa", status="initiated", provider="daraja", amount=order.total_amount, phone=phone, idempotency_key=f"MPESA-{order.id}-{timezone.now().strftime('%Y%m%d%H%M%S%f')}")
-    order.payment_status = "pending"
-    order.save(update_fields=["payment_status"])
-    try:
-        response = initiate_mpesa_stk(order, payment, phone)
-    except Exception as exc:
-        payment.status = "failed"
-        payment.raw_response = {"error": str(exc)}
-        payment.save(update_fields=["status", "raw_response", "updated_at"])
-        order.payment_status = "failed"
-        order.save(update_fields=["payment_status"])
-        return JsonResponse({"ok": False, "error": str(exc)}, status=502)
-    return JsonResponse({"ok": True, "status": "pending", "message": response.get("CustomerMessage", "STK prompt sent."), "checkout_request_id": payment.checkout_request_id})
 
 
 @csrf_exempt
@@ -258,22 +248,56 @@ def mpesa_callback(request):
         payload = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
         return JsonResponse({"ResultCode": 1, "ResultDesc": "Invalid JSON."}, status=400)
+
     callback = payload.get("Body", {}).get("stkCallback", {})
-    checkout_request_id = callback.get("CheckoutRequestID", "")
+    checkout_request_id = str(callback.get("CheckoutRequestID", ""))
     result_code = callback.get("ResultCode")
     result_desc = callback.get("ResultDesc", "")
-    payment = PaymentTransaction.objects.filter(checkout_request_id=checkout_request_id).first()
+    payment = PaymentTransaction.objects.filter(checkout_request_id=checkout_request_id, method="mpesa").first()
     if not payment:
         return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
+
     with transaction.atomic():
         payment = PaymentTransaction.objects.select_for_update().get(pk=payment.pk)
         order = Order.objects.select_for_update().get(pk=payment.order_id)
         payment.raw_response = payload
+
         if str(result_code) == "0":
             if payment.status == "paid":
                 return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
-            metadata = {item.get("Name"): item.get("Value") for item in callback.get("CallbackMetadata", {}).get("Item", [])}
-            receipt = str(metadata.get("MpesaReceiptNumber", ""))
+
+            metadata = {
+                item.get("Name"): item.get("Value")
+                for item in callback.get("CallbackMetadata", {}).get("Item", [])
+                if isinstance(item, dict) and item.get("Name")
+            }
+            receipt = str(metadata.get("MpesaReceiptNumber") or "").strip()
+            callback_amount = metadata.get("Amount")
+            callback_phone = normalize_phone(metadata.get("PhoneNumber") or "")
+            expected_phone = normalize_phone(payment.phone)
+            try:
+                amount_matches = Decimal(str(callback_amount)).quantize(Decimal("0.01")) == Decimal(payment.amount).quantize(Decimal("0.01"))
+            except Exception:
+                amount_matches = False
+
+            # A positive-looking callback is not enough. A payment becomes paid
+            # only when the provider supplies the receipt and matches the amount
+            # and phone recorded for this transaction.
+            if not receipt or not amount_matches or callback_phone != expected_phone:
+                payment.status = "pending"
+                payment.provider_reference = receipt
+                payment.paid_at = None
+                payment.raw_response = {
+                    **payload,
+                    "shopiva_validation": {
+                        "receipt_present": bool(receipt),
+                        "amount_matches": amount_matches,
+                        "phone_matches": callback_phone == expected_phone,
+                    },
+                }
+                payment.save(update_fields=["status", "provider_reference", "paid_at", "raw_response", "updated_at"])
+                return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
+
             payment.status = "paid"
             payment.provider_reference = receipt
             payment.paid_at = timezone.now()
@@ -284,14 +308,22 @@ def mpesa_callback(request):
             order.save(update_fields=["payment_status", "status", "payment_reference", "paid_at"])
             OrderEvent.objects.create(order=order, event_type="paid", note=f"M-PESA payment confirmed: {receipt}")
             _create_seller_settlements(order)
+
+            customer_id = None
+            seller_ids = []
             if order.email:
                 from django.contrib.auth.models import User
                 customer = User.objects.filter(email__iexact=order.email, is_active=True).first()
-                if customer:
-                    notify_user(customer, "M-PESA payment confirmed", f"Your Shopiva order {order.tracking_code} is confirmed. M-PESA receipt: {receipt}", "payment", f"/account/orders/{order.id}/")
-            for item in order.items.select_related("seller"):
-                if item.seller_id and item.seller:
-                    notify_user(item.seller.user, "Order payment confirmed", f"Payment for order {order.tracking_code} is confirmed. Your seller earnings are now pending delivery.", "payment", "/seller/")
+                customer_id = customer.id if customer else None
+            seller_ids = [item.seller.user_id for item in order.items.select_related("seller", "seller__user") if item.seller_id and item.seller]
+            tracking = order.tracking_code
+            order_id = order.id
+            seller_ids = list(dict.fromkeys(seller_ids))
+            transaction.on_commit(
+                lambda customer_id=customer_id, seller_ids=seller_ids, tracking=tracking, order_id=order_id, receipt=receipt: _send_payment_notifications(
+                    customer_id, seller_ids, tracking, order_id, receipt
+                )
+            )
         else:
             payment.status = "failed"
             if not payment.inventory_released:
@@ -300,12 +332,37 @@ def mpesa_callback(request):
             order.payment_status = "failed"
             order.save(update_fields=["payment_status"])
             OrderEvent.objects.create(order=order, event_type="cancelled", note=f"M-PESA payment failed: {result_desc}")
+
         payment.save(update_fields=["status", "provider_reference", "paid_at", "raw_response", "inventory_released", "updated_at"])
+
     return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
 
 
+def _send_payment_notifications(customer_id, seller_ids, tracking, order_id, receipt):
+    from django.contrib.auth.models import User
+    if customer_id:
+        customer = User.objects.filter(id=customer_id).first()
+        if customer:
+            notify_user(
+                customer,
+                "M-PESA payment confirmed",
+                f"Your Shopiva order {tracking} is confirmed. M-PESA receipt: {receipt}",
+                "payment",
+                f"/account/orders/{order_id}/",
+            )
+    for seller_id in seller_ids:
+        seller_user = User.objects.filter(id=seller_id, is_active=True).first()
+        if seller_user:
+            notify_user(
+                seller_user,
+                "Order payment confirmed",
+                f"Payment for order {tracking} is confirmed. Your seller earnings are now pending delivery.",
+                "payment",
+                "/seller/",
+            )
+
+
 def _release_reserved_inventory(order):
-    """Return reserved stock exactly once after a payment is definitively failed."""
     for item in order.items.select_related("product").select_for_update():
         product = item.product
         product.stock_quantity += item.quantity
@@ -313,19 +370,13 @@ def _release_reserved_inventory(order):
 
 
 def _create_seller_settlements(order):
-    """Create seller/platform balances from the immutable order-item split recorded at checkout."""
     seller_totals = {}
     for item in order.items.select_related("seller"):
         if not item.seller_id or not item.seller or not item.seller.is_active:
             continue
         data = seller_totals.setdefault(
             item.seller_id,
-            {
-                "seller": item.seller,
-                "gross": Decimal("0.00"),
-                "commission": Decimal("0.00"),
-                "net": Decimal("0.00"),
-            },
+            {"seller": item.seller, "gross": Decimal("0.00"), "commission": Decimal("0.00"), "net": Decimal("0.00")},
         )
         data["gross"] += item.seller_gross
         data["commission"] += item.platform_commission
@@ -364,5 +415,12 @@ def mpesa_payment_status(request, order_id):
 
 def mpesa_waiting(request, order_id):
     order = get_object_or_404(Order, id=order_id)
+    allowed = bool(
+        request.session.get("payment_order_id") == order.id
+        or (request.user.is_authenticated and (request.user.is_staff or order.email.lower() == request.user.email.lower()))
+    )
+    if not allowed:
+        return JsonResponse({"ok": False, "error": "You are not authorized to view this payment."}, status=403)
     request.session["payment_order_id"] = order.id
+    request.session.modified = True
     return render(request, "mpesa_waiting.html", {"order": order})

@@ -2,9 +2,8 @@ services:
   - type: web
     name: shopiva-keny-ltd
     runtime: python
-    buildCommand: pip install -r requirements.txt && python manage.py check && python manage.py migrate --noinput && python manage.py migrate --check && python manage.py system_preflight && python manage.py collectstatic --noinput
+    buildCommand: pip install -r requirements.txt && python manage.py check --deploy && python manage.py check && python manage.py migrate --noinput && python manage.py migrate --check && python manage.py system_preflight && python manage.py collectstatic --noinput
     startCommand: gunicorn shopiva.wsgi:application
-
     envVars:
       - key: DEBUG
         value: "false"
@@ -15,6 +14,8 @@ services:
       - key: SECRET_KEY
         sync: false
       - key: CLOUDINARY_URL
+        sync: false
+      - key: OPENAI_API_KEY
         sync: false
       - key: EMAIL_NOTIFICATIONS_ENABLED
         value: "true"
@@ -47,10 +48,24 @@ services:
       - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
       - key: WHATSAPP_GRAPH_VERSION
-        value: "v23.0"
+        sync: false
       - key: WHATSAPP_TEMPLATE_NAME
         sync: false
       - key: WHATSAPP_TEMPLATE_LANGUAGE
         value: "en_US"
       - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: MPESA_ENV
+        sync: false
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_SHORTCODE
+        sync: false
+      - key: MPESA_TILL_NUMBER
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_CALLBACK_URL
         sync: false
