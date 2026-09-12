@@ -3,34 +3,19 @@ name: Enforce Admin Live Delivery Dashboard
 on:
   push:
     branches: [main]
-
-permissions:
-  contents: write
+  pull_request:
+    branches: [main]
 
 jobs:
-  enforce:
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout latest main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Apply canonical admin delivery dashboard
-        run: python scripts/enforce_admin_delivery_dashboard.py
-
-      - name: Commit generated implementation
+      - uses: actions/checkout@v4
+      - name: Verify admin delivery dashboard wiring
         run: |
-          git config user.name "shopiva-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add home/admin.py home/templates/admin/delivery_map.html scripts/enforce_admin_delivery_dashboard.py
-          if git diff --cached --quiet; then
-            echo "Admin delivery dashboard already enforced."
-            exit 0
-          fi
-          git commit -m "Enforce full admin live delivery dashboard [skip ci]"
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+          grep -q "delivery-map/" home/admin.py
+          grep -q "delivery_locations" home/admin.py
+          grep -q "Recent Deliveries" home/templates/admin/delivery_map.html
+          grep -q "Rider Locations" home/templates/admin/delivery_map.html
+          grep -q "All Counties\|county" home/templates/admin/delivery_map.html
+          echo "Admin delivery dashboard checks passed."
