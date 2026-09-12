@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .commission import get_platform_commission_percent, split_sale_amount
-from .forms import CustomerRegistrationForm
+from .forms import CustomerRegistrationForm, _username_exists_case_insensitive
 from .models import Order, OrderItem, SellerProfile, SellerSettlement, SellerWallet, Product
 from .payments import _create_seller_settlements
 
@@ -23,7 +23,10 @@ class CustomerRegistrationTests(TestCase):
         )
         is_valid = form.is_valid()
         print("DEBUG duplicate username users:", list(User.objects.values_list("username", flat=True)))
-        print("DEBUG duplicate username form errors:", form.errors.as_data())
+        print("DEBUG helper result:", _username_exists_case_insensitive("mcbraintech"))
+        print("DEBUG class:", CustomerRegistrationForm.clean_username)
+        print("DEBUG form fields:", list(form.fields))
+        print("DEBUG form errors:", form.errors.as_data())
         self.assertFalse(is_valid)
         self.assertIn("Username exists", str(form.errors["username"]))
 
@@ -107,9 +110,7 @@ class SellerSettlementTests(TestCase):
             platform_commission=Decimal("1250.00"),
             seller_net=Decimal("8750.00"),
         )
-
         _create_seller_settlements(order)
-
         settlement = SellerSettlement.objects.get(order=order, seller=seller)
         wallet = SellerWallet.objects.get(seller=seller)
         self.assertEqual(settlement.seller_amount, Decimal("8750.00"))
@@ -133,9 +134,7 @@ class SellerSettlementTests(TestCase):
             platform_commission=Decimal("25.00"),
             seller_net=Decimal("475.00"),
         )
-
         _create_seller_settlements(order)
         _create_seller_settlements(order)
-
         self.assertEqual(SellerSettlement.objects.filter(order=order, seller=seller).count(), 1)
         self.assertEqual(SellerWallet.objects.get(seller=seller).pending_balance, Decimal("475.00"))
