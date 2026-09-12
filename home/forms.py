@@ -87,12 +87,28 @@ class SellerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"].strip().lower()
         user.username = self.cleaned_data["username"].strip()
-        if commit:
-            user.save()
         return user
 
 
 class SellerProductForm(forms.ModelForm):
+    discount_percent = forms.IntegerField(
+        min_value=0,
+        max_value=100,
+        required=False,
+        help_text=(
+            "Optional customer discount from the original price. Example: 20 means the "
+            "customer pays 80% of the listed price. Leave 0 for no discount."
+        ),
+    )
+    promo_text = forms.CharField(
+        max_length=120,
+        required=False,
+        help_text=(
+            "Optional short marketing message shown with the product, e.g. "
+            "'Free delivery' or 'Weekend Deal'. This is promotional text, not the price."
+        ),
+    )
+
     class Meta:
         model = Product
         # SKU is intentionally excluded: Shopiva assigns it automatically.
