@@ -31,7 +31,8 @@ class CustomerRegistrationForm(UserCreationForm):
         fields = ("username", "email", "password1", "password2")
 
     def clean(self):
-        """Apply the customer uniqueness boundary once after base-form cleaning."""
+        """Apply the customer uniqueness boundary exactly once."""
+        self._validate_unique = False
         data = super().clean()
         username = data.get("username", "")
         if username:
@@ -74,7 +75,8 @@ class SellerRegistrationForm(UserCreationForm):
         fields = ("username", "email", "password1", "password2")
 
     def clean(self):
-        """Apply the seller uniqueness boundary once after base-form cleaning."""
+        """Apply the seller uniqueness boundary exactly once."""
+        self._validate_unique = False
         data = super().clean()
         username = data.get("username", "")
         if username:
