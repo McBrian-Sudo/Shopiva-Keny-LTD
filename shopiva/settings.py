@@ -8,13 +8,17 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Production must fail closed instead of starting with a known secret key.
-SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
-if not SECRET_KEY:
-    raise RuntimeError("SECRET_KEY is required. Set it in the deployment environment.")
-
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
-ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "shopiva-keny-ltd.onrender.com").split(",") if host.strip()]
+secret_key = os.getenv("SECRET_KEY", "").strip()
+if not secret_key:
+    if DEBUG:
+        secret_key = "django-insecure-local-development-only"
+    else:
+        raise RuntimeError("SECRET_KEY is required. Set it in the deployment environment.")
+SECRET_KEY = secret_key
+
+_default_hosts = "localhost,127.0.0.1,testserver" if DEBUG else "shopiva-keny-ltd.onrender.com"
+ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", _default_hosts).split(",") if host.strip()]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -136,7 +140,6 @@ WHATSAPP_GRAPH_VERSION = os.getenv("WHATSAPP_GRAPH_VERSION", "v23.0")
 WHATSAPP_TEMPLATE_NAME = os.getenv("WHATSAPP_TEMPLATE_NAME", "")
 WHATSAPP_TEMPLATE_LANGUAGE = os.getenv("WHATSAPP_TEMPLATE_LANGUAGE", "en_US")
 
-# Payment and AI provider settings. Secrets are supplied only at deployment time.
 MPESA_ENV = os.getenv("MPESA_ENV", "sandbox").strip().lower()
 MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY", "")
 MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET", "")
