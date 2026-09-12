@@ -1,11 +1,27 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from django.db.models.functions import Lower
 from django.utils.text import slugify
 import uuid
 
 from .models import Product, ProductReview
+
+
+def _username_exists_case_insensitive(username):
+    """Check username uniqueness independent of database collation.
+
+    Some CI/database combinations can handle Django's __iexact/LOWER lookup
+    differently. Comparing normalized usernames in Python after fetching the
+    single indexed username column makes the registration policy deterministic
+    across SQLite and PostgreSQL while remaining bounded to the username field.
+    """
+    normalized = (username or "").strip().casefold()
+    if not normalized:
+        return False
+    return any(
+        (existing or "").strip().casefold() == normalized
+        for existing in User.objects.values_list("username", flat=True).iterator()
+    )
 
 
 class CustomerRegistrationForm(UserCreationForm):
@@ -23,21 +39,10 @@ class CustomerRegistrationForm(UserCreationForm):
         model = User
         fields = ("username", "email", "password1", "password2")
 
-    @staticmethod
-    def _username_exists_case_insensitive(username):
-        normalized = (username or "").strip().casefold()
-        if not normalized:
-            return False
-        # Use a database LOWER() expression rather than relying on backend
-        # collation/LIKE behaviour. This is reliable on SQLite and PostgreSQL.
-        return User.objects.annotate(_username_ci=Lower("username")).filter(_username_ci=normalized).exists()
-
     def clean_username(self):
         username = self.cleaned_data.get("username", "").strip()
-        if self._username_exists_case_insensitive(username):
-            raise forms.ValidationError(
-                "Username exists. Please choose a different username."
-            )
+        if _username_exists_case_insensitive(username):
+            raise forms.ValidationError("Username exists. Please choose a different username.")
         return username
 
     def clean_email(self):
@@ -52,7 +57,7 @@ class CustomerRegistrationForm(UserCreationForm):
         cleaned = super().clean()
         username = (cleaned.get("username") or "").strip()
         email = (cleaned.get("email") or "").strip().lower()
-        if username and self._username_exists_case_insensitive(username):
+        if username and _username_exists_case_insensitive(username):
             self.add_error("username", "Username exists. Please choose a different username.")
         if email and User.objects.filter(email__iexact=email).exists():
             self.add_error("email", "This email is already registered. Please use a different email or sign in.")
@@ -76,16 +81,9 @@ class SellerRegistrationForm(UserCreationForm):
         model = User
         fields = ("username", "email", "password1", "password2")
 
-    @staticmethod
-    def _username_exists_case_insensitive(username):
-        normalized = (username or "").strip().casefold()
-        if not normalized:
-            return False
-        return User.objects.annotate(_username_ci=Lower("username")).filter(_username_ci=normalized).exists()
-
     def clean_username(self):
         username = self.cleaned_data["username"].strip()
-        if self._username_exists_case_insensitive(username):
+        if _username_exists_case_insensitive(username):
             raise forms.ValidationError("Username exists. Please choose another username.")
         return username
 
@@ -99,7 +97,7 @@ class SellerRegistrationForm(UserCreationForm):
         cleaned = super().clean()
         username = (cleaned.get("username") or "").strip()
         email = (cleaned.get("email") or "").strip().lower()
-        if username and self._username_exists_case_insensitive(username):
+        if username and _username_exists_case_insensitive(username):
             self.add_error("username", "Username exists. Please choose another username.")
         if email and User.objects.filter(email__iexact=email).exists():
             self.add_error("email", "This email is already registered.")
