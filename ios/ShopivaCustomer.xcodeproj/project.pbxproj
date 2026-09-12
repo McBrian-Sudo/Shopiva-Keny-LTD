@@ -4,62 +4,61 @@
  objectVersion = 77;
  objects = {
 
-  1A000001 /* ShopivaCustomerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000011 /* ShopivaCustomerApp.swift */; };
- 1A000002 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1A000012 /* Info.plist */; };
+  1A000001 /* ShopivaCustomerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000010 /* ShopivaCustomerApp.swift */; };
+  1A000002 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1A000012 /* Info.plist */; };
 
- 1A000010 /* ShopivaCustomerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopivaCustomerApp.swift; sourceTree = "<group>"; };
- 1A000011 /* ShopivaCustomerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopivaCustomerApp.swift; sourceTree = "<group>"; };
- 1A000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
- 1A000020 /* ShopivaCustomer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShopivaCustomer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+  1A000010 /* ShopivaCustomerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopivaCustomerApp.swift; sourceTree = "<group>"; };
+  1A000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+  1A000020 /* ShopivaCustomer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShopivaCustomer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 
- 1A000030 /* ShopivaCustomer */ = {isa = PBXGroup; children = (1A000011 /* ShopivaCustomerApp.swift */, 1A000012 /* Info.plist */); path = ShopivaCustomer; sourceTree = "<group>"; };
- 1A000031 /* Products */ = {isa = PBXGroup; children = (1A000020 /* ShopivaCustomer.app */,); name = Products; sourceTree = "<group>"; };
- 1A000032 /* Main group */ = {isa = PBXGroup; children = (1A000030 /* ShopivaCustomer */, 1A000031 /* Products */); sourceTree = "<group>"; };
+  1A000030 /* ShopivaCustomer */ = {isa = PBXGroup; children = (1A000010 /* ShopivaCustomerApp.swift */, 1A000012 /* Info.plist */); path = ShopivaCustomer; sourceTree = "<group>"; };
+  1A000031 /* Products */ = {isa = PBXGroup; children = (1A000020 /* ShopivaCustomer.app */,); name = Products; sourceTree = "<group>"; };
+  1A000032 /* Main group */ = {isa = PBXGroup; children = (1A000030 /* ShopivaCustomer */, 1A000031 /* Products */); sourceTree = "<group>"; };
 
- 1A000040 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (1A000002 /* Info.plist in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
- 1A000041 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (1A000001 /* ShopivaCustomerApp.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
- 1A000042 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+  1A000040 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (1A000002 /* Info.plist in Resources */,); runOnlyForDeploymentPostprocessing = 0; };
+  1A000041 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (1A000001 /* ShopivaCustomerApp.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
+  1A000042 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 
- 1A000050 /* Target */ = {isa = PBXNativeTarget; buildConfigurationList = 1A000060; buildPhases = (1A000042, 1A000041, 1A000040); buildRules = (); dependencies = (); name = ShopivaCustomer; productName = ShopivaCustomer; productReference = 1A000020; productType = "com.apple.product-type.application"; };
- 1A000051 /* Project */ = {isa = PBXProject; buildConfigurationList = 1A000061; compatibilityVersion = "Xcode 16.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = 1A000032; productRefGroup = 1A000031 /* Products */; projectDirPath = ""; projectRoot = ""; targets = (1A000050 /* Target */); };
+  1A000050 /* Target */ = {isa = PBXNativeTarget; buildConfigurationList = 1A000060; buildPhases = (1A000042, 1A000041, 1A000040); buildRules = (); dependencies = (); name = ShopivaCustomer; productName = ShopivaCustomer; productReference = 1A000020; productType = "com.apple.product-type.application"; };
+  1A000051 /* Project */ = {isa = PBXProject; buildConfigurationList = 1A000061; compatibilityVersion = "Xcode 16.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = 1A000032; productRefGroup = 1A000031 /* Products */; projectDirPath = ""; projectRoot = ""; targets = (1A000050 /* Target */); };
 
- 1A000060 /* Target config list */ = {isa = XCConfigurationList; buildConfigurations = (1A000062, 1A000063); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
- 1A000061 /* Project config list */ = {isa = XCConfigurationList; buildConfigurations = (1A000064, 1A000065); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+  1A000060 /* Target config list */ = {isa = XCConfigurationList; buildConfigurations = (1A000062, 1A000063); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+  1A000061 /* Project config list */ = {isa = XCConfigurationList; buildConfigurations = (1A000064, 1A000065); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 
- 1A000062 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
-  ALWAYS_SEARCH_USER_PATHS = NO;
-  CLANG_ENABLE_MODULES = YES;
-  CODE_SIGN_STYLE = Automatic;
-  CURRENT_PROJECT_VERSION = 1;
-  DEVELOPMENT_TEAM = "";
-  GENERATE_INFOPLIST_FILE = NO;
-  INFOPLIST_FILE = ShopivaCustomer/Info.plist;
-  IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-  LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-  PRODUCT_BUNDLE_IDENTIFIER = ke.co.shopiva.customer;
-  PRODUCT_NAME = "$(TARGET_NAME)";
-  SWIFT_VERSION = 5.0;
-  TARGETED_DEVICE_FAMILY = "1,2";
-  SDKROOT = iphoneos;
- } ; };
- 1A000063 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
-  ALWAYS_SEARCH_USER_PATHS = NO;
-  CLANG_ENABLE_MODULES = YES;
-  CODE_SIGN_STYLE = Automatic;
-  CURRENT_PROJECT_VERSION = 1;
-  DEVELOPMENT_TEAM = "";
-  GENERATE_INFOPLIST_FILE = NO;
-  INFOPLIST_FILE = ShopivaCustomer/Info.plist;
-  IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-  LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-  PRODUCT_BUNDLE_IDENTIFIER = ke.co.shopiva.customer;
-  PRODUCT_NAME = "$(TARGET_NAME)";
-  SWIFT_VERSION = 5.0;
-  TARGETED_DEVICE_FAMILY = "1,2";
-  SDKROOT = iphoneos;
- } ; };
- 1A000064 /* Project Debug */ = {isa = XCBuildConfiguration; buildSettings = { ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; }; };
- 1A000065 /* Project Release */ = {isa = XCBuildConfiguration; buildSettings = { ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; }; };
+  1A000062 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+   ALWAYS_SEARCH_USER_PATHS = NO;
+   CLANG_ENABLE_MODULES = YES;
+   CODE_SIGN_STYLE = Automatic;
+   CURRENT_PROJECT_VERSION = 1;
+   DEVELOPMENT_TEAM = "";
+   GENERATE_INFOPLIST_FILE = NO;
+   INFOPLIST_FILE = ShopivaCustomer/Info.plist;
+   IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+   LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+   PRODUCT_BUNDLE_IDENTIFIER = ke.co.shopiva.customer;
+   PRODUCT_NAME = "$(TARGET_NAME)";
+   SWIFT_VERSION = 5.0;
+   TARGETED_DEVICE_FAMILY = "1,2";
+   SDKROOT = iphoneos;
+  }; name = Debug; };
+  1A000063 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+   ALWAYS_SEARCH_USER_PATHS = NO;
+   CLANG_ENABLE_MODULES = YES;
+   CODE_SIGN_STYLE = Automatic;
+   CURRENT_PROJECT_VERSION = 1;
+   DEVELOPMENT_TEAM = "";
+   GENERATE_INFOPLIST_FILE = NO;
+   INFOPLIST_FILE = ShopivaCustomer/Info.plist;
+   IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+   LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+   PRODUCT_BUNDLE_IDENTIFIER = ke.co.shopiva.customer;
+   PRODUCT_NAME = "$(TARGET_NAME)";
+   SWIFT_VERSION = 5.0;
+   TARGETED_DEVICE_FAMILY = "1,2";
+   SDKROOT = iphoneos;
+  }; name = Release; };
+  1A000064 /* Project Debug */ = {isa = XCBuildConfiguration; buildSettings = { ALWAYS_SEARCH_USER_PATHS = NO; SWIFT_VERSION = 5.0; }; name = Debug; };
+  1A000065 /* Project Release */ = {isa = XCBuildConfiguration; buildSettings = { ALWAYS_SEARCH_USER_PATHS = NO; SWIFT_VERSION = 5.0; }; name = Release; };
  };
  rootObject = 1A000051 /* Project */;
 }
