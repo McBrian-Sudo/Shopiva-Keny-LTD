@@ -22,7 +22,7 @@ jobs:
           DATABASE_URL: sqlite:///ci.sqlite3
           SECRET_KEY: ci-only-secret
           DEBUG: "false"
-          ALLOWED_HOSTS: "*"
+          ALLOWED_HOSTS: "localhost,127.0.0.1,testserver"
           CSRF_TRUSTED_ORIGINS: "https://example.invalid"
         run: |
           python manage.py check --deploy
