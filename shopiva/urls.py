@@ -7,39 +7,15 @@ from home.admin_helpers import admin_ai_assistant, admin_login, admin_logout
 from home.business_intelligence import business_intelligence
 from home.ai import shop_assistant
 from home.customer_tracking import customer_order_tracking
+from home.checkout_map import checkout_mpesa_map
+from home.google_admin_map import google_admin_delivery_map
 from home.map_views import customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
 from home.platform import app_install, app_manifest, service_worker
-from home.payments import checkout_mpesa, mpesa_callback, mpesa_payment_status, mpesa_waiting
+from home.payments import mpesa_callback, mpesa_payment_status, mpesa_waiting
 from home.seller_auth import seller_login, seller_logout, seller_login_required
 from home.voice_ai import realtime_action, realtime_call, speak_text, transcribe_voice
 from shopiva.health import health
-from home.views import (
-    add_to_cart,
-    cart,
-    categories,
-    customer_dashboard,
-    customer_delivery_location,
-    customer_login,
-    customer_logout,
-    customer_orders,
-    customer_profile,
-    customer_register,
-    customer_wishlist,
-    seller_dashboard,
-    seller_product_toggle,
-    seller_product_delete,
-    product_review,
-    customer_notifications,
-    seller_register,
-    seller_request_payout,
-    delivery_ping_location,
-    delivery_portal,
-    delivery_update_location,
-    home,
-    order_success,
-    product_detail,
-    products,
-)
+from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, seller_dashboard, seller_product_toggle, seller_product_delete, product_review, customer_notifications, seller_register, seller_request_payout, delivery_ping_location, delivery_portal, delivery_update_location, home, order_success, product_detail, products
 
 urlpatterns = [
     path("", home, name="home"),
@@ -53,7 +29,7 @@ urlpatterns = [
     path("cart/", cart, name="cart"),
     path("cart/add/<int:product_id>/", add_to_cart, name="add_to_cart"),
 
-    path("checkout/", checkout_mpesa, name="checkout"),
+    path("checkout/", checkout_mpesa_map, name="checkout"),
     path("payments/mpesa/callback/", mpesa_callback, name="mpesa_callback"),
     path("payments/mpesa/status/<int:order_id>/", mpesa_payment_status, name="mpesa_payment_status"),
     path("payments/mpesa/waiting/<int:order_id>/", mpesa_waiting, name="mpesa_waiting"),
@@ -87,6 +63,7 @@ urlpatterns = [
     path("delivery/location/ping/", delivery_ping_location, name="delivery_ping_location"),
 
     path("admin/business-intelligence/", business_intelligence, name="business_intelligence"),
+    path("admin/google-delivery-map/", google_admin_delivery_map, name="google_delivery_map"),
     path("ai/shop-assistant/", shop_assistant, name="shop_assistant"),
     path("ai/voice/transcribe/", transcribe_voice, name="voice_transcribe"),
     path("ai/realtime/call/", realtime_call, name="realtime_call"),
