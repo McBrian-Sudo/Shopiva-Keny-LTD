@@ -1,61 +1,24 @@
 {% extends "admin/base.html" %}
 {% load static %}
-
-{% block title %}{{ site_title|default:"Shopiva Admin" }}{% endblock %}
-
+{% block title %}{{ site_title|default:"Shopiva Admin Control Center" }}{% endblock %}
 {% block extrastyle %}
 {{ block.super }}
 <style>
-    #site-name a{display:flex;align-items:center;gap:10px;text-decoration:none}
-    .shopiva-admin-logo{width:42px;height:42px;border-radius:12px;box-shadow:0 5px 14px rgba(0,0,0,.18);vertical-align:middle}
-    .shopiva-admin-name{display:flex;flex-direction:column;line-height:1.02}
-    .shopiva-admin-name strong{font-size:19px;letter-spacing:-.03em}
-    .shopiva-admin-name small{margin-top:3px;font-size:8px;letter-spacing:2px;opacity:.72}
-    @media(max-width:650px){.shopiva-admin-logo{width:36px;height:36px}.shopiva-admin-name strong{font-size:16px}}
+#site-name a{display:flex;align-items:center;gap:10px;text-decoration:none}
+.shopiva-admin-logo{width:42px;height:42px;border-radius:12px;box-shadow:0 5px 14px rgba(0,0,0,.18);object-fit:cover}
+.shopiva-admin-name{display:flex;flex-direction:column;line-height:1.02}
+.shopiva-admin-name strong{font-size:19px;letter-spacing:-.03em}
+.shopiva-admin-name small{margin-top:3px;font-size:8px;letter-spacing:2px;opacity:.72}
+@media(max-width:650px){.shopiva-admin-logo{width:36px;height:36px}.shopiva-admin-name strong{font-size:16px}}
 </style>
 {% endblock %}
-
 {% block branding %}
-<h1 id="site-name">
-    <a href="{% url 'shopiva_admin:index' %}" aria-label="Shopiva Control Center home">
-        <img class="shopiva-admin-logo" src="{% static 'shopiva/shopiva-shopping-logo.svg' %}" alt="Shopiva logo">
-        <span class="shopiva-admin-name"><strong>Shopiva Control Center</strong><small>KENYA LTD • ADMIN</small></span>
-    </a>
-</h1>
+<h1 id="site-name"><a href="{% url 'shopiva_admin:index' %}" aria-label="Shopiva Admin Control Center home">
+<img class="shopiva-admin-logo" src="{% static 'branding/shopiva-admin-logo.svg' %}" alt="Shopiva Admin logo">
+<span class="shopiva-admin-name"><strong>Shopiva Admin</strong><small>CONTROL CENTER · KENYA LTD</small></span>
+</a></h1>
 {% endblock %}
-
 {% block nav-global %}
 {{ block.super }}
-<script>
-(function () {
-    const STATUS_URL = "{% url 'admin_session_status' %}";
-    const LOGIN_URL = "{% url 'shopiva_admin:login' %}";
-    let checking = false;
-
-    async function verifyAdminSession() {
-        if (checking) return;
-        checking = true;
-        try {
-            const response = await fetch(STATUS_URL, {
-                credentials: "same-origin",
-                cache: "no-store",
-                headers: {"X-Requested-With": "XMLHttpRequest"}
-            });
-            if (!response.ok) throw new Error("session check failed");
-            const state = await response.json();
-            if (!state.authenticated) {
-                window.location.replace(LOGIN_URL);
-            }
-        } catch (error) {
-            window.location.replace(LOGIN_URL);
-        } finally {
-            checking = false;
-        }
-    }
-
-    window.addEventListener("pageshow", verifyAdminSession);
-    window.addEventListener("popstate", verifyAdminSession);
-    setTimeout(verifyAdminSession, 150);
-})();
-</script>
+<script>(function(){const STATUS_URL="{% url 'admin_session_status' %}",LOGIN_URL="{% url 'shopiva_admin:login' %}";let checking=false;async function verify(){if(checking)return;checking=true;try{const r=await fetch(STATUS_URL,{credentials:'same-origin',cache:'no-store',headers:{'X-Requested-With':'XMLHttpRequest'}});if(!r.ok)throw new Error();const s=await r.json();if(!s.authenticated)window.location.replace(LOGIN_URL)}catch(e){window.location.replace(LOGIN_URL)}finally{checking=false}}window.addEventListener('pageshow',verify);window.addEventListener('popstate',verify);setTimeout(verify,150)})();</script>
 {% endblock %}
