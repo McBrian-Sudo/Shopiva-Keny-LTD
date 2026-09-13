@@ -17,7 +17,7 @@ if not secret_key:
         raise RuntimeError("SECRET_KEY is required. Set it in the deployment environment.")
 SECRET_KEY = secret_key
 
-_default_hosts = "localhost,127.0.0.1,testserver" if DEBUG else "shopiva-keny-ltd.onrender.com"
+_default_hosts = "shopiva-keny-ltd.onrender.com,localhost,127.0.0.1,testserver"
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", _default_hosts).split(",") if host.strip()]
 
 INSTALLED_APPS = [
