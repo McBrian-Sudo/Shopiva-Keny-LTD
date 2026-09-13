@@ -270,7 +270,7 @@ def customer_wishlist(request):
     return render(request, "accounts/wishlist.html", {"wishlist": wishlist})
 
 
-@login_required(login_url="customer_login")
+@login_required(login_url="delivery_login")
 def delivery_portal(request):
     try:
         agent = request.user.delivery_agent_profile
@@ -288,7 +288,7 @@ def delivery_portal(request):
     )
 
 
-@login_required(login_url="customer_login")
+@login_required(login_url="delivery_login")
 def delivery_update_location(request):
     """Backward-compatible manual location update endpoint."""
     if request.method != "POST":
@@ -325,7 +325,7 @@ def delivery_update_location(request):
     return redirect("delivery_portal")
 
 
-@login_required(login_url="customer_login")
+@login_required(login_url="delivery_login")
 def delivery_ping_location(request):
     """Receive an automatic browser GPS ping from a delivery partner."""
     if request.method != "POST":
