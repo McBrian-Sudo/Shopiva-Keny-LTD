@@ -10,7 +10,7 @@ def delivery_manifest(request):
         "background_color": "#03170e",
         "theme_color": "#0b5b35",
         "description": "Shopiva Kenya secure delivery partner app.",
-        "icons": [{"src": "/static/shopiva/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}],
+        "icons": [{"src": "/static/shopiva/delivery-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}],
     })
 
 def delivery_service_worker(request):
