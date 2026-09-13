@@ -1,70 +1,29 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#052e1b">
     <link rel="manifest" href="/manifest.webmanifest">
-    <title>Install Shopiva Kenya</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'shopiva/shopiva-shopping-logo.svg' %}">
+    <title>Install Shopiva Kenya LTD</title>
     <style>
-        body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
-        .wrap{max-width:900px;margin:auto;padding:28px 20px}
-        .hero{background:linear-gradient(135deg,#172554,#2563eb);color:#fff;border-radius:24px;padding:34px;margin-bottom:20px}
-        h1{margin:0 0 8px;font-size:38px}.hero p{margin:0;opacity:.9}
-        .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-        .card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:20px}
-        .card h2{margin-top:0}.muted{color:#64748b;line-height:1.6}
-        button,.link{display:inline-block;border:0;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;text-decoration:none}
-        button{background:#2563eb;color:#fff}.link{background:#eef2ff;color:#1d4ed8;margin-right:8px}
-        .note{margin-top:16px;padding:13px;border-radius:12px;background:#ecfdf5;color:#065f46}
-        .store{border-left:4px solid #2563eb;padding-left:14px}
-        @media(max-width:650px){.grid{grid-template-columns:1fr}h1{font-size:30px}}
+        body{margin:0;font-family:Inter,system-ui,sans-serif;background:#f5f9f6;color:#10241a}.wrap{max-width:960px;margin:auto;padding:26px 18px}.hero{background:linear-gradient(135deg,#032417,#0b7a42);color:#fff;border-radius:26px;padding:28px;margin-bottom:18px;box-shadow:0 20px 55px rgba(3,36,23,.15)}.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}.brand img{width:68px;height:68px;border-radius:20px}.brand strong{display:block;font-size:25px}.brand small{display:block;margin-top:4px;letter-spacing:3px;color:#bfe5cd;font-size:9px;font-weight:900}.hero h1{margin:0 0 8px;font-size:38px}.hero p{margin:0;color:#d4eddf;line-height:1.55}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.card{background:#fff;border:1px solid #deebe3;border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(5,46,27,.045)}.card h2{margin:0 0 7px;font-size:18px}.muted{color:#64756d;line-height:1.6;font-size:13px}button,.link{display:inline-block;border:0;border-radius:11px;padding:12px 16px;font-weight:900;cursor:pointer;text-decoration:none}button{background:#13c66a;color:#062b19}.link{background:#eaf8ef;color:#087540;margin-right:8px}.note{margin-top:16px;padding:14px;border-radius:13px;background:#ecf9f1;color:#075b32;border:1px solid #cfeedd}.store{border-top:4px solid #13c66a}@media(max-width:650px){.grid{grid-template-columns:1fr}.hero h1{font-size:30px}.brand strong{font-size:21px}}
     </style>
 </head>
 <body>
 <main class="wrap">
-    <section class="hero">
-        <h1>📱 Install Shopiva Kenya</h1>
-        <p>One customer shopping experience across phones and computers, powered by the same Shopiva marketplace.</p>
-    </section>
-
+    <section class="hero"><div class="brand"><img src="{% static 'shopiva/shopiva-shopping-logo.svg' %}" alt="Shopiva Kenya LTD logo"><div><strong>Shopiva Kenya LTD</strong><small>EVERYTHING YOU NEED, CLOSER TO YOU.</small></div></div><h1>Install Shopiva</h1><p>Get the fast, app-like Shopiva shopping experience with products, cart, checkout, orders and delivery tracking.</p></section>
     <section class="grid">
-        <article class="card">
-            <h2>🛍️ Shopiva Customer App</h2>
-            <p class="muted">This is the main customer shopping app. It connects to the live Shopiva marketplace for products, accounts, cart, checkout, orders and delivery tracking.</p>
-            <button id="install-button" hidden>Install Shopiva</button>
-            <p id="install-status" class="muted">On supported browsers, the Install button will appear automatically.</p>
-        </article>
-
-        <article class="card store">
-            <h2>🏪 Official app stores</h2>
-            <p class="muted">Shopiva's customer distribution is intended for Google Play, Apple App Store and other legitimate app marketplaces. Store publication requires the Shopiva developer accounts, signed store builds, store listings, privacy details and each store's review/approval process.</p>
-            <p class="muted"><strong>Admin app:</strong> never published to customer app stores. It is distributed separately to authorized Shopiva staff.</p>
-        </article>
-
-        <article class="card"><h2>Windows / macOS / Linux</h2><p class="muted">Open Shopiva in Chrome or Edge and use the install icon in the address bar. It launches in its own app-like window.</p></article>
-        <article class="card"><h2>ChromeOS</h2><p class="muted">Open Shopiva in Chrome and use Install. The customer app can run in its own window like an installed app.</p></article>
-        <article class="card"><h2>Android</h2><p class="muted">Use the official Google Play listing when published. Until store publication is complete, Chrome can install the Shopiva customer PWA from this page.</p></article>
-        <article class="card"><h2>iPhone / iPad</h2><p class="muted">Use the official App Store listing when published. Until then, Safari supports Share → Add to Home Screen for the customer PWA.</p></article>
+        <article class="card"><h2>🛍️ Customer Shopping App</h2><p class="muted">Install the Shopiva customer PWA on supported browsers. It uses the same live marketplace as the Android customer application.</p><button id="install-button" hidden>Install Shopiva</button><p id="install-status" class="muted">Checking whether this device supports installation…</p></article>
+        <article class="card store"><h2>📲 Official app distribution</h2><p class="muted">Google Play and Apple App Store builds remain the official native distribution channels. Until those releases are published, this installable web app is available for supported devices.</p></article>
+        <article class="card"><h2>Android</h2><p class="muted">Chrome can install Shopiva from this page using the browser install prompt or menu.</p></article>
+        <article class="card"><h2>iPhone / iPad</h2><p class="muted">In Safari, use Share → Add to Home Screen for the Shopiva customer experience.</p></article>
+        <article class="card"><h2>ChromeOS / Desktop</h2><p class="muted">Use Chrome or Edge and choose Install Shopiva to launch it in an app-like window.</p></article>
+        <article class="card"><h2>Shopiva is different</h2><p class="muted">Smart deals, verified reviews, AI shopping help, Kenya-first checkout and delivery tracking are built around the same customer account.</p></article>
     </section>
-
-    <div class="note">🔒 Staff administration is separated from customer shopping. The Admin Control Center uses the Django staff gate, so a normal customer account cannot become an admin by installing or opening an admin client.</div>
+    <div class="note">🔒 Admin access remains separate from customer shopping. Only authorized Shopiva staff can access the Admin Control Center.</div>
 </main>
-<script>
-let deferredPrompt;
-const installButton=document.getElementById('install-button');
-const status=document.getElementById('install-status');
-window.addEventListener('beforeinstallprompt',event=>{
-    event.preventDefault(); deferredPrompt=event; installButton.hidden=false;
-    status.textContent='Shopiva is ready to be installed on this device.';
-});
-installButton.addEventListener('click',async()=>{
-    if(!deferredPrompt)return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt=null; installButton.hidden=true;
-});
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js').catch(()=>{});}
-</script>
-</body>
-</html>
+<script>let deferredPrompt;const installButton=document.getElementById('install-button'),status=document.getElementById('install-status');window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;installButton.hidden=false;status.textContent='Shopiva is ready to be installed on this device.'});installButton.addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;installButton.hidden=true;status.textContent='Shopiva installation prompt completed.'});if('serviceWorker'in navigator){navigator.serviceWorker.register('/service-worker.js').catch(()=>{status.textContent='Shopiva is available in the browser; installation is controlled by your browser.'})}</script>
+</body></html>
