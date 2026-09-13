@@ -63,7 +63,7 @@ def delivery_action(request, order_id):
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST required."}, status=405)
 
-    order = get_object_or_404(Order.objects.select_for_update(), id=order_id, delivery_agent=agent)
+    order = get_object_or_404(Order, id=order_id, delivery_agent=agent)
     action = request.POST.get("action", "").strip().lower()
 
     transitions = {
