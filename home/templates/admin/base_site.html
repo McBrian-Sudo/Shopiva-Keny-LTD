@@ -3,8 +3,25 @@
 
 {% block title %}{{ site_title|default:"Shopiva Admin" }}{% endblock %}
 
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    #site-name a{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .shopiva-admin-logo{width:42px;height:42px;border-radius:12px;box-shadow:0 5px 14px rgba(0,0,0,.18);vertical-align:middle}
+    .shopiva-admin-name{display:flex;flex-direction:column;line-height:1.02}
+    .shopiva-admin-name strong{font-size:19px;letter-spacing:-.03em}
+    .shopiva-admin-name small{margin-top:3px;font-size:8px;letter-spacing:2px;opacity:.72}
+    @media(max-width:650px){.shopiva-admin-logo{width:36px;height:36px}.shopiva-admin-name strong{font-size:16px}}
+</style>
+{% endblock %}
+
 {% block branding %}
-<h1 id="site-name"><a href="{% url 'shopiva_admin:index' %}">Shopiva Control Center</a></h1>
+<h1 id="site-name">
+    <a href="{% url 'shopiva_admin:index' %}" aria-label="Shopiva Control Center home">
+        <img class="shopiva-admin-logo" src="{% static 'shopiva/shopiva-shopping-logo.svg' %}" alt="Shopiva logo">
+        <span class="shopiva-admin-name"><strong>Shopiva Control Center</strong><small>KENYA LTD • ADMIN</small></span>
+    </a>
+</h1>
 {% endblock %}
 
 {% block nav-global %}
@@ -30,19 +47,14 @@
                 window.location.replace(LOGIN_URL);
             }
         } catch (error) {
-            // Fail closed when the browser cannot verify the session.
             window.location.replace(LOGIN_URL);
         } finally {
             checking = false;
         }
     }
 
-    window.addEventListener("pageshow", function () {
-        verifyAdminSession();
-    });
-
+    window.addEventListener("pageshow", verifyAdminSession);
     window.addEventListener("popstate", verifyAdminSession);
-
     setTimeout(verifyAdminSession, 150);
 })();
 </script>
