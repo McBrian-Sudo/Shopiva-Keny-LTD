@@ -7,11 +7,11 @@ android {
     compileSdk 36
 
     defaultConfig {
-        applicationId 'ke.co.shopiva.delivery'
+        applicationId 'ke.co.shopiva.admin'
         minSdk 26
         targetSdk 36
-        versionCode 2
-        versionName '1.1.0'
+        versionCode 1
+        versionName '1.0.0'
     }
 
     signingConfigs {
@@ -20,7 +20,6 @@ android {
             def storePasswordValue = System.getenv('SHOPIVA_ANDROID_STORE_PASSWORD')
             def keyAliasValue = System.getenv('SHOPIVA_ANDROID_KEY_ALIAS')
             def keyPasswordValue = System.getenv('SHOPIVA_ANDROID_KEY_PASSWORD')
-
             if (storeFilePath && storePasswordValue && keyAliasValue && keyPasswordValue) {
                 storeFile file(storeFilePath)
                 storePassword storePasswordValue
@@ -35,12 +34,10 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-
             def keystoreReady = System.getenv('SHOPIVA_ANDROID_KEYSTORE_PATH') &&
                     System.getenv('SHOPIVA_ANDROID_STORE_PASSWORD') &&
                     System.getenv('SHOPIVA_ANDROID_KEY_ALIAS') &&
                     System.getenv('SHOPIVA_ANDROID_KEY_PASSWORD')
-
             if (keystoreReady) {
                 signingConfig signingConfigs.release
             }
