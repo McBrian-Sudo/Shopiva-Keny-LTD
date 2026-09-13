@@ -16,6 +16,8 @@ from home.payments import mpesa_callback, mpesa_payment_status, mpesa_waiting, p
 from home.seller_auth import seller_login, seller_logout, seller_login_required
 from home.voice_ai import realtime_action, realtime_call, speak_text, transcribe_voice
 from shopiva.health import health
+from home.delivery_app import delivery_login, delivery_logout, delivery_action, delivery_status
+from home.delivery_platform import delivery_manifest, delivery_service_worker
 from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, seller_dashboard, seller_product_toggle, seller_product_delete, product_review, customer_notifications, seller_register, seller_request_payout, delivery_ping_location, delivery_portal, delivery_update_location, home, order_success, product_detail, products
 from home.seo import robots_txt, sitemap_xml
 
@@ -65,7 +67,13 @@ urlpatterns = [
     path("product/<int:product_id>/review/", product_review, name="product_review"),
     path("account/delivery-location/", customer_delivery_location_map, name="customer_delivery_location"),
 
+    path("delivery/login/", delivery_login, name="delivery_login"),
+    path("delivery/logout/", delivery_logout, name="delivery_logout"),
     path("delivery/", delivery_portal, name="delivery_portal"),
+    path("delivery/manifest.webmanifest", delivery_manifest, name="delivery_manifest"),
+    path("delivery/service-worker.js", delivery_service_worker, name="delivery_service_worker"),
+    path("delivery/order/<int:order_id>/action/", delivery_action, name="delivery_action"),
+    path("delivery/status/", delivery_status, name="delivery_status"),
     path("delivery/location/", delivery_update_location, name="delivery_update_location"),
     path("delivery/location/ping/", delivery_ping_location, name="delivery_ping_location"),
 
