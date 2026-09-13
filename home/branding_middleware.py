@@ -56,7 +56,7 @@ class ShopivaBrandingMiddleware:
                 1,
             )
 
-        new_response = HttpResponse(body, status=response.status_code, reason=response.reason, content_type=content_type)
+        new_response = HttpResponse(body, status=response.status_code, reason=getattr(response, "reason", None), content_type=content_type)
         for key, value in response.items():
             if key.lower() not in {"content-length", "content-type"}:
                 new_response[key] = value
