@@ -1,27 +1,37 @@
 package ke.co.shopiva.admin;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
-import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
+import android.webkit.GeolocationPermissions;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class MainActivity extends Activity {
     private WebView webView;
-    private Button dashboardButton;
-    private Button mapButton;
+    private static final int LOCATION_PERMISSION_REQUEST = 1001;
 
-    private void openPath(String path) {
-        webView.loadUrl(ShopivaConfig.BASE_URL + path);
+    private void requestLocationPermissionIfNeeded() {
+        if (android.os.Build.VERSION.SDK_INT >= 23 &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST
+            );
+        }
     }
 
     @Override
@@ -30,46 +40,16 @@ public class MainActivity extends Activity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(245, 247, 251));
-
-        LinearLayout header = new LinearLayout(this);
-        header.setOrientation(LinearLayout.VERTICAL);
-        header.setPadding(18, 14, 18, 10);
-        header.setBackgroundColor(Color.rgb(7, 27, 37));
+        root.setBackgroundColor(Color.rgb(244, 248, 246));
 
         TextView brand = new TextView(this);
-        brand.setText("Shopiva Kenya LTD");
+        brand.setText("Shopiva Delivery");
         brand.setTextColor(Color.WHITE);
         brand.setTextSize(19);
         brand.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        header.addView(brand, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        TextView subtitle = new TextView(this);
-        subtitle.setText("Admin Control Center  •  Live Operations");
-        subtitle.setTextColor(Color.rgb(183, 218, 207));
-        subtitle.setTextSize(11);
-        header.addView(subtitle, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        LinearLayout nav = new LinearLayout(this);
-        nav.setOrientation(LinearLayout.HORIZONTAL);
-        nav.setPadding(0, 10, 0, 0);
-
-        dashboardButton = new Button(this);
-        dashboardButton.setText("Dashboard");
-        mapButton = new Button(this);
-        mapButton.setText("Live Delivery Map");
-
-        nav.addView(dashboardButton, new LinearLayout.LayoutParams(0, 46, 1));
-        nav.addView(mapButton, new LinearLayout.LayoutParams(0, 46, 1));
-        header.addView(nav, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        root.addView(header, new LinearLayout.LayoutParams(
+        brand.setPadding(18, 16, 18, 16);
+        brand.setBackgroundColor(Color.rgb(5, 46, 27));
+        root.addView(brand, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -81,21 +61,20 @@ public class MainActivity extends Activity {
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        settings.setGeolocationEnabled(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
 
-        webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+                requestLocationPermissionIfNeeded();
+                callback.invoke(origin, true, false);
+            }
+        });
 
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, false);
-
-        dashboardButton.setOnClickListener(v -> openPath("/admin/"));
-        mapButton.setOnClickListener(v -> openPath("/admin/google-delivery-map/"));
-
-        // Open the Shopiva Admin Control Center first. The new Live Delivery Map
-        // button opens the Google Maps operations surface without exposing Render
-        // infrastructure or granting privileges.
-        openPath("/admin/");
 
         root.addView(webView, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -103,6 +82,8 @@ public class MainActivity extends Activity {
                 1));
 
         setContentView(root);
+        requestLocationPermissionIfNeeded();
+        webView.loadUrl(ShopivaConfig.BASE_URL + "/delivery/login/");
     }
 
     @Override
