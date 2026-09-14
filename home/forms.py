@@ -2,23 +2,12 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.utils.text import slugify
+from django.utils.html import conditional_escape
 import uuid
 
 from .models import Product, ProductReview
 from .media_pipeline import enhance_product_image
-from .product_catalog import catalog_choices as base_catalog_choices, catalog_item as base_catalog_item
-from .vehicle_parts_catalog import vehicle_parts_choices, vehicle_parts_item
-
-
-def _build_catalog_choices():
-    return tuple(base_catalog_choices) + tuple(vehicle_parts_choices())[1:]
-
-
-catalog_choices = _build_catalog_choices()
-
-
-def catalog_item(key):
-    return vehicle_parts_item(key) or base_catalog_item(key)
+from .shopiva_seller_catalog import catalog_search_choices, resolve_catalog_item
 
 
 def _validate_unique_username(username, *, error_message):
@@ -36,10 +25,7 @@ class _ShopivaUsernameBoundary:
 
     def clean_username(self):
         username = self.cleaned_data.get("username", "")
-        return _validate_unique_username(
-            username,
-            error_message=self.username_error_message,
-        )
+        return _validate_unique_username(username, error_message=self.username_error_message)
 
     def validate_unique(self):
         """Prevent Django's second model-level username check from replacing our message."""
@@ -49,12 +35,7 @@ class _ShopivaUsernameBoundary:
 class CustomerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
     email = forms.EmailField(
         required=True,
-        widget=forms.EmailInput(
-            attrs={
-                "placeholder": "you@example.com",
-                "autocomplete": "email",
-            }
-        ),
+        widget=forms.EmailInput(attrs={"placeholder": "you@example.com", "autocomplete": "email"}),
     )
 
     class Meta:
@@ -121,34 +102,61 @@ class MultipleImageField(forms.FileField):
         return [super().clean(data, initial=initial)]
 
 
+class CatalogSearchWidget(forms.TextInput):
+    """Search-first seller catalogue field with browser-native suggestions."""
+
+    input_type = "search"
+
+    def __init__(self, attrs=None):
+        base = {
+            "placeholder": "Search phones, accessories, appliances, utensils, car/motorcycle/bicycle spares and more...",
+            "autocomplete": "off",
+            "aria-label": "Search and choose a Shopiva product",
+        }
+        if attrs:
+            base.update(attrs)
+        super().__init__(attrs=base)
+
+    def render(self, name, value, attrs=None, renderer=None):
+        rendered = super().render(name, value, attrs, renderer)
+        options = []
+        for key, label in catalog_search_choices():
+            options.append(
+                f'<option value="{conditional_escape(label)}" data-key="{conditional_escape(key)}"></option>'
+            )
+        datalist = (
+            '<datalist id="shopiva-product-catalog-options">'
+            + "".join(options)
+            + '<option value="CUSTOM PRODUCT — enter your own product"></option>'
+            + "</datalist>"
+        )
+        return rendered + datalist
+
+
 class SellerProductForm(forms.ModelForm):
-    catalog_product = forms.ChoiceField(
+    catalog_product = forms.CharField(
         required=False,
-        label="Master Product Catalogue",
-        choices=catalog_choices,
+        label="Search & choose from Shopiva master catalogue",
         help_text=(
-            "Choose the closest manufacturer/brand product from Shopiva's master directory. "
-            "The product name and category are filled in automatically. Use a custom product "
-            "name when your item is not listed."
+            "Type a product name, brand, model or spare part. The searchable catalogue covers phones, "
+            "phone accessories, computers, electronics, utensils, appliances, car parts, motorcycle parts, "
+            "bicycle parts/customisation and many everyday categories. Choosing a catalogue suggestion "
+            "fills the product name and category automatically. Type CUSTOM PRODUCT to list something new."
         ),
-        widget=forms.Select(attrs={"class": "shopiva-catalog-select", "title": "Search by typing a brand or product"}),
+        widget=CatalogSearchWidget(attrs={"list": "shopiva-product-catalog-options", "class": "shopiva-catalog-search"}),
     )
     discount_percent = forms.IntegerField(
         min_value=0,
         max_value=100,
         required=False,
         help_text=(
-            "Optional customer discount from the original price. Example: 20 means the "
-            "customer pays 80% of the listed price. Leave 0 for no discount."
+            "Optional customer discount from the original price. Example: 20 means the customer pays 80% of the listed price."
         ),
     )
     promo_text = forms.CharField(
         max_length=120,
         required=False,
-        help_text=(
-            "Optional short marketing message shown with the product, e.g. "
-            "'Free delivery' or 'Weekend Deal'. This is promotional text, not the price."
-        ),
+        help_text="Optional short marketing message shown with the product, e.g. 'Free delivery' or 'Weekend Deal'.",
     )
     gallery_images = MultipleImageField(
         required=False,
@@ -175,31 +183,34 @@ class SellerProductForm(forms.ModelForm):
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": "Catalogue selection will fill this, or enter a custom product"}),
             "description": forms.Textarea(attrs={"rows": 5}),
-            "category": forms.TextInput(attrs={"placeholder": "Electronics, Fashion, Groceries, Automotive..."}),
+            "category": forms.TextInput(attrs={"placeholder": "Electronics, Fashion, Groceries, Vehicle Parts..."}),
             "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
 
     def clean_catalog_product(self):
-        key = self.cleaned_data.get("catalog_product", "")
-        if not key:
+        raw = self.cleaned_data.get("catalog_product", "").strip()
+        if not raw or raw.upper().startswith("CUSTOM PRODUCT"):
             return ""
-        if not catalog_item(key):
-            raise forms.ValidationError("That catalogue product is not available. Please choose another item.")
-        return key
+        item = resolve_catalog_item(raw)
+        if not item:
+            raise forms.ValidationError(
+                "No catalogue product matched that search. Choose a suggestion or type CUSTOM PRODUCT to enter your own item."
+            )
+        return item["key"]
 
     def clean(self):
         cleaned = super().clean()
-        item = catalog_item(cleaned.get("catalog_product"))
+        item = resolve_catalog_item(cleaned.get("catalog_product"))
         if item:
             cleaned["name"] = item["name"]
             cleaned["category"] = item["category"]
         elif not cleaned.get("name"):
-            self.add_error("name", "Choose a master catalogue product or enter a custom product name.")
+            self.add_error("name", "Choose a catalogue product or enter a custom product name.")
         return cleaned
 
     def save(self, commit=True):
         product = super().save(commit=False)
-        item = catalog_item(self.cleaned_data.get("catalog_product"))
+        item = resolve_catalog_item(self.cleaned_data.get("catalog_product"))
         if item:
             product.name = item["name"]
             product.category = item["category"]
@@ -212,8 +223,6 @@ class SellerProductForm(forms.ModelForm):
             prefix = slugify(product.name or "product").replace("-", "").upper()[:24] or "PRODUCT"
             product.sku = f"SPV-{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
-        # Existing seller views intentionally use commit=False so location
-        # validation and product save remain inside their transaction.
         product._shopiva_gallery_files = self.cleaned_data.get("gallery_images", [])[:8]
 
         if commit:
