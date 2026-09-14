@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
+from django.db import connection
 from django.db.models import Count, Q
 from django.db.models.functions import Lower
 
@@ -183,6 +184,26 @@ class Command(BaseCommand):
                 invalid_pings += 1
         if invalid_pings:
             failures.append(f"Delivery location samples with invalid coordinates/measurements: {invalid_pings}")
+
+        if connection.vendor == "postgresql":
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT conname
+                    FROM pg_constraint
+                    WHERE conname IN (
+                        'home_product_seller_id_fk_repair',
+                        'home_orderitem_seller_id_fk_repair'
+                    )
+                    ORDER BY conname
+                    """
+                )
+                legacy_repair_constraints = [row[0] for row in cursor.fetchall()]
+            if legacy_repair_constraints:
+                failures.append(
+                    "Legacy duplicate repair constraints remain: "
+                    + ", ".join(legacy_repair_constraints)
+                )
 
         if failures:
             raise CommandError(
