@@ -40,6 +40,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "home.homepage_cache_buster.ShopivaHomepageCacheBusterMiddleware",
     "home.seo_middleware.ShopivaSeoMiddleware",
     "home.branding_middleware.ShopivaBrandingMiddleware",
 ]
