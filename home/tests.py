@@ -10,6 +10,8 @@ from .commission import get_platform_commission_percent, split_sale_amount
 from .forms import CustomerRegistrationForm, SellerRegistrationForm
 from .models import (
     CustomerAddress,
+    DeliveryAgent,
+    DeliveryLocationPing,
     Order,
     OrderItem,
     PaymentTransaction,
