@@ -4,8 +4,8 @@
     <path android:fillColor="#21c66b" android:pathData="M300,300h95l35,210q7,42 49,42h167q38,0 54,-35l51,-113H428" android:strokeColor="#f8fff9" android:strokeWidth="28" android:strokeLineCap="round" android:strokeLineJoin="round"/>
     <path android:fillColor="#f8c94a" android:pathData="M522,188l35,-67 58,59 58,-59 35,67 -25,49H547Z"/>
     <path android:fillColor="#f8fff9" android:pathData="M390,281C440,226 557,220 628,270C674,303 674,353 634,379C604,398 555,403 525,413C494,424 494,450 531,458C570,467 626,452 657,426L695,476C650,518 558,538 487,515C426,495 398,454 409,410C420,367 464,345 517,333C551,325 587,321 592,302C596,284 574,272 542,272C505,272 474,287 454,313Z"/>
-    <circle android:fillColor="#052e1b" android:strokeColor="#f8c94a" android:strokeWidth="18" android:cx="474" android:cy="620" android:r="42"/>
-    <circle android:fillColor="#052e1b" android:strokeColor="#f8c94a" android:strokeWidth="18" android:cx="672" android:cy="620" android:r="42"/>
+    <path android:fillColor="#052e1b" android:strokeColor="#f8c94a" android:strokeWidth="18" android:pathData="M474,578c23.196,0 42,18.804 42,42s-18.804,42-42,42-42-18.804-42-42 18.804-42 42-42Z"/>
+    <path android:fillColor="#052e1b" android:strokeColor="#f8c94a" android:strokeWidth="18" android:pathData="M672,578c23.196,0 42,18.804 42,42s-18.804,42-42,42-42-18.804-42-42 18.804-42 42-42Z"/>
     <path android:fillColor="#21c66b" android:pathData="M705,352C785,347 838,378 848,431C820,505 753,546 694,520C695,456 700,402 705,352Z"/>
     <path android:fillColor="#052e1b" android:pathData="M713,490C743,437 779,404 821,382" android:strokeColor="#f8c94a" android:strokeWidth="12" android:strokeLineCap="round"/>
 </vector>
