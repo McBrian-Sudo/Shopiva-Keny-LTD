@@ -1,16 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
-<title>Shopiva Kenya LTD</title>
-<desc>Shopiva shopping application logo</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title>Shopiva Kenya LTD</title><desc>Shopiva shopping cart logo with crown</desc>
 <defs>
-  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#13c66a"/>
-    <stop offset="1" stop-color="#087540"/>
-  </linearGradient>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#063d2b"/><stop offset=".55" stop-color="#021a13"/><stop offset="1" stop-color="#0a4027"/></linearGradient>
+ <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8ff63"/><stop offset=".45" stop-color="#35e66b"/><stop offset="1" stop-color="#00965a"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff3a1"/><stop offset=".45" stop-color="#ffd34f"/><stop offset="1" stop-color="#d88908"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
-<rect width="256" height="256" rx="56" fill="#052e1b"/>
-<path d="M58 91h140l-12 104H70L58 91Z" fill="url(#g)"/>
-<path d="M92 92c0-25 14-42 36-42s36 17 36 42" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round"/>
-<path d="M88 128h80" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity=".9"/>
-<circle cx="103" cy="166" r="8" fill="#fff"/><circle cx="153" cy="166" r="8" fill="#fff"/>
-<text x="128" y="224" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="800">SHOPIVA</text>
+<rect x="8" y="8" width="496" height="496" rx="112" fill="url(#bg)" stroke="#39ed7c" stroke-width="8"/>
+<path d="M256 43l18 34 36-22-8 40 39 4-34 23 26 30-43-8-10 40-24-34-24 34-10-40-43 8 26-30-34-23 39-4-8-40 36 22z" fill="url(#gold)" filter="url(#glow)"/>
+<path d="M151 169h190l-21 151H184z" fill="none" stroke="url(#gold)" stroke-width="14" stroke-linejoin="round"/>
+<path d="M179 169c0-43 27-74 70-74s70 31 70 74" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round"/>
+<path d="M189 214h126" stroke="#fff" stroke-width="11" stroke-linecap="round" opacity=".9"/>
+<circle cx="207" cy="286" r="11" fill="#fff"/><circle cx="293" cy="286" r="11" fill="#fff"/>
+<path d="M112 219h55M96 248h60M110 277h47" stroke="url(#green)" stroke-width="16" stroke-linecap="round" filter="url(#glow)"/>
+<path d="M226 171c-20 20-31 40-31 61 0 41 32 65 77 65 22 0 43-6 59-18-16 30-47 49-87 49-62 0-103-34-103-86 0-32 19-59 55-77z" fill="url(#green)" opacity=".95"/>
+<path d="M340 242c29-5 52-22 69-48-7 44-32 76-73 94 6-16 7-31 4-46z" fill="url(#green)"/>
+<text x="256" y="400" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="70" font-weight="900" letter-spacing="-3" fill="#fff">Shop<tspan fill="url(#green)">iva</tspan></text>
+<text x="256" y="438" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" letter-spacing="7" fill="#ffe58a">KENYA LTD</text>
 </svg>
