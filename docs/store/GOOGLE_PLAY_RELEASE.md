@@ -3,8 +3,8 @@
 ## Public app
 - App: Shopiva Kenya
 - Package: ke.co.shopiva.customer
-- Version: 1.1.0
-- Version code: 2
+- Version: 1.1.1
+- Version code: 3
 - Target SDK: 36 (Android 16)
 - Public distribution: YES
 - Admin/Delivery: NO
@@ -16,7 +16,8 @@ Shopiva Kenya brings everyday shopping closer to you. Discover products from loc
 - Product search and categories
 - Product details, prices, stock and promotions
 - Cart and checkout
-- Delivery addresses and location support
+- Delivery addresses and exact map location support
+- GPS-assisted delivery location capture
 - Order history and tracking
 - Wishlist and reviews
 - Seller marketplace
