@@ -74,7 +74,7 @@ class AdminLoginTests(TestCase):
     def test_admin_login_page_loads(self):
         response = self.client.get(reverse("admin_login"), secure=True)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Shopiva Control Center")
+        self.assertContains(response, "Admin Control Center")
 
     def test_staff_can_login_to_control_center(self):
         User.objects.create_user(username="admin_test", email="admin@example.com", password="StrongPass123!", is_staff=True)
