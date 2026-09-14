@@ -1,223 +1,167 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
+{% load i18n static %}
 
-{% block title %}Live Delivery Map | Shopiva{% endblock %}
+{% block title %}Delivery Command Center | Shopiva{% endblock %}
 
 {% block extrastyle %}
 {{ block.super }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3lF3j2sJ6Q+0vVf7l0vE9j9Qn6x1Y=" crossorigin="" />
 <style>
-:root{--sd-green:#08a66d;--sd-dark:#0b1720;--sd-ink:#17232d;--sd-muted:#6b7780;--sd-line:#e2e9ed;--sd-blue:#2188ff;--sd-red:#ef4444}
-body{background:#f3f6f8}.content,#content{max-width:none!important;padding:0!important}.delivery-shell{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--sd-ink);padding:0 18px 34px}
-.delivery-top{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 4px 18px}.delivery-title h1{margin:0;font-size:28px;line-height:1.1}.delivery-title p{margin:6px 0 0;color:var(--sd-muted);font-size:12px}
-.live-chip{display:flex;align-items:center;gap:7px;background:#eafff6;border:1px solid #b9f2d8;color:#06744e;border-radius:999px;padding:8px 11px;font-size:11px;font-weight:900}.live-chip i{width:8px;height:8px;border-radius:50%;background:#12b981;box-shadow:0 0 0 4px rgba(18,185,129,.12)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:13px}.stat{background:#fff;border:1px solid var(--sd-line);border-radius:13px;padding:13px 14px;display:flex;align-items:center;gap:11px;box-shadow:0 6px 20px rgba(25,40,50,.04)}.stat .ico{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-size:17px;background:#ecfaf4}.stat .ico.blue{background:#eef5ff}.stat .ico.red{background:#fff0f0}.stat .ico.teal{background:#edfafa}.stat small{display:block;color:#79858d;font-size:9px;text-transform:uppercase;letter-spacing:.04em}.stat strong{display:block;font-size:20px;line-height:1.15;margin-top:3px}
-.toolbar{background:#fff;border:1px solid var(--sd-line);border-radius:13px;padding:10px;display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:11px}.toolbar-left{display:flex;gap:8px;align-items:center}.toolbar select{border:1px solid #d7e0e6;border-radius:9px;padding:8px 10px;font-size:11px;background:#fff}.toolbar button,.toolbar a{border:0;border-radius:9px;padding:8px 11px;font-size:11px;font-weight:900;text-decoration:none;cursor:pointer}.toolbar button{background:var(--sd-green);color:#fff}.toolbar a{background:#f5f8fa;color:#33424c;border:1px solid var(--sd-line)}
-.main-grid{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(285px,.72fr);gap:12px}.map-panel,.side-panel{background:#fff;border:1px solid var(--sd-line);border-radius:15px;box-shadow:0 8px 25px rgba(25,40,50,.05);overflow:hidden}.map-wrap{height:560px;position:relative;background:#eef3f4}.map{height:100%;width:100%}
-.map-overlay{position:absolute;z-index:5;top:11px;left:11px;display:flex;gap:7px}.map-overlay span,.map-overlay a{background:rgba(255,255,255,.96);border:1px solid #e3e9ed;border-radius:999px;padding:7px 9px;font-size:10px;font-weight:900;color:#23323d;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,.08)}.map-overlay a{color:#06744e}
-.map-controls{position:absolute;right:11px;top:11px;z-index:5;display:grid;gap:6px}.map-controls button{width:34px;height:34px;border:1px solid #dfe7eb;background:#fff;border-radius:9px;font-size:15px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.08)}
-.legend{position:absolute;left:11px;right:11px;bottom:10px;z-index:5;display:flex;gap:14px;flex-wrap:wrap;background:rgba(255,255,255,.94);border:1px solid #e4ebee;border-radius:10px;padding:8px 10px;font-size:9px;color:#57636b}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}.green{background:#0ba976}.red{background:#ef4444}.gray{background:#7a8790}
-.map-status{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.96);border:1px solid #dfe7ea;border-radius:12px;padding:13px 16px;text-align:center;box-shadow:0 16px 35px rgba(0,0,0,.12);display:none;min-width:230px}.map-status.show{display:block}.map-status strong{display:block;font-size:12px}.map-status span{display:block;font-size:9px;color:#6d7a82;margin-top:4px}
-.side-panel{padding:12px}.side-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.side-title h2{font-size:13px;margin:0}.side-title a{font-size:9px;color:#2188ff;text-decoration:none;font-weight:900}.delivery-list{display:grid;gap:7px}.delivery-row,.rider-row{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center;border:1px solid #edf1f3;border-radius:10px;padding:8px;background:#fff}.mini-truck{width:26px;height:26px;border-radius:8px;background:#edf9f4;display:grid;place-items:center;font-size:13px}.delivery-row strong,.rider-row strong{font-size:10px}.delivery-row small,.rider-row small{display:block;color:#7b878e;font-size:8px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}.badge{padding:5px 7px;border-radius:999px;font-size:8px;font-weight:900;white-space:nowrap}.badge.on{background:#ddfaeb;color:#08764f}.badge.delayed{background:#ffe5e5;color:#c53636}.badge.delivered{background:#e7f0ff;color:#2563eb}.badge.pending{background:#eef1f4;color:#5d6972}.section-gap{height:13px}.rider-row{grid-template-columns:30px 1fr auto}.avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#d9efe6;font-size:13px}.online{background:#dcfaeb;color:#0b8f61}.offline{background:#eef1f3;color:#6b757d}.feed-line{font-size:9px;color:#66736d;margin-top:10px;padding:9px;border-radius:9px;background:#f5f8fa;border:1px solid #e6ecef}.bottom-strip{background:#042b24;color:#fff;margin-top:12px;border-radius:13px;padding:15px 18px;display:flex;justify-content:space-between;gap:16px}.bottom-strip strong{font-size:16px}.bottom-strip span{display:block;font-size:9px;color:#b9d7cf;margin-top:3px}
-@media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.main-grid{grid-template-columns:1fr}.map-wrap{height:470px}}@media(max-width:650px){.delivery-shell{padding:0 8px 25px}.stats{grid-template-columns:1fr 1fr}.delivery-top{align-items:flex-start}.toolbar{align-items:flex-start;flex-direction:column}.toolbar-left{width:100%;flex-wrap:wrap}.map-wrap{height:390px}.bottom-strip{flex-direction:column}}
+:root{--sv-green:#16c784;--sv-dark:#052e1b;--sv-ink:#10251b;--sv-muted:#6b7d74;--sv-line:#dce9e1;--sv-soft:#f4f8f5;--sv-gold:#f4c84a;--sv-blue:#2367e8;--sv-red:#dc3f4b}
+body{background:linear-gradient(180deg,#f4f8f5,#eef4f1 70%,#eaf1ed)!important}
+.content,#content{max-width:none!important;padding:0!important}
+.command-shell{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--sv-ink);padding:10px 20px 34px}
+.command-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:5px 0 16px}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;background:#e8f9f0;border:1px solid #c9eedc;color:#087448;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.command-head h1{margin:9px 0 4px;font-size:34px;letter-spacing:-.05em;line-height:1.02}
+.command-head p{margin:0;color:var(--sv-muted);font-size:12px;max-width:720px}
+.live-pill{display:flex;align-items:center;gap:8px;white-space:nowrap;border:1px solid #bce8d0;background:#effcf4;color:#087448;padding:10px 12px;border-radius:999px;font-size:10px;font-weight:900}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--sv-green);box-shadow:0 0 0 5px rgba(22,199,132,.12);animation:svPulse 1.8s infinite}
+@keyframes svPulse{50%{box-shadow:0 0 0 9px rgba(22,199,132,0)}}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:13px}
+.stat{background:rgba(255,255,255,.92);border:1px solid var(--sv-line);border-radius:17px;padding:15px;display:flex;gap:11px;align-items:center;box-shadow:0 8px 24px rgba(5,46,27,.05)}
+.stat-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#eaf9f1;font-size:18px}.stat-icon.blue{background:#edf4ff}.stat-icon.red{background:#fff0f1}.stat-icon.gold{background:#fff8dc}
+.stat small{display:block;color:#798b82;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.07em}.stat strong{display:block;margin-top:3px;font-size:22px;letter-spacing:-.03em}
+.toolbar{background:rgba(255,255,255,.93);border:1px solid var(--sv-line);border-radius:15px;padding:10px 12px;display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px;box-shadow:0 8px 24px rgba(5,46,27,.04)}
+.toolbar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.toolbar strong{font-size:11px}.toolbar select{border:1px solid #d5e4dc;border-radius:10px;padding:9px 11px;background:#fff;font-size:11px}.toolbar button,.toolbar a{border:0;border-radius:10px;padding:9px 12px;font-size:10px;font-weight:900;text-decoration:none;cursor:pointer}.toolbar button{background:var(--sv-dark);color:#fff}.toolbar a{background:#edf8f2;color:#086c46;border:1px solid #d6eee0}
+.main-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(310px,.74fr);gap:13px}
+.map-panel,.side-panel{background:#fff;border:1px solid var(--sv-line);border-radius:18px;overflow:hidden;box-shadow:0 12px 32px rgba(5,46,27,.06)}
+.map-top{padding:13px 15px;border-bottom:1px solid var(--sv-line);display:flex;justify-content:space-between;align-items:center;gap:10px}.map-top h2{margin:0;font-size:14px}.map-top p{margin:3px 0 0;color:var(--sv-muted);font-size:10px}.map-mode{display:inline-flex;gap:6px;align-items:center;border-radius:999px;background:#f4f8f5;border:1px solid #dfeae4;padding:6px 8px;font-size:9px;font-weight:900;color:#587168}
+.map-wrap{height:585px;position:relative;background:#dde8e2}.map{height:100%;width:100%}
+.map-overlay{position:absolute;left:12px;top:12px;z-index:900;display:flex;gap:7px;flex-wrap:wrap}.map-overlay span,.map-overlay a{background:rgba(255,255,255,.96);border:1px solid #dfe8e3;border-radius:999px;padding:8px 10px;font-size:9px;font-weight:900;color:#20342c;text-decoration:none;box-shadow:0 5px 15px rgba(5,46,27,.1)}.map-overlay a{color:#087448}
+.map-controls{position:absolute;right:12px;top:12px;z-index:900;display:grid;gap:6px}.map-controls button{width:36px;height:36px;border:1px solid #d8e3dd;background:rgba(255,255,255,.96);border-radius:11px;font-size:17px;cursor:pointer;box-shadow:0 5px 15px rgba(5,46,27,.1)}
+.map-status{position:absolute;z-index:910;left:50%;top:50%;transform:translate(-50%,-50%);width:min(340px,80%);padding:18px;border-radius:16px;background:rgba(255,255,255,.96);border:1px solid #dce8e2;box-shadow:0 18px 45px rgba(5,46,27,.15);text-align:center;display:none}.map-status.show{display:block}.map-status strong{display:block;font-size:13px}.map-status span{display:block;margin-top:5px;font-size:10px;line-height:1.55;color:#71847a}
+.legend{position:absolute;left:12px;right:12px;bottom:12px;z-index:900;display:flex;gap:13px;flex-wrap:wrap;padding:9px 11px;border-radius:12px;background:rgba(255,255,255,.95);border:1px solid #dfe9e3;font-size:9px;color:#62756c;box-shadow:0 5px 15px rgba(5,46,27,.08)}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}.dot.live{background:#10b981}.dot.stale{background:#d53b48}.dot.home{background:#3867e8}
+.side-panel{padding:14px}.side-card{border:1px solid #e7eee9;border-radius:14px;padding:11px;margin-bottom:10px;background:#fbfdfc}.side-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}.side-head h3{margin:0;font-size:12px}.side-head a{color:#1f64da;text-decoration:none;font-size:9px;font-weight:900}.delivery-list{display:grid;gap:7px}.row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:8px;align-items:center;border:1px solid #edf2ef;border-radius:11px;padding:8px;background:#fff}.row-icon{width:30px;height:30px;border-radius:10px;background:#eaf9f1;display:grid;place-items:center}.row-icon.red{background:#fff0f1}.row-icon.blue{background:#edf4ff}.row strong{font-size:10px}.row small{display:block;margin-top:3px;color:#7a8b83;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}.badge{padding:5px 7px;border-radius:999px;font-size:8px;font-weight:900;white-space:nowrap}.badge.live{background:#e3faed;color:#08764f}.badge.offline{background:#eef1f2;color:#69757a}.badge.stale{background:#fff0f1;color:#bf3946}.badge.pending{background:#f2f5f6;color:#647078}.empty{padding:12px;border:1px dashed #d6e3db;border-radius:11px;background:#fafcfb;color:#7b8b83;font-size:9px}
+.security{margin-top:10px;padding:11px 12px;border-radius:13px;background:linear-gradient(135deg,#effaf4,#e7f7ef);border:1px solid #ccebd9;color:#20654a;font-size:9px;line-height:1.55}.security strong{display:block;font-size:11px;margin-bottom:3px;color:#0a6845}
+.bottom{margin-top:12px;display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:10px}.bottom-card{border-radius:14px;padding:13px 14px;background:#062c1b;color:#fff;box-shadow:0 10px 28px rgba(5,46,27,.12)}.bottom-card.alt{background:#fff;color:var(--sv-ink);border:1px solid var(--sv-line);box-shadow:none}.bottom-card strong{display:block;font-size:12px}.bottom-card span{display:block;margin-top:4px;font-size:9px;color:#b7d7c5}.bottom-card.alt span{color:#74857d}
+.leaflet-popup-content{font-family:Inter,system-ui,sans-serif;font-size:11px;line-height:1.45}.sv-pin{width:36px;height:36px;border-radius:50% 50% 50% 8px;transform:rotate(-45deg);background:#14b87a;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.24);display:grid;place-items:center}.sv-pin span{transform:rotate(45deg);font-size:17px}.sv-pin.stale{background:#d43d49}
+@media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.main-grid{grid-template-columns:1fr}.map-wrap{height:500px}}
+@media(max-width:650px){.command-shell{padding:6px 9px 24px}.command-head{align-items:flex-start;flex-direction:column}.command-head h1{font-size:27px}.stats{grid-template-columns:1fr 1fr}.toolbar{align-items:flex-start;flex-direction:column}.map-wrap{height:410px}.bottom{grid-template-columns:1fr}.map-mode{display:none}}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="delivery-shell">
-  <div class="delivery-top">
-    <div class="delivery-title"><h1>Live Delivery Map</h1><p>Google Maps operations view — live rider GPS updates from Shopiva delivery workspaces.</p></div>
-    <div class="live-chip"><i></i><span id="feed-state">Connecting live feed…</span></div>
+<div class="command-shell">
+  <div class="command-head">
+    <div>
+      <span class="eyebrow">🇰🇪 Shopiva Kenya LTD · Operations</span>
+      <h1>Delivery Command Center</h1>
+      <p>Live rider visibility, order movement and delivery locations — designed for fast decisions on the Shopiva network.</p>
+    </div>
+    <div class="live-pill"><i class="live-dot"></i><span id="feed-state">Starting secure feed…</span></div>
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="ico">🚚</div><div><small>Active Deliveries</small><strong id="sd-active">{{ delivery_dashboard.active }}</strong></div></div>
-    <div class="stat"><div class="ico blue">●</div><div><small>Live Riders</small><strong id="sd-riders">{{ delivery_dashboard.riders_online }}</strong></div></div>
-    <div class="stat"><div class="ico red">◷</div><div><small>Stale / Offline</small><strong id="sd-stale">{{ delivery_dashboard.delayed }}</strong></div></div>
-    <div class="stat"><div class="ico teal">📡</div><div><small>Feed Updates</small><strong id="sd-updates">0</strong></div></div>
+    <div class="stat"><div class="stat-icon">🚚</div><div><small>Active deliveries</small><strong id="sd-active">{{ delivery_dashboard.active }}</strong></div></div>
+    <div class="stat"><div class="stat-icon blue">●</div><div><small>Riders live</small><strong id="sd-riders">{{ delivery_dashboard.riders_online }}</strong></div></div>
+    <div class="stat"><div class="stat-icon red">◷</div><div><small>Stale / offline</small><strong id="sd-stale">{{ delivery_dashboard.delayed }}</strong></div></div>
+    <div class="stat"><div class="stat-icon gold">📡</div><div><small>Feed updates</small><strong id="sd-updates">0</strong></div></div>
   </div>
 
   <form class="toolbar" method="get">
-    <div class="toolbar-left">
-      <strong style="font-size:11px">Delivery network</strong>
-      <select name="county" onchange="this.form.submit()">
-        <option value="">All Counties</option>
-        {% for county in counties %}<option value="{{ county }}" {% if selected_county == county %}selected{% endif %}>{{ county }}</option>{% endfor %}
-      </select>
-      <a href="{% url 'shopiva_admin:delivery_map' %}">Reset</a>
-    </div>
+    <div class="toolbar-left"><strong>Delivery network</strong><select name="county" onchange="this.form.submit()"><option value="">All Counties</option>{% for county in counties %}<option value="{{ county }}" {% if selected_county == county %}selected{% endif %}>{{ county }}</option>{% endfor %}</select><a href="{% url 'shopiva_admin:delivery_map' %}">Reset</a></div>
     <div><button type="button" id="sd-refresh">↻ Refresh now</button></div>
   </form>
 
   <div class="main-grid">
     <section class="map-panel">
+      <div class="map-top"><div><h2>Live logistics map</h2><p>Google Maps is used when configured; Shopiva automatically falls back to a live OpenStreetMap view so the map never stays blank.</p></div><div class="map-mode" id="map-mode">● Preparing map</div></div>
       <div class="map-wrap">
         <div id="sd-map" class="map"></div>
-        <div class="map-overlay"><span>🇰🇪 Shopiva Kenya</span><a id="sd-google" href="https://www.google.com/maps/search/?api=1&query=Kenya" target="_blank" rel="noopener">Open Google Maps ↗</a></div>
+        <div class="map-overlay"><span>🟢 Live GPS</span><a id="sd-google" href="https://www.google.com/maps/search/?api=1&query=Kenya" target="_blank" rel="noopener">Open Google Maps ↗</a></div>
         <div class="map-controls"><button type="button" id="sd-zoom-in">+</button><button type="button" id="sd-zoom-out">−</button><button type="button" id="sd-home">⌂</button></div>
-        <div id="sd-map-status" class="map-status"><strong id="map-status-title">Waiting for live rider GPS</strong><span id="map-status-text">The Google map is ready. A rider marker appears as soon as a delivery workspace shares GPS.</span></div>
-        <div class="legend"><span><i class="dot green"></i>Live rider</span><span><i class="dot red"></i>Stale/offline</span><span>Updates every 5 seconds</span></div>
+        <div id="sd-map-status" class="map-status"><strong id="map-status-title">Connecting to Shopiva map…</strong><span id="map-status-text">Loading the operations map and protected rider feed.</span></div>
+        <div class="legend"><span><i class="dot live"></i>Live rider</span><span><i class="dot stale"></i>Stale / offline</span><span><i class="dot home"></i>Kenya hub view</span><span>Auto refresh every 5 seconds</span></div>
       </div>
     </section>
 
     <aside class="side-panel">
-      <div class="side-title"><h2>Recent Deliveries</h2><a href="{% url 'shopiva_admin:home_order_changelist' %}">View All</a></div>
-      <div class="delivery-list" id="sd-deliveries">
-        {% for order in recent_deliveries|slice:":8" %}
-        <div class="delivery-row"><div class="mini-truck">🚚</div><div><strong>#{{ order.tracking_code|default:order.id }}</strong><small>{{ order.delivery_agent.display_name|default:"Unassigned" }} · {{ order.address|truncatechars:28 }}</small></div><span class="badge {% if order.status == 'delivered' %}delivered{% elif order.status == 'out_for_delivery' %}on{% elif order.status == 'cancelled' %}delayed{% else %}pending{% endif %}">{{ order.get_status_display }}</span></div>
-        {% empty %}<p style="font-size:10px;color:#7a858c">No deliveries recorded yet.</p>{% endfor %}
-      </div>
-      <div class="section-gap"></div>
-      <div class="side-title"><h2>Rider Locations</h2><a href="{% url 'shopiva_admin:home_deliveryagent_changelist' %}">View All</a></div>
-      <div class="delivery-list" id="sd-riders-list">
-        {% for row in rider_rows|slice:":8" %}
-        <div class="rider-row"><div class="avatar">🧑🏽</div><div><strong>{{ row.agent.display_name }}</strong><small>{% if row.agent.last_location_at %}Last GPS {{ row.agent.last_location_at|date:"H:i:s" }}{% else %}No GPS received yet{% endif %}</small></div><span class="badge {% if row.live %}online{% else %}offline{% endif %}">{% if row.live %}Live{% else %}Offline{% endif %}</span></div>
-        {% empty %}<p style="font-size:10px;color:#7a858c">No active riders configured.</p>{% endfor %}
-      </div>
-      <div class="feed-line">🔒 GPS positions are visible to authorized Shopiva staff only. The feed uses the authenticated admin endpoint and does not expose rider coordinates publicly.</div>
+      <section class="side-card"><div class="side-head"><h3>Recent deliveries</h3><a href="{% url 'shopiva_admin:home_order_changelist' %}">View all</a></div><div class="delivery-list">
+        {% for order in recent_deliveries|slice:":8" %}<div class="row"><div class="row-icon">🚚</div><div><strong>#{{ order.tracking_code|default:order.id }}</strong><small>{{ order.delivery_agent.display_name|default:"Unassigned" }} · {{ order.address|truncatechars:32 }}</small></div><span class="badge {% if order.status == 'delivered' %}live{% elif order.status == 'out_for_delivery' %}live{% elif order.status == 'cancelled' %}stale{% else %}pending{% endif %}">{{ order.get_status_display }}</span></div>{% empty %}<div class="empty">No deliveries recorded yet. The feed will populate this panel as orders enter fulfilment.</div>{% endfor %}
+      </div></section>
+
+      <section class="side-card"><div class="side-head"><h3>Rider locations</h3><a href="{% url 'shopiva_admin:home_deliveryagent_changelist' %}">View all</a></div><div class="delivery-list" id="sd-riders-list">
+        {% for row in rider_rows|slice:":8" %}<div class="row"><div class="row-icon blue">🧑🏽</div><div><strong>{{ row.agent.display_name }}</strong><small>{% if row.agent.last_location_at %}Last GPS {{ row.agent.last_location_at|date:"H:i:s" }}{% else %}No GPS received yet{% endif %}</small></div><span class="badge {% if row.live %}live{% else %}offline{% endif %}">{% if row.live %}Live{% else %}Offline{% endif %}</span></div>{% empty %}<div class="empty">No active riders configured yet.</div>{% endfor %}
+      </div></section>
+
+      <div class="security"><strong>🔒 Protected operations data</strong>Rider coordinates are visible only to authorized Shopiva staff. The browser receives live positions through the authenticated admin feed; the public storefront never exposes this dashboard.</div>
     </aside>
   </div>
 
-  <div class="bottom-strip"><div><strong>Stronger Admin Control</strong><span>Google-powered logistics visibility</span><span>Near-real-time rider tracking</span></div><div><strong>Shopiva Kenya LTD</strong><span>More than a marketplace.</span><span>A smarter Kenya.</span></div></div>
+  <div class="bottom"><div class="bottom-card"><strong>Shopiva Logistics Intelligence</strong><span>Faster dispatch decisions · live rider awareness · clean order movement</span></div><div class="bottom-card alt"><strong>Map resilience</strong><span>Google mode + live OpenStreetMap fallback</span></div><div class="bottom-card alt"><strong>Kenya-first</strong><span>Built around local delivery operations</span></div></div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIJmEe20zJbE6gJdFZp5P0tV2x4oWfY=" crossorigin=""></script>
 {% if google_maps_api_key %}
 <script>
 (function(){
-  const API_KEY = "{{ google_maps_api_key|escapejs }}";
-  const MAP_ID = "{{ google_maps_map_id|default:'DEMO_MAP_ID'|escapejs }}";
-  const feedUrl = "{% url 'shopiva_admin:delivery_locations' %}" + ("{% if selected_county %}?county={{ selected_county|urlencode }}{% endif %}");
-  const home = {lat:-1.2921,lng:36.8219};
-  const markers = new Map();
-  let map = null;
-  let firstFix = true;
-  let updateCount = 0;
-
-  const statusBox=document.getElementById("sd-map-status");
-  const statusTitle=document.getElementById("map-status-title");
-  const statusText=document.getElementById("map-status-text");
-  const feedState=document.getElementById("feed-state");
-
-  function setStatus(show,title,text){
-    statusTitle.textContent=title;
-    statusText.textContent=text;
-    statusBox.classList.toggle("show",show);
-  }
-
-  function markerElement(live){
-    const el=document.createElement("div");
-    el.style.width="34px"; el.style.height="34px"; el.style.borderRadius="50%";
-    el.style.border="3px solid #fff"; el.style.boxShadow="0 3px 12px rgba(0,0,0,.28)";
-    el.style.display="grid"; el.style.placeItems="center"; el.style.fontSize="16px";
-    el.style.background=live?"#0ba976":"#ef4444";
-    el.textContent="🚚";
-    return el;
-  }
-
-  function popupContent(a){
-    const updated=a.updated ? new Date(a.updated).toLocaleString() : "Unknown";
-    const query=encodeURIComponent(String(a.latitude)+","+String(a.longitude));
-    return '<div style="min-width:210px;font-family:Arial,sans-serif">'+
-      '<strong style="font-size:14px">'+String(a.name||"Rider").replace(/[<>]/g,"")+'</strong>'+
-      '<div style="margin-top:5px;font-size:12px">'+String(a.vehicle_type||"Delivery vehicle").replace(/[<>]/g,"")+(a.vehicle_number?" · "+String(a.vehicle_number).replace(/[<>]/g,""):"")+'</div>'+
-      '<div style="margin-top:5px;font-size:12px"><b>'+ (a.live?"LIVE":"STALE") +'</b> · '+updated+'</div>'+
-      (a.tracking_code?'<div style="margin-top:5px;font-size:12px">Order '+String(a.tracking_code).replace(/[<>]/g,"")+'</div>':'')+
-      '<div style="margin-top:8px"><a href="https://www.google.com/maps/dir/?api=1&destination='+query+'" target="_blank" rel="noopener">Navigate in Google Maps ↗</a></div>'+
-      '</div>';
-  }
-
-  async function loadGoogle(){
-    if(window.google && window.google.maps) return;
-    await new Promise((resolve,reject)=>{
-      const script=document.createElement("script");
-      script.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(API_KEY)+"&v=weekly&loading=async";
-      script.async=true; script.defer=true;
-      script.onload=resolve; script.onerror=reject;
-      document.head.appendChild(script);
-    });
-  }
-
-  async function init(){
+  const API_KEY="{{ google_maps_api_key|escapejs }}";
+  const MAP_ID="{{ google_maps_map_id|default:''|escapejs }}";
+  const FEED_URL="{% url 'shopiva_admin:delivery_locations' %}" + ("{% if selected_county %}?county={{ selected_county|urlencode }}{% endif %}");
+  const HOME={lat:-1.2921,lng:36.8219};
+  let map=null, mode="google", firstFix=true, count=0, markers=new Map();
+  const modeEl=document.getElementById('map-mode'), state=document.getElementById('feed-state'), status=document.getElementById('sd-map-status');
+  function showStatus(title,text,show){document.getElementById('map-status-title').textContent=title;document.getElementById('map-status-text').textContent=text;status.classList.toggle('show',show)}
+  function safe(v){return String(v??'').replace(/[<>]/g,'')}
+  function loadGoogle(){return new Promise((resolve,reject)=>{if(window.google?.maps)return resolve();const s=document.createElement('script');s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(API_KEY)+'&v=weekly&loading=async';s.async=true;s.defer=true;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)})}
+  function mapPin(live){const d=document.createElement('div');d.className='sv-pin'+(live?'':' stale');const s=document.createElement('span');s.textContent='🚚';d.appendChild(s);return d}
+  async function boot(){
     try{
       await loadGoogle();
-      const {Map}=await google.maps.importLibrary("maps");
-      const {AdvancedMarkerElement}=await google.maps.importLibrary("marker");
-      map=new Map(document.getElementById("sd-map"),{
-        center:home,zoom:6,mapId:MAP_ID,
-        mapTypeControl:true,streetViewControl:false,fullscreenControl:true,
-        gestureHandling:"greedy"
-      });
-
-      document.getElementById("sd-zoom-in").onclick=()=>map.setZoom((map.getZoom()||6)+1);
-      document.getElementById("sd-zoom-out").onclick=()=>map.setZoom(Math.max(3,(map.getZoom()||6)-1));
-      document.getElementById("sd-home").onclick=()=>map.setCenter(home);
-
-      async function refresh(){
-        try{
-          const response=await fetch(feedUrl,{credentials:"same-origin",cache:"no-store",headers:{"X-Requested-With":"XMLHttpRequest"}});
-          if(!response.ok) throw new Error("Live delivery feed returned "+response.status);
-          const payload=await response.json();
-          const seen=new Set();
-          let live=0,stale=0;
-
-          for(const a of (payload.agents||[])){
-            const lat=Number(a.latitude),lng=Number(a.longitude);
-            if(!Number.isFinite(lat)||!Number.isFinite(lng)) continue;
-            seen.add(String(a.id));
-            const position={lat,lng};
-            const isLive=Boolean(a.live);
-            if(isLive) live++; else stale++;
-
-            let item=markers.get(String(a.id));
-            if(!item){
-              const marker=new AdvancedMarkerElement({map,position,content:markerElement(isLive),title:(a.name||"Rider")+" · "+(isLive?"Live":"Stale")});
-              const info=new google.maps.InfoWindow();
-              marker.addListener("click",()=>{info.setContent(popupContent(a));info.open({map,anchor:marker});});
-              item={marker,info};
-              markers.set(String(a.id),item);
-            }else{
-              item.marker.position=position;
-              item.marker.content=markerElement(isLive);
-              item.marker.title=(a.name||"Rider")+" · "+(isLive?"Live":"Stale");
-              item.marker.addListener("click",()=>{item.info.setContent(popupContent(a));item.info.open({map,anchor:item.marker});});
-            }
-
-            if(firstFix){map.setCenter(position);map.setZoom(7);firstFix=false;}
-          }
-
-          for(const [id,item] of markers.entries()){
-            if(!seen.has(id)){item.marker.map=null;markers.delete(id);}
-          }
-
-          document.getElementById("sd-active").textContent=payload.agents?.filter(a=>a.order_id).length ?? 0;
-          document.getElementById("sd-riders").textContent=live;
-          document.getElementById("sd-stale").textContent=stale;
-          updateCount++;
-          document.getElementById("sd-updates").textContent=updateCount;
-          feedState.textContent="Live feed · "+new Date().toLocaleTimeString();
-          setStatus(live+stale===0,"Waiting for live rider GPS","Google Maps is connected. A marker appears when an active rider shares GPS from the delivery workspace.");
-        }catch(error){
-          feedState.textContent="Feed reconnecting…";
-          setStatus(true,"Live feed unavailable","Google Maps is loaded, but the authenticated rider feed could not be reached. The system will retry automatically.");
-        }
-      }
-
-      await refresh();
-      setInterval(refresh,5000);
-    }catch(error){
-      feedState.textContent="Google Maps error";
-      setStatus(true,"Google Maps could not start","Check GOOGLE_MAPS_API_KEY, Maps JavaScript API, billing, API restrictions and the Shopiva Map ID.");
-    }
+      map=new google.maps.Map(document.getElementById('sd-map'),{center:HOME,zoom:6,gestureHandling:'greedy',streetViewControl:false,fullscreenControl:true,mapTypeControl:true, ...(MAP_ID?{mapId:MAP_ID}:{})});
+      modeEl.textContent='● Google Maps active'; state.textContent='Google map connected';
+      document.getElementById('sd-map-status').classList.remove('show');
+      document.getElementById('sd-zoom-in').onclick=()=>map.setZoom((map.getZoom()||6)+1);document.getElementById('sd-zoom-out').onclick=()=>map.setZoom(Math.max(3,(map.getZoom()||6)-1));document.getElementById('sd-home').onclick=()=>map.setCenter(HOME);
+      if(window.google.maps.marker?.AdvancedMarkerElement && MAP_ID){window.__SVGoogleMarker='advanced'}else{window.__SVGoogleMarker='legacy'}
+      await refresh();setInterval(refresh,5000);
+    }catch(e){ fallback(); }
   }
-
-  init();
+  function fallback(){
+    mode='leaflet'; modeEl.textContent='● Live fallback map'; state.textContent='OpenStreetMap mode';
+    map=L.map('sd-map',{zoomControl:false,scrollWheelZoom:true,preferCanvas:true}).setView([HOME.lat,HOME.lng],6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+    document.getElementById('sd-zoom-in').onclick=()=>map.zoomIn();document.getElementById('sd-zoom-out').onclick=()=>map.zoomOut();document.getElementById('sd-home').onclick=()=>map.setView([HOME.lat,HOME.lng],6);
+    refresh();setInterval(refresh,5000);
+  }
+  async function refresh(){
+    try{
+      const r=await fetch(FEED_URL,{credentials:'same-origin',cache:'no-store',headers:{'X-Requested-With':'XMLHttpRequest'}});if(!r.ok)throw new Error('feed '+r.status);const p=await r.json();const seen=new Set();let live=0,stale=0,active=0;
+      for(const a of (p.agents||[])){
+        const lat=Number(a.latitude),lng=Number(a.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))continue;seen.add(String(a.id));const isLive=Boolean(a.live);if(isLive)live++;else stale++;if(a.order_id)active++;
+        const title=safe(a.name||'Rider')+' · '+(isLive?'Live':'Stale');
+        const popup='<strong>'+safe(a.name||'Rider')+'</strong><br>'+safe(a.vehicle_type||'Delivery vehicle')+(a.vehicle_number?' · '+safe(a.vehicle_number):'')+'<br><span style="color:#6b7d74">'+(isLive?'LIVE':'STALE')+' · '+(a.updated?new Date(a.updated).toLocaleString():'Unknown')+'</span>'+(a.tracking_code?'<br>Order '+safe(a.tracking_code):'')+'<br><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(lat+','+lng)+'">Navigate in Google Maps ↗</a>';
+        if(mode==='leaflet'){
+          let m=markers.get(String(a.id));if(!m){m=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="sv-pin'+(isLive?'':' stale')+'"><span>🚚</span></div>',iconSize:[36,36],iconAnchor:[13,36]})}).addTo(map);m.bindPopup(popup);markers.set(String(a.id),m)}else{m.setLatLng([lat,lng]);m.setPopupContent(popup)}
+        }else if(window.__SVGoogleMarker==='advanced'){
+          let item=markers.get(String(a.id));if(!item){const marker=new google.maps.marker.AdvancedMarkerElement({map,position:{lat,lng},content:mapPin(isLive),title});const info=new google.maps.InfoWindow();marker.addListener('click',()=>{info.setContent(popup);info.open({map,anchor:marker})});item={marker,info};markers.set(String(a.id),item)}else{item.marker.position={lat,lng};item.marker.content=mapPin(isLive);item.marker.title=title}
+        }else{
+          let item=markers.get(String(a.id));if(!item){const marker=new google.maps.Marker({map,position:{lat,lng},title});marker.addListener('click',()=>{new google.maps.InfoWindow({content:popup}).open({map,anchor:marker})});item={marker};markers.set(String(a.id),item)}else{item.marker.setPosition({lat,lng});item.marker.setTitle(title)}
+        }
+        if(firstFix){if(mode==='leaflet')map.setView([lat,lng],7);else{map.setCenter({lat,lng});map.setZoom(7)}firstFix=false}
+      }
+      for(const [id,item] of markers){if(!seen.has(id)){if(mode==='leaflet')map.removeLayer(item);else item.marker.map=null;markers.delete(id)}}
+      document.getElementById('sd-active').textContent=active;document.getElementById('sd-riders').textContent=live;document.getElementById('sd-stale').textContent=stale;document.getElementById('sd-updates').textContent=++count;
+      state.textContent=(mode==='leaflet'?'Fallback map':'Google map')+' · '+new Date().toLocaleTimeString();showStatus('Waiting for rider GPS','The operations map is ready. A marker appears when a delivery workspace shares GPS.',live+stale===0);
+    }catch(e){state.textContent='Feed reconnecting…';showStatus('Live feed temporarily unavailable','The map stays usable while Shopiva retries the protected rider feed.',true)}
+  }
+  boot();
 })();
 </script>
 {% else %}
 <script>
-document.getElementById("feed-state").textContent="Maps not configured";
-document.getElementById("sd-map-status").classList.add("show");
-document.getElementById("map-status-title").textContent="Google Maps is not configured";
-document.getElementById("map-status-text").textContent="Add GOOGLE_MAPS_API_KEY and GOOGLE_MAPS_MAP_ID to the Shopiva deployment environment.";
+(function(){
+  const FEED_URL="{% url 'shopiva_admin:delivery_locations' %}" + ("{% if selected_county %}?county={{ selected_county|urlencode }}{% endif %}");
+  const HOME=[-1.2921,36.8219]; const state=document.getElementById('feed-state'),modeEl=document.getElementById('map-mode'),status=document.getElementById('sd-map-status');
+  let map=null,firstFix=true,count=0,markers=new Map();
+  function showStatus(t,tx,s){document.getElementById('map-status-title').textContent=t;document.getElementById('map-status-text').textContent=tx;status.classList.toggle('show',s)}
+  function safe(v){return String(v??'').replace(/[<>]/g,'')}
+  function pin(live){return L.divIcon({className:'',html:'<div class="sv-pin'+(live?'':' stale')+'"><span>🚚</span></div>',iconSize:[36,36],iconAnchor:[13,36]})}
+  map=L.map('sd-map',{zoomControl:false,scrollWheelZoom:true,preferCanvas:true}).setView(HOME,6);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+  modeEl.textContent='● Live fallback map';state.textContent='OpenStreetMap mode';document.getElementById('sd-zoom-in').onclick=()=>map.zoomIn();document.getElementById('sd-zoom-out').onclick=()=>map.zoomOut();document.getElementById('sd-home').onclick=()=>map.setView(HOME,6);
+  async function refresh(){try{const r=await fetch(FEED_URL,{credentials:'same-origin',cache:'no-store',headers:{'X-Requested-With':'XMLHttpRequest'}});if(!r.ok)throw 0;const p=await r.json();const seen=new Set();let live=0,stale=0,active=0;for(const a of(p.agents||[])){const lat=Number(a.latitude),lng=Number(a.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))continue;seen.add(String(a.id));const il=Boolean(a.live);if(il)live++;else stale++;if(a.order_id)active++;const popup='<strong>'+safe(a.name||'Rider')+'</strong><br>'+safe(a.vehicle_type||'Delivery vehicle')+(a.vehicle_number?' · '+safe(a.vehicle_number):'')+'<br><span style="color:#6b7d74">'+(il?'LIVE':'STALE')+' · '+(a.updated?new Date(a.updated).toLocaleString():'Unknown')+'</span>'+(a.tracking_code?'<br>Order '+safe(a.tracking_code):'')+'<br><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(lat+','+lng)+'">Navigate in Google Maps ↗</a>';let m=markers.get(String(a.id));if(!m){m=L.marker([lat,lng],{icon:pin(il)}).addTo(map);m.bindPopup(popup);markers.set(String(a.id),m)}else{m.setLatLng([lat,lng]);m.setIcon(pin(il));m.setPopupContent(popup)}if(firstFix){map.setView([lat,lng],7);firstFix=false}}for(const[id,m]of markers){if(!seen.has(id)){map.removeLayer(m);markers.delete(id)}}document.getElementById('sd-active').textContent=active;document.getElementById('sd-riders').textContent=live;document.getElementById('sd-stale').textContent=stale;document.getElementById('sd-updates').textContent=++count;state.textContent='Fallback map · '+new Date().toLocaleTimeString();showStatus('Waiting for rider GPS','The map is ready. A marker appears when a delivery workspace shares GPS.',live+stale===0)}catch(e){state.textContent='Feed reconnecting…';showStatus('Live feed temporarily unavailable','Shopiva is retrying the protected rider feed.',true)}}
+  refresh();setInterval(refresh,5000);
+})();
 </script>
 {% endif %}
 {% endblock %}
