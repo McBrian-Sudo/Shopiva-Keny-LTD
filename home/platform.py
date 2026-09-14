@@ -30,11 +30,11 @@ def app_manifest(request):
 
 def service_worker(request):
     """Return a safe service worker that never hijacks page navigation."""
-    script = r'''const CACHE = 'shopiva-static-v5';
+    script = r'''const CACHE = 'shopiva-static-v6';
 const STATIC_PREFIX = '/static/';
 
 self.addEventListener('install', event => {
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(caches.open(CACHE).then(cache => cache.add('/static/shopiva/shopiva-shopping-logo.svg').catch(() => {})).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
