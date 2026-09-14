@@ -5,6 +5,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#061b11">
+<meta name="description" content="{{ product.name }} on Shopiva Kenya LTD — product details, pricing, verified reviews and delivery-ready shopping.">
+<meta property="og:title" content="{{ product.name }} | Shopiva Kenya LTD">
+<meta property="og:description" content="Shop {{ product.name }} on Shopiva Kenya LTD.">
+<meta property="og:type" content="product">
 <title>{{ product.name }} | Shopiva Kenya LTD</title>
 <style>
 :root{--ink:#071a12;--dark:#062218;--green:#13d86d;--lime:#d9ff62;--paper:#f5f9f6;--muted:#6e7d75;--line:#dce8e1;--white:#fff;--shadow:0 20px 55px rgba(7,26,18,.11)}
@@ -26,6 +30,7 @@
 </main>
 <script>
 const img=document.getElementById('productImage'),stage=document.getElementById('showcase'),status=document.getElementById('visualStatus'),cleanBtn=document.getElementById('cleanBtn'),recordBtn=document.getElementById('recordBtn');
+try{const key='shopiva_recent_products',id='{{ product.id }}';const ids=JSON.parse(localStorage.getItem(key)||'[]').map(String).filter(x=>x!==id);ids.unshift(id);localStorage.setItem(key,JSON.stringify(ids.slice(0,8)))}catch(e){}
 let clean=false;
 if(cleanBtn){cleanBtn.onclick=()=>{clean=!clean;stage.classList.toggle('clean',clean);cleanBtn.textContent=clean?'🌿 Normal presentation':'✨ Clean presentation';status.textContent=clean?'Clean presentation enabled: brighter, sharper product focus on a neutral backdrop.':'Automatic enhancement is based only on the seller\'s real product photos.'}}
 const urls=[];document.querySelectorAll('.thumb').forEach((b)=>{const u=b.dataset.src;if(u&&!urls.includes(u))urls.push(u);b.addEventListener('click',()=>{if(img){img.src=u;document.querySelectorAll('.thumb').forEach(x=>x.classList.remove('active'));b.classList.add('active')}})});if(img&&!urls.includes(img.src))urls.unshift(img.src);
