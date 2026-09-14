@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<title>Shopiva Kenya LTD</title>
+<desc>Shopiva shopping application logo</desc>
+<defs>
+  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#13c66a"/>
+    <stop offset="1" stop-color="#087540"/>
+  </linearGradient>
+</defs>
+<rect width="256" height="256" rx="56" fill="#052e1b"/>
+<path d="M58 91h140l-12 104H70L58 91Z" fill="url(#g)"/>
+<path d="M92 92c0-25 14-42 36-42s36 17 36 42" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round"/>
+<path d="M88 128h80" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity=".9"/>
+<circle cx="103" cy="166" r="8" fill="#fff"/><circle cx="153" cy="166" r="8" fill="#fff"/>
+<text x="128" y="224" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="800">SHOPIVA</text>
+</svg>
