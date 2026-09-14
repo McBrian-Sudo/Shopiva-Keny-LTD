@@ -21,6 +21,26 @@ def _env(name, default=""):
     return os.environ.get(name, default).strip()
 
 
+def mpesa_production_ready():
+    """Real M-PESA is available only after Safaricom production credentials are verified."""
+    return _env("MPESA_ENV", "sandbox").lower() == "production" and all(
+        _env(name)
+        for name in (
+            "MPESA_CONSUMER_KEY",
+            "MPESA_CONSUMER_SECRET",
+            "MPESA_SHORTCODE",
+            "MPESA_PASSKEY",
+            "MPESA_CALLBACK_URL",
+        )
+    )
+
+
+def pesapal_ready():
+    return all(_env(name) for name in ("PESAPAL_CONSUMER_KEY", "PESAPAL_CONSUMER_SECRET", "PESAPAL_IPN_ID"))
+
+
+
+
 def _base_url():
     return "https://sandbox.safaricom.co.ke" if _env("MPESA_ENV", "sandbox").lower() == "sandbox" else "https://api.safaricom.co.ke"
 
@@ -345,12 +365,16 @@ def checkout_mpesa(request):
     email = request.POST.get("email", "").strip()
     phone = request.POST.get("phone", "").strip()
     address = request.POST.get("address", "").strip()
-    payment_method = request.POST.get("payment_method", "mpesa").strip().lower()
+    payment_method = request.POST.get("payment_method", "").strip().lower() or ("pesapal" if pesapal_ready() else "cod")
 
     if not all([customer_name, email, phone, address]) or not items:
         return render(request, "checkout.html", {"items": items, "total": total, "error": "Please complete all customer details and make sure your cart is not empty."})
     if payment_method not in {"mpesa", "pesapal", "card", "cod"}:
         return render(request, "checkout.html", {"items": items, "total": total, "error": "Please select a valid payment method."})
+    if payment_method == "mpesa" and not mpesa_production_ready():
+        return render(request, "checkout.html", {"items": items, "total": total, "error": "M-PESA is temporarily unavailable while Safaricom production onboarding is being finalized. Please use the available alternative payment method or Cash on Delivery."})
+    if payment_method in {"pesapal", "card"} and not pesapal_ready():
+        return render(request, "checkout.html", {"items": items, "total": total, "error": "Online card/M-PESA checkout through the payment gateway is not configured yet. Please use Cash on Delivery until the payment provider is activated."})
 
     with transaction.atomic():
         locked_items = []
