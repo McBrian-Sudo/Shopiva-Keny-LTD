@@ -5,6 +5,7 @@ from django.utils.text import slugify
 import uuid
 
 from .models import Product, ProductReview
+from .media_pipeline import enhance_product_image
 
 
 def _validate_unique_username(username, *, error_message):
@@ -92,6 +93,21 @@ class SellerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
         return user
 
 
+class MultipleImageInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleImageField(forms.FileField):
+    widget = MultipleImageInput
+
+    def clean(self, data, initial=None):
+        if not data:
+            return []
+        if isinstance(data, (list, tuple)):
+            return [super().clean(item, initial=None) for item in data]
+        return [super().clean(data, initial=initial)]
+
+
 class SellerProductForm(forms.ModelForm):
     discount_percent = forms.IntegerField(
         min_value=0,
@@ -110,10 +126,14 @@ class SellerProductForm(forms.ModelForm):
             "'Free delivery' or 'Weekend Deal'. This is promotional text, not the price."
         ),
     )
+    gallery_images = MultipleImageField(
+        required=False,
+        label="Additional product photos (up to 8)",
+        help_text="Use real photos of the same product. Shopiva automatically enhances them for the marketplace gallery.",
+    )
 
     class Meta:
         model = Product
-        # SKU is intentionally excluded: Shopiva assigns it automatically.
         fields = (
             "name",
             "description",
@@ -133,9 +153,19 @@ class SellerProductForm(forms.ModelForm):
 
     def save(self, commit=True):
         product = super().save(commit=False)
+        uploaded_main = self.files.get("image")
+        if uploaded_main:
+            product.image = enhance_product_image(uploaded_main, product.name)
+
         if not product.sku:
             prefix = slugify(product.name or "product").replace("-", "").upper()[:24] or "PRODUCT"
             product.sku = f"SPV-{prefix}-{uuid.uuid4().hex[:8].upper()}"
+
+        # The existing seller views intentionally use commit=False so that the
+        # location transaction remains atomic. Keep gallery files on the object
+        # for the post-save signal to persist them after the product is saved.
+        product._shopiva_gallery_files = self.cleaned_data.get("gallery_images", [])[:8]
+
         if commit:
             product.save()
         return product
