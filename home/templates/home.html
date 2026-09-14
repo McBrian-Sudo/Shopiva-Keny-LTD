@@ -1,548 +1,63 @@
 {% load static %}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#071a12">
-    <meta name="description" content="Shopiva Kenya — a modern marketplace for discovering products, deals, sellers and tracked delivery.">
-    <title>Shopiva Kenya | Shop Smarter. Live Better.</title>
-    <link rel="icon" href="{% static 'shopiva/shopiva-shopping-logo.svg' %}">
-    <link rel="apple-touch-icon" href="{% static 'shopiva/shopiva-shopping-logo.svg' %}">
-    <style>
-        :root {
-            --ink: #071a12;
-            --ink-2: #10281e;
-            --green: #18df78;
-            --green-2: #09b85d;
-            --mint: #d9ffe9;
-            --lime: #b9ff3d;
-            --paper: #f4f8f5;
-            --card: #ffffff;
-            --line: rgba(7,26,18,.10);
-            --muted: #64756d;
-            --shadow: 0 18px 60px rgba(7,26,18,.10);
-            --radius: 24px;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
-        body {
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background:
-                radial-gradient(circle at 10% 0%, rgba(24,223,120,.09), transparent 26rem),
-                radial-gradient(circle at 95% 14%, rgba(185,255,61,.12), transparent 24rem),
-                var(--paper);
-            color: var(--ink);
-            line-height: 1.5;
-            overflow-x: hidden;
-        }
-        a { color: inherit; text-decoration: none; }
-        button, input { font: inherit; }
-        .wrap { width: min(1240px, calc(100% - 32px)); margin: 0 auto; }
-
-        /* Navigation */
-        .navbar {
-            position: sticky; top: 0; z-index: 1000;
-            background: rgba(255,255,255,.86);
-            backdrop-filter: blur(18px);
-            border-bottom: 1px solid rgba(7,26,18,.07);
-        }
-        .nav-container { min-height: 78px; display: flex; align-items: center; gap: 18px; }
-        .brand { display: flex; align-items: center; gap: 11px; min-width: 190px; }
-        .brand-mark {
-            width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
-            background: linear-gradient(135deg, var(--green), var(--lime));
-            color: var(--ink); font-weight: 1000; font-size: 22px;
-            box-shadow: 0 10px 30px rgba(24,223,120,.25);
-        }
-        .brand-copy strong { display:block; font-size: 21px; letter-spacing: -.04em; }
-        .brand-copy span { display:block; font-size: 9px; letter-spacing: .28em; font-weight: 900; color: #728078; }
-        .search-form {
-            flex: 1; max-width: 540px; margin-left: auto; display:flex; gap:8px;
-            padding: 7px; border:1px solid var(--line); border-radius:16px; background:#f7faf8;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
-        }
-        .search-form input {
-            flex:1; min-width:0; border:0; outline:0; background:transparent; padding: 9px 12px;
-            color:var(--ink); font-size:14px;
-        }
-        .search-form button {
-            border:0; border-radius:12px; padding: 10px 16px; cursor:pointer;
-            background:var(--ink); color:white; font-weight:800;
-        }
-        .search-form button:hover { transform: translateY(-1px); background:#143326; }
-        .nav-links { display:flex; align-items:center; gap: 8px; font-size:14px; font-weight:800; }
-        .nav-link { padding: 10px 11px; border-radius: 12px; }
-        .nav-link:hover { background:#eef6f1; }
-        .nav-pill { padding: 11px 14px; border-radius: 13px; }
-        .seller-link { background: #e9fff2; color:#08713a; }
-        .account-link { background:#f0f4f2; }
-        .signup-link { background:var(--ink); color:white; }
-        .cart-link { background:linear-gradient(135deg,var(--green),#28ef93); color:var(--ink); box-shadow:0 9px 26px rgba(24,223,120,.22); }
-
-        /* Hero */
-        .hero-shell { padding: 24px 0 0; }
-        .hero {
-            position:relative; height: 548px; overflow:hidden; border-radius: 34px;
-            background: var(--ink); color:white; box-shadow: var(--shadow);
-            isolation:isolate;
-        }
-        .hero-slide { position:absolute; inset:0; opacity:0; visibility:hidden; transform:scale(1.03); transition:opacity .65s ease, transform 1.05s ease; }
-        .hero-slide.is-active { opacity:1; visibility:visible; transform:scale(1); }
-        .hero-bg { position:absolute; inset:0; overflow:hidden; }
-        .hero-bg::before, .hero-bg::after { content:""; position:absolute; border-radius:50%; filter: blur(2px); }
-        .slide-one { background: linear-gradient(125deg,#04140d 5%,#0a5e36 48%,#1bd777 130%); }
-        .slide-one .hero-bg::before { width:520px;height:520px;right:-90px;top:-160px;background:rgba(185,255,61,.42); }
-        .slide-one .hero-bg::after { width:340px;height:340px;right:210px;bottom:-180px;background:rgba(255,255,255,.10); }
-        .slide-two { background: linear-gradient(125deg,#180a2b,#6d1ca8 48%,#ff4cb5 130%); }
-        .slide-two .hero-bg::before { width:460px;height:460px;right:-70px;top:-120px;background:rgba(255,199,0,.34); }
-        .slide-two .hero-bg::after { width:300px;height:300px;left:52%;bottom:-190px;background:rgba(255,255,255,.10); }
-        .slide-three { background: linear-gradient(125deg,#071a2b,#0b5684 52%,#39d4ff 135%); }
-        .slide-three .hero-bg::before { width:500px;height:500px;right:-100px;bottom:-240px;background:rgba(101,240,255,.34); }
-        .slide-three .hero-bg::after { width:260px;height:260px;right:290px;top:-130px;background:rgba(255,255,255,.11); }
-        .slide-four { background: linear-gradient(125deg,#210d06,#a64712 50%,#ffbd45 140%); }
-        .slide-four .hero-bg::before { width:460px;height:460px;right:-100px;top:-100px;background:rgba(255,232,154,.36); }
-        .slide-four .hero-bg::after { width:300px;height:300px;right:220px;bottom:-160px;background:rgba(255,255,255,.09); }
-        .slide-five { background: linear-gradient(125deg,#090d24,#2e3bb5 49%,#7d9dff 140%); }
-        .slide-five .hero-bg::before { width:470px;height:470px;right:-70px;top:-140px;background:rgba(203,219,255,.30); }
-        .slide-five .hero-bg::after { width:310px;height:310px;right:230px;bottom:-170px;background:rgba(255,255,255,.10); }
-        .slide-six { background: linear-gradient(125deg,#041813,#0b6a5b 48%,#74f6c8 138%); }
-        .slide-six .hero-bg::before { width:520px;height:520px;right:-130px;bottom:-230px;background:rgba(205,255,239,.26); }
-        .slide-six .hero-bg::after { width:270px;height:270px;right:260px;top:-120px;background:rgba(255,255,255,.10); }
-        .slide-seven { background: linear-gradient(125deg,#1a0615,#7d1138 46%,#ff5a72 135%); }
-        .slide-seven .hero-bg::before { width:500px;height:500px;right:-90px;top:-170px;background:rgba(255,216,129,.28); }
-        .slide-seven .hero-bg::after { width:320px;height:320px;right:250px;bottom:-200px;background:rgba(255,255,255,.10); }
-        .slide-eight { background: linear-gradient(125deg,#07100b,#15582f 48%,#b7ff44 140%); }
-        .slide-eight .hero-bg::before { width:520px;height:520px;right:-120px;top:-170px;background:rgba(255,255,255,.15); }
-        .slide-eight .hero-bg::after { width:320px;height:320px;right:270px;bottom:-190px;background:rgba(11,211,108,.33); }
-        .hero-overlay { position:absolute; inset:0; background:linear-gradient(90deg,rgba(3,15,10,.82) 0%,rgba(3,15,10,.55) 47%,rgba(3,15,10,.12) 100%); z-index:1; }
-        .hero-content { position:relative; z-index:3; height:100%; width:min(1240px,100%); margin:0 auto; display:flex; align-items:center; padding: 54px 72px; }
-        .hero-copy { width:min(650px, 63%); }
-        .eyebrow { display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border:1px solid rgba(255,255,255,.20); background:rgba(255,255,255,.10); border-radius:999px; font-size:11px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
-        .pulse { width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 0 7px rgba(24,223,120,.14); }
-        .hero h1 { margin:18px 0 16px; font-size:clamp(42px,5.6vw,78px); line-height:.96; letter-spacing:-.065em; max-width:700px; }
-        .hero h1 span { color:var(--green); }
-        .hero p { color:rgba(255,255,255,.78); font-size:17px; line-height:1.65; max-width:610px; }
-        .hero-actions { display:flex; flex-wrap:wrap; gap:11px; margin-top:26px; }
-        .hero-btn { display:inline-flex; align-items:center; gap:9px; padding:13px 18px; border-radius:14px; font-weight:900; font-size:14px; border:1px solid transparent; }
-        .hero-btn.primary { background:var(--green); color:var(--ink); box-shadow:0 12px 32px rgba(24,223,120,.24); }
-        .hero-btn.secondary { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.18); color:white; }
-        .hero-btn:hover { transform:translateY(-2px); }
-        .hero-art { position:absolute; z-index:2; right:4.5%; width:360px; height:360px; border-radius:42px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.10); backdrop-filter:blur(18px); display:grid; place-items:center; box-shadow:0 28px 80px rgba(0,0,0,.20); }
-        .art-orbit { width:250px; height:250px; border-radius:50%; border:1px dashed rgba(255,255,255,.24); position:relative; display:grid; place-items:center; }
-        .art-core { width:138px; height:138px; border-radius:38px; background:linear-gradient(135deg,var(--green),var(--lime)); color:var(--ink); display:grid; place-items:center; font-size:68px; box-shadow:0 24px 60px rgba(24,223,120,.25); transform:rotate(-7deg); }
-        .art-bubble { position:absolute; padding:9px 12px; border-radius:13px; background:rgba(255,255,255,.92); color:var(--ink); font-size:11px; font-weight:1000; box-shadow:0 12px 25px rgba(0,0,0,.14); }
-        .bubble-one { top:12px; right:4px; }
-        .bubble-two { left:-10px; bottom:24px; }
-        .bubble-three { right:18px; bottom:-5px; }
-        .hero-controls { position:absolute; z-index:6; left:72px; right:72px; bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
-        .dots { display:flex; gap:7px; }
-        .dot { width:28px; height:5px; border:0; padding:0; border-radius:99px; background:rgba(255,255,255,.22); cursor:pointer; transition:.25s; }
-        .dot.is-active { width:52px; background:var(--green); }
-        .hero-nav { display:flex; gap:8px; }
-        .hero-arrow { width:42px; height:42px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.10); color:white; border-radius:13px; cursor:pointer; font-size:20px; }
-        .hero-arrow:hover { background:rgba(255,255,255,.19); }
-        .progress { position:absolute; z-index:7; bottom:0; left:0; right:0; height:3px; background:rgba(255,255,255,.10); }
-        .progress span { display:block; height:100%; width:0; background:var(--green); }
-        .is-active .progress-run { animation: slideProgress 4.8s linear forwards; }
-        @keyframes slideProgress { from { width:0 } to { width:100% } }
-
-        /* Marketplace shortcuts */
-        .quick-strip { margin-top:16px; display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-        .quick-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:15px 16px; display:flex; gap:12px; align-items:center; box-shadow:0 8px 24px rgba(7,26,18,.05); }
-        .quick-icon { width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:#edf9f1;font-size:20px;flex:0 0 auto; }
-        .quick-card strong { display:block; font-size:13px; }
-        .quick-card span { display:block; color:var(--muted); font-size:11px; margin-top:2px; }
-
-        /* Sections */
-        .section { padding:72px 0 0; }
-        .section-head { display:flex; justify-content:space-between; align-items:end; gap:16px; margin-bottom:22px; }
-        .kicker { font-size:10px; font-weight:1000; letter-spacing:.18em; color:#10934f; text-transform:uppercase; }
-        .section h2 { font-size:clamp(28px,4vw,43px); line-height:1; letter-spacing:-.055em; margin-top:8px; }
-        .section-sub { color:var(--muted); max-width:560px; font-size:14px; }
-        .text-link { color:#0a8d4b; font-weight:900; font-size:13px; white-space:nowrap; }
-        .text-link:hover { text-decoration:underline; }
-
-        .category-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:11px; }
-        .category { background:#fff; border:1px solid var(--line); border-radius:18px; padding:17px 10px; text-align:center; transition:.22s; box-shadow:0 7px 22px rgba(7,26,18,.04); }
-        .category:hover { transform:translateY(-5px); box-shadow:0 18px 35px rgba(7,26,18,.08); border-color:rgba(24,223,120,.35); }
-        .category .emoji { font-size:26px; display:block; margin-bottom:8px; }
-        .category strong { font-size:11px; }
-
-        /* Product cards */
-        .product-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
-        .product-card { background:#fff; border:1px solid var(--line); border-radius:22px; overflow:hidden; box-shadow:0 8px 26px rgba(7,26,18,.05); transition:.22s; }
-        .product-card:hover { transform:translateY(-5px); box-shadow:0 20px 40px rgba(7,26,18,.10); }
-        .product-visual { height:220px; background:linear-gradient(135deg,#effaf3,#f5f7ef); position:relative; overflow:hidden; display:grid;place-items:center; }
-        .product-visual img { width:100%; height:100%; object-fit:cover; display:block; }
-        .product-placeholder { width:110px;height:110px;border-radius:30px;background:linear-gradient(135deg,#dfffe9,#b6f7d0);display:grid;place-items:center;font-size:54px;box-shadow:0 18px 40px rgba(11,166,87,.12); }
-        .sale-badge { position:absolute; top:12px; left:12px; padding:6px 9px; border-radius:9px; background:var(--ink); color:white; font-size:10px; font-weight:1000; }
-        .product-info { padding:17px; }
-        .product-meta { display:flex; justify-content:space-between; gap:10px; align-items:center; color:#839188; font-size:10px; font-weight:800; }
-        .product-name { font-size:16px; font-weight:900; margin:7px 0 6px; letter-spacing:-.02em; }
-        .product-description { color:var(--muted); font-size:12px; min-height:36px; }
-        .product-bottom { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; }
-        .price { font-size:18px; font-weight:1000; letter-spacing:-.03em; }
-        .old-price { color:#9ba6a0; font-size:11px; margin-left:5px; }
-        .view-btn { padding:9px 11px; border-radius:11px; background:#eafff1; color:#08713a; font-size:11px; font-weight:1000; }
-
-        .empty-products { grid-column:1/-1; background:#fff; border:1px dashed rgba(7,26,18,.18); border-radius:24px; padding:34px; text-align:center; }
-        .empty-products .big { font-size:42px; }
-        .empty-products h3 { margin-top:7px; font-size:22px; }
-        .empty-products p { color:var(--muted); margin:7px auto 18px; max-width:540px; font-size:13px; }
-        .empty-actions { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; }
-
-        /* Trust / brand story */
-        .story { margin-top:72px; background:linear-gradient(120deg,#06140e,#0f4c2b); border-radius:30px; padding:34px; color:white; overflow:hidden; position:relative; }
-        .story::after { content:""; position:absolute; width:420px;height:420px;border-radius:50%;background:rgba(24,223,120,.14);right:-160px;top:-160px; }
-        .story-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:24px; align-items:stretch; position:relative; z-index:1; }
-        .story h3 { font-size:clamp(29px,4vw,46px); line-height:1; letter-spacing:-.055em; max-width:680px; }
-        .story p { color:rgba(255,255,255,.75); font-size:14px; margin-top:12px; max-width:650px; }
-        .story-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
-        .story-actions a { padding:11px 14px; border-radius:12px; font-size:12px; font-weight:900; }
-        .story-actions .a1 { background:var(--green); color:var(--ink); }
-        .story-actions .a2 { border:1px solid rgba(255,255,255,.17); background:rgba(255,255,255,.07); }
-        .feature-stack { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
-        .feature-tile { border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.07); border-radius:18px; padding:18px; }
-        .feature-tile strong { display:block; font-size:13px; }
-        .feature-tile span { display:block; color:rgba(255,255,255,.64); font-size:11px; margin-top:5px; }
-        .feature-icon { font-size:24px; margin-bottom:9px; }
-
-        .benefits { display:grid; grid-template-columns:repeat(4,1fr); gap:13px; padding-bottom:76px; }
-        .benefit { background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px; }
-        .benefit-icon { width:42px;height:42px;border-radius:13px;background:#edf9f1;display:grid;place-items:center;font-size:19px; margin-bottom:13px; }
-        .benefit h3 { font-size:14px; }
-        .benefit p { color:var(--muted); font-size:11px; margin-top:5px; }
-
-        footer { background:#06100b; color:white; padding:36px 0 28px; }
-        .footer-grid { display:grid; grid-template-columns:1.4fr repeat(3,1fr); gap:28px; }
-        .footer-brand p { color:rgba(255,255,255,.58); font-size:12px; max-width:330px; margin-top:9px; }
-        .footer-col strong { font-size:12px; }
-        .footer-col a { display:block; color:rgba(255,255,255,.62); font-size:11px; margin-top:9px; }
-        .footer-col a:hover { color:var(--green); }
-        .footer-bottom { margin-top:28px; padding-top:18px; border-top:1px solid rgba(255,255,255,.08); display:flex; justify-content:space-between; gap:20px; color:rgba(255,255,255,.45); font-size:10px; }
-
-        .flash { position:fixed; top:94px; right:16px; z-index:1200; max-width:360px; display:grid; gap:8px; }
-        .flash .msg { padding:12px 14px; border-radius:13px; background:#fff; border:1px solid var(--line); box-shadow:0 16px 35px rgba(7,26,18,.12); font-size:12px; }
-
-        @media (max-width: 1080px) {
-            .nav-links .nav-link:not(.cart-link):not(.seller-link) { display:none; }
-            .hero-art { opacity:.45; right:-90px; }
-            .hero-copy { width:76%; }
-            .category-grid { grid-template-columns:repeat(4,1fr); }
-            .product-grid { grid-template-columns:repeat(3,1fr); }
-        }
-        @media (max-width: 800px) {
-            .wrap { width:min(100% - 20px,1240px); }
-            .nav-container { min-height:68px; flex-wrap:wrap; padding:9px 0; }
-            .brand { min-width:auto; }
-            .search-form { order:3; flex-basis:100%; max-width:none; }
-            .nav-links { margin-left:auto; }
-            .seller-link { display:none; }
-            .hero-shell { padding-top:12px; }
-            .hero { height:600px; border-radius:25px; }
-            .hero-content { padding:34px 26px 70px; align-items:flex-end; }
-            .hero-copy { width:100%; }
-            .hero-art { width:210px; height:210px; right:-30px; top:24px; opacity:.42; }
-            .art-orbit { width:160px; height:160px; }
-            .art-core { width:92px;height:92px;border-radius:24px;font-size:44px; }
-            .hero h1 { font-size:48px; }
-            .hero p { font-size:14px; }
-            .hero-controls { left:26px; right:26px; }
-            .quick-strip { grid-template-columns:repeat(2,1fr); }
-            .section { padding-top:52px; }
-            .product-grid { grid-template-columns:repeat(2,1fr); }
-            .benefits { grid-template-columns:repeat(2,1fr); }
-            .story-grid { grid-template-columns:1fr; }
-            .footer-grid { grid-template-columns:repeat(2,1fr); }
-            .footer-brand { grid-column:1/-1; }
-        }
-        @media (max-width: 520px) {
-            .nav-links .account-link, .nav-links .signup-link { display:none; }
-            .hero { height:640px; }
-            .hero h1 { font-size:42px; }
-            .hero-art { display:none; }
-            .category-grid { grid-template-columns:repeat(2,1fr); }
-            .product-grid { grid-template-columns:1fr 1fr; gap:10px; }
-            .product-visual { height:160px; }
-            .product-info { padding:13px; }
-            .product-name { font-size:13px; }
-            .price { font-size:15px; }
-            .benefits { grid-template-columns:1fr; }
-            .story { padding:25px 20px; }
-            .feature-stack { grid-template-columns:1fr 1fr; }
-            .footer-grid { grid-template-columns:1fr 1fr; gap:20px; }
-            .footer-bottom { flex-direction:column; }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#071a12">
+<meta name="description" content="Shopiva Kenya — a modern marketplace for products, sellers, deals and tracked delivery.">
+<title>Shopiva Kenya | Shop smarter. Live better.</title>
+<link rel="icon" href="{% static 'shopiva/shopiva-shopping-logo.svg' %}">
+<style>
+:root{--ink:#071a12;--green:#1be878;--lime:#c4ff45;--paper:#f4f8f5;--muted:#65766d;--line:rgba(7,26,18,.1);--shadow:0 18px 55px rgba(7,26,18,.1)}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 8% 0,rgba(27,232,120,.1),transparent 25rem),radial-gradient(circle at 95% 12%,rgba(196,255,69,.13),transparent 24rem),var(--paper);color:var(--ink);line-height:1.5;overflow-x:hidden}a{text-decoration:none;color:inherit}button,input{font:inherit}.wrap{width:min(1240px,calc(100% - 32px));margin:auto}
+.navbar{position:sticky;top:0;z-index:1000;background:rgba(255,255,255,.88);backdrop-filter:blur(18px);border-bottom:1px solid rgba(7,26,18,.07)}
+.nav{min-height:78px;display:flex;align-items:center;gap:16px}.brand{display:flex;align-items:center;gap:10px;min-width:190px}.mark{width:45px;height:45px;border-radius:15px;background:linear-gradient(135deg,var(--green),var(--lime));display:grid;place-items:center;font-size:22px;font-weight:1000;box-shadow:0 10px 30px rgba(27,232,120,.22)}.brand b{display:block;font-size:21px;letter-spacing:-.04em}.brand small{display:block;font-size:9px;letter-spacing:.28em;font-weight:900;color:#78867f}
+.search{flex:1;max-width:540px;margin-left:auto;display:flex;gap:8px;padding:7px;border:1px solid var(--line);border-radius:16px;background:#f8fbf9}.search input{flex:1;min-width:0;border:0;outline:0;background:transparent;padding:9px 12px}.search button{border:0;border-radius:12px;padding:10px 16px;background:var(--ink);color:#fff;font-weight:900;cursor:pointer}.links{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:900}.links a{padding:11px 12px;border-radius:12px}.links a:hover{background:#edf6f0}.sell{background:#e8fff1;color:#08733d}.signup{background:var(--ink);color:#fff!important}.cart{background:linear-gradient(135deg,var(--green),#2bf38f);color:var(--ink);box-shadow:0 8px 22px rgba(27,232,120,.18)}
+.hero-wrap{padding-top:22px}.hero{height:548px;border-radius:34px;overflow:hidden;position:relative;background:var(--ink);color:#fff;box-shadow:var(--shadow);isolation:isolate}.slide{position:absolute;inset:0;opacity:0;visibility:hidden;transform:scale(1.03);transition:opacity .7s ease,transform 1s ease}.slide.active{opacity:1;visibility:visible;transform:scale(1)}.bg{position:absolute;inset:0;overflow:hidden}.bg:before,.bg:after{content:"";position:absolute;border-radius:50%}.s1 .bg{background:linear-gradient(125deg,#03130b,#087141 52%,#24ec86 135%)}.s1 .bg:before{width:560px;height:560px;right:-130px;top:-200px;background:rgba(196,255,69,.4)}.s2 .bg{background:linear-gradient(125deg,#18082a,#7c1cb4 52%,#ff56b4 135%)}.s2 .bg:before{width:500px;height:500px;right:-120px;top:-180px;background:rgba(255,210,54,.34)}.s3 .bg{background:linear-gradient(125deg,#061928,#0c5c88 50%,#3ddfff 140%)}.s3 .bg:before{width:540px;height:540px;right:-150px;bottom:-260px;background:rgba(159,244,255,.3)}.s4 .bg{background:linear-gradient(125deg,#210b04,#a74710 50%,#ffc449 140%)}.s4 .bg:before{width:510px;height:510px;right:-130px;top:-170px;background:rgba(255,238,170,.32)}.s5 .bg{background:linear-gradient(125deg,#0b0d24,#3041b5 48%,#89a6ff 145%)}.s5 .bg:before{width:510px;height:510px;right:-130px;top:-160px;background:rgba(214,225,255,.3)}.s6 .bg{background:linear-gradient(125deg,#041711,#0b6b58 50%,#78f7cf 140%)}.s6 .bg:before{width:560px;height:560px;right:-160px;bottom:-280px;background:rgba(213,255,239,.28)}.s7 .bg{background:linear-gradient(125deg,#1a0613,#7b1239 48%,#ff5e76 140%)}.s7 .bg:before{width:520px;height:520px;right:-130px;top:-180px;background:rgba(255,215,150,.3)}.s8 .bg{background:linear-gradient(125deg,#07100b,#155a30 48%,#bbff4a 145%)}.s8 .bg:before{width:560px;height:560px;right:-160px;top:-210px;background:rgba(255,255,255,.14)}
+.overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgba(2,13,8,.86),rgba(2,13,8,.54) 50%,rgba(2,13,8,.12));z-index:1}.hero-inner{height:100%;display:flex;align-items:center;position:relative;z-index:3;padding:54px 72px}.copy{width:min(650px,66%)}.eyebrow{display:inline-flex;align-items:center;gap:9px;border:1px solid rgba(255,255,255,.19);background:rgba(255,255,255,.09);padding:8px 12px;border-radius:999px;font-size:10px;font-weight:1000;letter-spacing:.14em}.pulse{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 7px rgba(27,232,120,.13)}.copy h1{font-size:clamp(43px,5.8vw,78px);line-height:.95;letter-spacing:-.065em;margin:18px 0 16px}.copy h1 span{color:var(--green)}.copy p{color:rgba(255,255,255,.79);font-size:16px;line-height:1.7;max-width:610px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:25px}.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 17px;border-radius:14px;font-weight:1000;font-size:13px}.btn.primary{background:var(--green);color:var(--ink);box-shadow:0 12px 35px rgba(27,232,120,.25)}.btn.ghost{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff}.btn:hover{transform:translateY(-2px)}.art{position:absolute;z-index:2;right:5%;width:350px;height:350px;border-radius:42px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.1);backdrop-filter:blur(18px);display:grid;place-items:center;box-shadow:0 25px 80px rgba(0,0,0,.2)}.orbit{width:246px;height:246px;border-radius:50%;border:1px dashed rgba(255,255,255,.22);display:grid;place-items:center;position:relative}.core{width:138px;height:138px;border-radius:38px;background:linear-gradient(135deg,var(--green),var(--lime));color:var(--ink);display:grid;place-items:center;font-size:67px;transform:rotate(-7deg);box-shadow:0 25px 65px rgba(27,232,120,.23)}.bubble{position:absolute;padding:8px 11px;background:rgba(255,255,255,.93);color:var(--ink);border-radius:12px;font-size:10px;font-weight:1000;box-shadow:0 12px 25px rgba(0,0,0,.14)}.b1{right:2px;top:7px}.b2{left:-6px;bottom:22px}.b3{right:18px;bottom:-5px}.controls{position:absolute;left:72px;right:72px;bottom:19px;z-index:6;display:flex;justify-content:space-between;align-items:center}.dots{display:flex;gap:6px}.dot{width:27px;height:5px;border:0;border-radius:99px;background:rgba(255,255,255,.22);cursor:pointer}.dot.on{width:50px;background:var(--green)}.arrows{display:flex;gap:7px}.arrow{width:42px;height:42px;border-radius:13px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#fff;font-size:20px;cursor:pointer}.progress{position:absolute;z-index:7;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.1)}.progress i{display:block;height:100%;width:0;background:var(--green)}
+.shortcuts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}.shortcut{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;display:flex;align-items:center;gap:11px;box-shadow:0 8px 24px rgba(7,26,18,.05)}.si{width:42px;height:42px;border-radius:13px;background:#edf9f1;display:grid;place-items:center;font-size:20px}.shortcut b{display:block;font-size:12px}.shortcut span{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.section{padding-top:68px}.head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:21px}.kicker{font-size:10px;font-weight:1000;letter-spacing:.18em;text-transform:uppercase;color:#0a944f}.head h2{font-size:clamp(28px,4vw,43px);line-height:1;letter-spacing:-.055em;margin-top:8px}.head p{color:var(--muted);font-size:13px;max-width:570px;margin-top:9px}.link{font-size:12px;font-weight:1000;color:#098b49;white-space:nowrap}.cats{display:grid;grid-template-columns:repeat(8,1fr);gap:10px}.cat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 9px;text-align:center;transition:.2s;box-shadow:0 7px 22px rgba(7,26,18,.04)}.cat:hover{transform:translateY(-4px);border-color:rgba(27,232,120,.35);box-shadow:0 15px 32px rgba(7,26,18,.08)}.cat i{display:block;font-style:normal;font-size:25px;margin-bottom:8px}.cat b{font-size:10px}
+.products{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.card{background:#fff;border:1px solid var(--line);border-radius:21px;overflow:hidden;box-shadow:0 8px 25px rgba(7,26,18,.05);transition:.2s}.card:hover{transform:translateY(-4px);box-shadow:0 18px 38px rgba(7,26,18,.1)}.visual{height:215px;display:grid;place-items:center;background:linear-gradient(135deg,#effaf3,#f6f8f1);position:relative;overflow:hidden}.visual img{width:100%;height:100%;object-fit:cover}.placeholder{width:105px;height:105px;border-radius:28px;background:linear-gradient(135deg,#dfffe9,#b5f6cf);display:grid;place-items:center;font-size:51px}.badge{position:absolute;top:11px;left:11px;background:var(--ink);color:#fff;padding:6px 9px;border-radius:9px;font-size:9px;font-weight:1000}.info{padding:16px}.meta{display:flex;justify-content:space-between;color:#819087;font-size:9px;font-weight:900;gap:8px}.name{display:block;font-size:15px;font-weight:1000;margin:7px 0 6px}.desc{color:var(--muted);font-size:11px;min-height:34px}.bottom{display:flex;justify-content:space-between;align-items:center;margin-top:13px;gap:8px}.price{font-size:17px;font-weight:1000}.old{font-size:10px;color:#99a59e;margin-left:4px}.view{background:#eafff1;color:#08743e;padding:9px 11px;border-radius:11px;font-size:10px;font-weight:1000}.empty{grid-column:1/-1;background:#fff;border:1px dashed rgba(7,26,18,.18);border-radius:22px;text-align:center;padding:34px}.empty strong{display:block;font-size:20px;margin-top:6px}.empty p{color:var(--muted);font-size:12px;max-width:550px;margin:7px auto 16px}
+.story{margin-top:67px;background:linear-gradient(120deg,#05130c,#0d4b2a);color:#fff;border-radius:30px;padding:34px;overflow:hidden;position:relative}.story:after{content:"";position:absolute;width:430px;height:430px;border-radius:50%;right:-160px;top:-170px;background:rgba(27,232,120,.14)}.story-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.12fr .88fr;gap:25px}.story h3{font-size:clamp(30px,4vw,47px);line-height:1;letter-spacing:-.055em;margin-top:7px}.story p{color:rgba(255,255,255,.73);font-size:13px;max-width:650px;margin-top:12px}.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.tile{padding:17px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);border-radius:17px}.tile i{font-style:normal;font-size:22px;display:block;margin-bottom:8px}.tile b{font-size:12px}.tile span{display:block;color:rgba(255,255,255,.62);font-size:10px;margin-top:4px}.story .btn{margin-top:20px}
+.benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:66px 0 72px}.benefit{background:#fff;border:1px solid var(--line);border-radius:19px;padding:20px}.bi{width:42px;height:42px;border-radius:13px;background:#edf9f1;display:grid;place-items:center;font-size:19px;margin-bottom:12px}.benefit b{font-size:13px}.benefit p{font-size:10px;color:var(--muted);margin-top:5px}
+footer{background:#06100b;color:#fff;padding:34px 0 25px}.foot{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:25px}.foot p{font-size:11px;color:rgba(255,255,255,.58);max-width:330px;margin-top:8px}.foot b{font-size:11px}.foot a{display:block;color:rgba(255,255,255,.6);font-size:10px;margin-top:8px}.foot a:hover{color:var(--green)}.foot-bottom{margin-top:25px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;color:rgba(255,255,255,.42);font-size:9px}
+.flash{position:fixed;right:16px;top:92px;z-index:1200;display:grid;gap:8px;max-width:340px}.flash div{background:#fff;border:1px solid var(--line);box-shadow:0 15px 32px rgba(7,26,18,.13);border-radius:12px;padding:11px 13px;font-size:11px}
+@media(max-width:1050px){.links .navhide{display:none}.art{right:-80px;opacity:.45}.copy{width:76%}.cats{grid-template-columns:repeat(4,1fr)}.products{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:800px){.wrap{width:calc(100% - 20px)}.nav{flex-wrap:wrap;padding:9px 0}.search{order:3;flex-basis:100%;max-width:none}.links{margin-left:auto}.sell{display:none}.hero{height:610px;border-radius:25px}.hero-inner{padding:30px 25px 70px;align-items:flex-end}.copy{width:100%}.copy h1{font-size:47px}.copy p{font-size:13px}.art{width:220px;height:220px;right:-40px;top:25px}.orbit{width:160px;height:160px}.core{width:92px;height:92px;font-size:43px;border-radius:25px}.controls{left:25px;right:25px}.shortcuts{grid-template-columns:repeat(2,1fr)}.products{grid-template-columns:repeat(2,1fr)}.story-grid{grid-template-columns:1fr}.benefits{grid-template-columns:repeat(2,1fr)}.foot{grid-template-columns:repeat(2,1fr)}.foot-brand{grid-column:1/-1}}
+@media(max-width:520px){.brand{min-width:auto}.brand b{font-size:18px}.nav .search{padding:5px}.hero{height:630px}.art{display:none}.copy h1{font-size:40px}.cats{grid-template-columns:repeat(2,1fr)}.products{gap:9px}.visual{height:155px}.info{padding:12px}.name{font-size:13px}.price{font-size:14px}.benefits{grid-template-columns:1fr}.story{padding:24px 19px}.tiles{grid-template-columns:1fr 1fr}.foot-bottom{flex-direction:column;gap:8px}}
+</style>
 </head>
 <body>
-
-<nav class="navbar">
-    <div class="wrap nav-container">
-        <a href="{% url 'home' %}" class="brand" aria-label="Shopiva home">
-            <div class="brand-mark">S</div>
-            <div class="brand-copy"><strong>Shopiva</strong><span>KENYA LTD</span></div>
-        </a>
-
-        <form class="search-form" method="get" action="{% url 'products' %}">
-            <input type="search" name="q" placeholder="Search products, brands and deals…" aria-label="Search Shopiva" autocomplete="off">
-            <button type="submit">Search</button>
-        </form>
-
-        <div class="nav-links">
-            <a class="nav-link" href="{% url 'products' %}">Shop</a>
-            <a class="nav-link" href="{% url 'categories' %}">Categories</a>
-            <a class="nav-pill seller-link" href="{% url 'seller_register' %}">🏪 Sell on Shopiva</a>
-            {% if request.user.is_authenticated and not request.user.is_staff and not request.user.is_superuser %}
-                <a class="nav-pill account-link" href="{% url 'customer_dashboard' %}">Account</a>
-            {% else %}
-                <a class="nav-pill account-link" href="{% url 'customer_login' %}">Sign in</a>
-                <a class="nav-pill signup-link" href="{% url 'customer_register' %}">Create account</a>
-            {% endif %}
-            <a class="nav-pill cart-link" href="{% url 'cart' %}">🛒 Cart</a>
-        </div>
-    </div>
-</nav>
-
-{% if messages %}
-<div class="flash" aria-live="polite">
-    {% for message in messages %}<div class="msg">{{ message }}</div>{% endfor %}
-</div>
-{% endif %}
-
+<nav class="navbar"><div class="wrap nav">
+<a class="brand" href="{% url 'home' %}"><div class="mark">S</div><div><b>Shopiva</b><small>KENYA LTD</small></div></a>
+<form class="search" method="get" action="{% url 'products' %}"><input name="q" type="search" placeholder="Search products, brands and deals…" aria-label="Search products"><button>Search</button></form>
+<div class="links"><a href="{% url 'products' %}" class="navhide">Shop</a><a href="{% url 'categories' %}" class="navhide">Categories</a><a class="sell" href="{% url 'seller_register' %}">🏪 Sell</a>{% if request.user.is_authenticated and not request.user.is_staff and not request.user.is_superuser %}<a href="{% url 'customer_dashboard' %}">Account</a>{% else %}<a href="{% url 'customer_login' %}" class="navhide">Sign in</a><a href="{% url 'customer_register' %}" class="signup">Create account</a>{% endif %}<a class="cart" href="{% url 'cart' %}">🛒 Cart</a></div>
+</div></nav>
+{% if messages %}<div class="flash">{% for message in messages %}<div>{{ message }}</div>{% endfor %}</div>{% endif %}
 <main>
-    <section class="hero-shell">
-        <div class="wrap">
-            <div class="hero" id="shopivaHero">
-                <article class="hero-slide slide-one is-active" data-slide="0">
-                    <div class="hero-bg"></div><div class="hero-overlay"></div>
-                    <div class="hero-content"><div class="hero-copy">
-                        <span class="eyebrow"><i class="pulse"></i> SHOPIVA KENYA LTD</span>
-                        <h1>Everything you need.<br><span>Closer to you.</span></h1>
-                        <p>Discover products from Shopiva sellers, compare choices, find deals and move from discovery to checkout without the clutter.</p>
-                        <div class="hero-actions"><a class="hero-btn primary" href="{% url 'products' %}">Explore products ↗</a><a class="hero-btn secondary" href="{% url 'seller_register' %}">Become a seller</a></div>
-                    </div></div>
-                    <div class="hero-art"><div class="art-orbit"><div class="art-core">🛍️</div><span class="art-bubble bubble-one">Smart search</span><span class="art-bubble bubble-two">Kenya ready</span><span class="art-bubble bubble-three">Easy checkout</span></div></div>
-                </article>
-
-                <article class="hero-slide slide-two" data-slide="1">
-                    <div class="hero-bg"></div><div class="hero-overlay"></div>
-                    <div class="hero-content"><div class="hero-copy">
-                        <span class="eyebrow"><i class="pulse"></i> DISCOVER MORE</span>
-                        <h1>Big style.<br><span>Better finds.</span></h1>
-                        <p>Move beyond ordinary shopping. Explore fashion, beauty, essentials and new sellers in one lively marketplace.</p>
-                        <div class="hero-actions"><a class="hero-btn primary" href="{% url 'products' %}?category=Fashion">Discover fashion</a><a class="hero-btn secondary" href="{% url 'products' %}">See all products</a></div>
-                    </div></div>
-                    <div class="hero-art"><div class="art-orbit"><div class="art-core">👟</div><span class="art-bubble bubble-one">Fresh drops</span><span class="art-bubble bubble-two">Trending</span><span class="art-bubble bubble-three">Top picks</span></div></div>
-                </article>
-
-                <article class="hero-slide slide-three" data-slide="2">
-                    <div class="hero-bg"></div><div class="hero-overlay"></div>
-                    <div class="hero-content"><div class="hero-copy">
-                        <span class="eyebrow"><i class="pulse"></i> TECH & EVERYDAY</span>
-                        <h1>From gadgets<br>to <span>daily life.</span></h1>
-                        <p>Find the things that make work, school, home and life easier — with product detail pages that keep discovery simple.</p>
-                        <div class="hero-actions"><a class="hero-btn primary" href="{% url 'products' %}?category=Electronics">Shop tech</a><a class="hero-btn secondary" href="{% url 'categories' %}">Browse categories</a></div>
-                    </div></div>
-                    <div class="hero-art"><div class="art-orbit"><div class="art-core">💻</div><span class="art-bubble bubble-one">Work smarter</span><span class="art-bubble bubble-two">Useful finds</span><span class="art-bubble bubble-three">New tech</span></div></div>
-                </article>
-
-                <article class="hero-slide slide-four" data-slide="3">
-                    <div class="hero-bg"></div><div class="hero-overlay"></div>
-                    <div class="hero-content"><div class="hero-copy">
-                        <span class="eyebrow"><i class="pulse"></i> DEALS & PROMOS</span>
-                        <h1>Spot the deal.<br><span>Save the move.</span></h1>
-                        <p>Highlighted prices, discounts and promotions are brought forward so customers can find the value faster.</p>
-                        <div class="hero-actions"><a class="hero-btn primary" href="{% url 'products' %}">Shop the marketplace</a><a class="hero-btn secondary" href="#featured">See featured picks</a></div>
-                    </div></div>
-                    <div class="hero-art"><div class="art-orbit"><div class="art-core">🏷️</div><span class="art-bubble bubble-one">Deals</span><span class="art-bubble bubble-two">Promos</span><span class="art-bubble bubble-three">Value</span></div></div>
-                </article>
-
-                <article class="hero-slide slide-five" data-slide="4">
-                    <div class="hero-bg"></div><div class="hero-overlay"></div>
-                    <div class="hero-content"><div class="hero-copy">
-                        <span class="eyebrow"><i class="pulse"></i> CHECKOUT READY</span>
-                        <h1>A smoother path<br>to <span>your basket.</span></h1>
-                        <p>Add products, review your basket, choose delivery details and continue into Shopiva checkout when you are ready.</p>
-                        <div class="hero-actions"><a class="hero-btn primary" href="{% url 'cart' %}">Open my cart</a><a class="hero-btn secondary" href="{% url 'products' %}">Keep shopping</a></div>
-                    </div></div>
-                    <div class="hero-art"><div class="art-orbit"><div class="art-core">🛒</div><span class="art-bubble bubble-one">Basket</span><span class="art-bubble bubble-two">Checkout</span><span class="art-bubble bubble-three">Delivery</span></div></div>
-                </article>
-
-                <article class="hero-slide slide-six" data-slide="5">
-                    <div class="hero-bg"></div><div class="hero-overlay"></div>
-                    <div class="hero-content"><div class="hero-copy">
-                        <span class="eyebrow"><i class="pulse"></i> DELIVERY VISIBILITY</span>
-                        <h1>Order placed.<br><span>Journey visible.</span></h1>
-                        <p>Shopiva is built around order history, delivery status and customer-safe location updates so the journey does not disappear after checkout.</p>
-                        <div class="hero-actions"><a class="hero-btn primary" href="{% url 'customer_login' %}">Track my orders</a><a class="hero-btn secondary" href="{% url 'products' %}">Shop first</a></div>
-                    </div></div>
-                    <div class="hero-art"><div class="art-orbit"><div class="art-core">📍</div><span class="art-bubble bubble-one">Track</span><span class="art-bubble bubble-two">Updates</span><span class="art-bubble bubble-three">Delivery</span></div></div>
-                </article>
-
-                <article class="hero-slide slide-seven" data-slide="6">
-                    <div class="hero-bg"></div><div class="hero-overlay"></div>
-                    <div class="hero-content"><div class="hero-copy">
-                        <span class="eyebrow"><i class="pulse"></i> SAVE YOUR PICKS</span>
-                        <h1>See it. Love it.<br><span>Save it.</span></h1>
-                        <p>Customers can keep products close with Shopiva wishlist tools, customer accounts and a growing marketplace built for repeat discovery.</p>
-                        <div class="hero-actions"><a class="hero-btn primary" href="{% url 'customer_register' %}">Create my account</a><a class="hero-btn secondary" href="{% url 'products' %}">Start discovering</a></div>
-                    </div></div>
-                    <div class="hero-art"><div class="art-orbit"><div class="art-core">♥</div><span class="art-bubble bubble-one">Wishlist</span><span class="art-bubble bubble-two">Favorites</span><span class="art-bubble bubble-three">Repeat</span></div></div>
-                </article>
-
-                <article class="hero-slide slide-eight" data-slide="7">
-                    <div class="hero-bg"></div><div class="hero-overlay"></div>
-                    <div class="hero-content"><div class="hero-copy">
-                        <span class="eyebrow"><i class="pulse"></i> GROW WITH SHOPIVA</span>
-                        <h1>Have products?<br><span>Put them in motion.</span></h1>
-                        <p>Sell to customers through the Shopiva marketplace and manage your product journey from a seller account.</p>
-                        <div class="hero-actions"><a class="hero-btn primary" href="{% url 'seller_register' %}">Start selling</a><a class="hero-btn secondary" href="{% url 'seller_login' %}">Seller sign in</a></div>
-                    </div></div>
-                    <div class="hero-art"><div class="art-orbit"><div class="art-core">🏪</div><span class="art-bubble bubble-one">List</span><span class="art-bubble bubble-two">Manage</span><span class="art-bubble bubble-three">Grow</span></div></div>
-                </article>
-
-                <div class="hero-controls">
-                    <div class="dots" role="tablist" aria-label="Shopiva homepage slides">
-                        <button class="dot is-active" data-go="0" aria-label="Slide 1"></button><button class="dot" data-go="1" aria-label="Slide 2"></button><button class="dot" data-go="2" aria-label="Slide 3"></button><button class="dot" data-go="3" aria-label="Slide 4"></button><button class="dot" data-go="4" aria-label="Slide 5"></button><button class="dot" data-go="5" aria-label="Slide 6"></button><button class="dot" data-go="6" aria-label="Slide 7"></button><button class="dot" data-go="7" aria-label="Slide 8"></button>
-                    </div>
-                    <div class="hero-nav"><button class="hero-arrow" id="heroPrev" aria-label="Previous slide">‹</button><button class="hero-arrow" id="heroNext" aria-label="Next slide">›</button></div>
-                </div>
-                <div class="progress"><span class="progress-run"></span></div>
-            </div>
-        </div>
-    </section>
-
-    <section class="wrap quick-strip" aria-label="Shopiva highlights">
-        <div class="quick-card"><div class="quick-icon">🔎</div><div><strong>Search the marketplace</strong><span>Find products quickly</span></div></div>
-        <div class="quick-card"><div class="quick-icon">🏪</div><div><strong>Discover sellers</strong><span>Explore local businesses</span></div></div>
-        <div class="quick-card"><div class="quick-icon">📦</div><div><strong>Follow your order</strong><span>Delivery visibility built in</span></div></div>
-        <div class="quick-card"><div class="quick-icon">💚</div><div><strong>Shopiva for Kenya</strong><span>Built around local shopping</span></div></div>
-    </section>
-
-    <section class="wrap section">
-        <div class="section-head"><div><div class="kicker">Explore the marketplace</div><h2>Shop by mood, need or moment.</h2></div><a class="text-link" href="{% url 'categories' %}">View all categories →</a></div>
-        <div class="category-grid">
-            <a class="category" href="{% url 'products' %}?category=Electronics"><span class="emoji">📱</span><strong>Electronics</strong></a>
-            <a class="category" href="{% url 'products' %}?category=Fashion"><span class="emoji">👕</span><strong>Fashion</strong></a>
-            <a class="category" href="{% url 'products' %}?category=Footwear"><span class="emoji">👟</span><strong>Footwear</strong></a>
-            <a class="category" href="{% url 'products' %}?category=Beauty"><span class="emoji">✨</span><strong>Beauty</strong></a>
-            <a class="category" href="{% url 'products' %}?category=Home"><span class="emoji">🏠</span><strong>Home</strong></a>
-            <a class="category" href="{% url 'products' %}?category=Sports"><span class="emoji">⚽</span><strong>Sports</strong></a>
-            <a class="category" href="{% url 'products' %}?category=Essentials"><span class="emoji">🧺</span><strong>Essentials</strong></a>
-            <a class="category" href="{% url 'products' %}"><span class="emoji">⚡</span><strong>All products</strong></a>
-        </div>
-    </section>
-
-    <section class="wrap section" id="featured">
-        <div class="section-head"><div><div class="kicker">Curated for discovery</div><h2>Featured Shopiva picks.</h2><p class="section-sub">When products are available, this space surfaces featured, promotional and recent marketplace items.</p></div><a class="text-link" href="{% url 'products' %}">Open marketplace →</a></div>
-        <div class="product-grid">
-            {% for product in featured_products %}
-                <article class="product-card">
-                    <a class="product-visual" href="{% url 'product_detail' product.id %}">
-                        {% if product.discount_percent %}<span class="sale-badge">-{{ product.discount_percent }}%</span>{% endif %}
-                        {% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">{% else %}<div class="product-placeholder">🛍️</div>{% endif %}
-                    </a>
-                    <div class="product-info">
-                        <div class="product-meta"><span>{{ product.category|default:'Marketplace' }}</span>{% if product.seller %}<span>{{ product.seller.business_name|default:'Shopiva Seller'|truncatechars:18 }}</span>{% endif %}</div>
-                        <a class="product-name" href="{% url 'product_detail' product.id %}">{{ product.name|truncatechars:46 }}</a>
-                        <p class="product-description">{{ product.description|default:'A Shopiva marketplace pick ready for discovery.'|truncatechars:86 }}</p>
-                        <div class="product-bottom">
-                            <div><span class="price">KSh {{ product.discounted_price|floatformat:2 }}</span>{% if product.discount_percent %}<span class="old-price"><del>KSh {{ product.price|floatformat:2 }}</del></span>{% endif %}</div>
-                            <a class="view-btn" href="{% url 'product_detail' product.id %}">View</a>
-                        </div>
-                    </div>
-                </article>
-            {% empty %}
-                <div class="empty-products">
-                    <div class="big">🛍️</div>
-                    <h3>The marketplace is warming up.</h3>
-                    <p>Shopiva is ready for products. Browse the catalogue, create an account, or become a seller and put the next great product on the shelf.</p>
-                    <div class="empty-actions"><a class="hero-btn primary" style="background:var(--ink);color:#fff" href="{% url 'products' %}">Browse marketplace</a><a class="hero-btn secondary" style="background:#effaf3;border-color:#d8efe1;color:#08713a" href="{% url 'seller_register' %}">Sell on Shopiva</a></div>
-                </div>
-            {% endfor %}
-        </div>
-    </section>
-
-    {% if discounted_products %}
-    <section class="wrap section">
-        <div class="section-head"><div><div class="kicker">Promotions</div><h2>Deals worth a closer look.</h2></div><a class="text-link" href="{% url 'products' %}">See all deals →</a></div>
-        <div class="product-grid">
-            {% for product in discounted_products|slice:":4" %}
-                <article class="product-card">
-                    <a class="product-visual" href="{% url 'product_detail' product.id %}"><span class="sale-badge">SAVE {{ product.discount_percent }}%</span>{% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">{% else %}<div class="product-placeholder">🏷️</div>{% endif %}</a>
-                    <div class="product-info"><div class="product-meta"><span>{{ product.promo_text|default:'Shopiva deal'|truncatechars:26 }}</span><span>Limited</span></div><a class="product-name" href="{% url 'product_detail' product.id %}">{{ product.name|truncatechars:46 }}</a><div class="product-bottom"><span class="price">KSh {{ product.discounted_price|floatformat:2 }}</span><a class="view-btn" href="{% url 'product_detail' product.id %}">Grab it</a></div></div>
-                </article>
-            {% endfor %}
-        </div>
-    </section>
-    {% endif %}
-
-    <section class="wrap story">
-        <div class="story-grid">
-            <div>
-                <div class="kicker" style="color:var(--green)">Built to feel like a marketplace</div>
-                <h3>Not just a catalogue. A living shopping experience.</h3>
-                <p>Shopiva brings customers, sellers, products, checkout and delivery visibility into one connected journey — with a visual storefront designed to make people want to explore.</p>
-                <div class="story-actions"><a class="a1" href="{% url 'products' %}">Start shopping ↗</a><a class="a2" href="{% url 'seller_register' %}">Join as a seller</a></div>
-            </div>
-            <div class="feature-stack">
-                <div class="feature-tile"><div class="feature-icon">⚡</div><strong>Fast discovery</strong><span>Search, categories and focused product surfaces.</span></div>
-                <div class="feature-tile"><div class="feature-icon">🧾</div><strong>Order flow</strong><span>Basket, checkout, order history and status.</span></div>
-                <div class="feature-tile"><div class="feature-icon">📍</div><strong>Delivery visibility</strong><span>Customer-safe delivery location updates.</span></div>
-                <div class="feature-tile"><div class="feature-icon">🤝</div><strong>Seller growth</strong><span>Product management for marketplace sellers.</span></div>
-            </div>
-        </div>
-    </section>
-
-    <section class="wrap section" style="padding-bottom:72px">
-        <div class="benefits">
-            <div class="benefit"><div class="benefit-icon">🔐</div><h3>Account-ready shopping</h3><p>Customer accounts, profiles, addresses, wishlists and order history.</p></div>
-            <div class="benefit"><div class="benefit-icon">💳</div><h3>Checkout journey</h3><p>Cart and checkout flows are part of the same marketplace experience.</p></div>
-            <div class="benefit"><div class="benefit-icon">⭐</div><h3>Reviews & discovery</h3><p>Customers can review products and build confidence while shopping.</p></div>
-            <div class="benefit"><div class="benefit-icon">🧠</div><h3>Shopiva intelligence</h3><p>Digital storefront foundations are ready for smarter shopping tools.</p></div>
-        </div>
-    </section>
+<section class="hero-wrap"><div class="wrap"><div class="hero" id="hero">
+<div class="slide s1 active"><div class="bg"></div><div class="overlay"></div><div class="hero-inner"><div class="copy"><span class="eyebrow"><i class="pulse"></i> SHOPIVA KENYA LTD</span><h1>Everything you need.<br><span>Closer to you.</span></h1><p>Discover products, sellers and deals in a marketplace made to feel fast, visual and easy to use.</p><div class="actions"><a class="btn primary" href="{% url 'products' %}">Explore products ↗</a><a class="btn ghost" href="{% url 'seller_register' %}">Become a seller</a></div></div></div><div class="art"><div class="orbit"><div class="core">🛍️</div><span class="bubble b1">Smart search</span><span class="bubble b2">Kenya ready</span><span class="bubble b3">Easy checkout</span></div></div></div>
+<div class="slide s2"><div class="bg"></div><div class="overlay"></div><div class="hero-inner"><div class="copy"><span class="eyebrow"><i class="pulse"></i> DISCOVER MORE</span><h1>Big style.<br><span>Better finds.</span></h1><p>Fashion, footwear, beauty and everyday products come together in one lively shopping destination.</p><div class="actions"><a class="btn primary" href="{% url 'products' %}?category=Fashion">Discover fashion</a><a class="btn ghost" href="{% url 'products' %}">See marketplace</a></div></div></div><div class="art"><div class="orbit"><div class="core">👟</div><span class="bubble b1">Fresh drops</span><span class="bubble b2">Trending</span><span class="bubble b3">Top picks</span></div></div></div>
+<div class="slide s3"><div class="bg"></div><div class="overlay"></div><div class="hero-inner"><div class="copy"><span class="eyebrow"><i class="pulse"></i> TECH & EVERYDAY</span><h1>Work smarter.<br><span>Live easier.</span></h1><p>Find gadgets, home tools and useful products without digging through a dull catalogue.</p><div class="actions"><a class="btn primary" href="{% url 'products' %}?category=Electronics">Shop tech</a><a class="btn ghost" href="{% url 'categories' %}">Browse categories</a></div></div></div><div class="art"><div class="orbit"><div class="core">💻</div><span class="bubble b1">Useful tech</span><span class="bubble b2">New finds</span><span class="bubble b3">Everyday</span></div></div></div>
+<div class="slide s4"><div class="bg"></div><div class="overlay"></div><div class="hero-inner"><div class="copy"><span class="eyebrow"><i class="pulse"></i> DEALS & PROMOS</span><h1>Spot the deal.<br><span>Save the move.</span></h1><p>Promotions and discounted products are surfaced where shoppers can actually notice them.</p><div class="actions"><a class="btn primary" href="{% url 'products' %}">Shop deals</a><a class="btn ghost" href="#featured">Featured picks</a></div></div></div><div class="art"><div class="orbit"><div class="core">🏷️</div><span class="bubble b1">Deals</span><span class="bubble b2">Promos</span><span class="bubble b3">Value</span></div></div></div>
+<div class="slide s5"><div class="bg"></div><div class="overlay"></div><div class="hero-inner"><div class="copy"><span class="eyebrow"><i class="pulse"></i> CHECKOUT READY</span><h1>Your basket.<br><span>Your way.</span></h1><p>Add products, review your basket and continue through the existing Shopiva checkout journey when you are ready.</p><div class="actions"><a class="btn primary" href="{% url 'cart' %}">Open cart</a><a class="btn ghost" href="{% url 'products' %}">Keep shopping</a></div></div></div><div class="art"><div class="orbit"><div class="core">🛒</div><span class="bubble b1">Basket</span><span class="bubble b2">Checkout</span><span class="bubble b3">Delivery</span></div></div></div>
+<div class="slide s6"><div class="bg"></div><div class="overlay"></div><div class="hero-inner"><div class="copy"><span class="eyebrow"><i class="pulse"></i> DELIVERY VISIBILITY</span><h1>Order placed.<br><span>Journey visible.</span></h1><p>Keep the customer journey connected with order history, delivery status and location-aware tracking tools.</p><div class="actions"><a class="btn primary" href="{% url 'customer_login' %}">Track my orders</a><a class="btn ghost" href="{% url 'products' %}">Shop first</a></div></div></div><div class="art"><div class="orbit"><div class="core">📍</div><span class="bubble b1">Track</span><span class="bubble b2">Updates</span><span class="bubble b3">Delivery</span></div></div></div>
+<div class="slide s7"><div class="bg"></div><div class="overlay"></div><div class="hero-inner"><div class="copy"><span class="eyebrow"><i class="pulse"></i> SAVE YOUR PICKS</span><h1>See it.<br><span>Save it.</span></h1><p>Keep favorite products close with a customer account and wishlist experience built for repeat discovery.</p><div class="actions"><a class="btn primary" href="{% url 'customer_register' %}">Create account</a><a class="btn ghost" href="{% url 'products' %}">Start discovering</a></div></div></div><div class="art"><div class="orbit"><div class="core">♥</div><span class="bubble b1">Wishlist</span><span class="bubble b2">Favorites</span><span class="bubble b3">Repeat</span></div></div></div>
+<div class="slide s8"><div class="bg"></div><div class="overlay"></div><div class="hero-inner"><div class="copy"><span class="eyebrow"><i class="pulse"></i> GROW WITH SHOPIVA</span><h1>Have products?<br><span>Put them in motion.</span></h1><p>Join the marketplace, list products and serve customers through the Shopiva seller experience.</p><div class="actions"><a class="btn primary" href="{% url 'seller_register' %}">Start selling</a><a class="btn ghost" href="{% url 'seller_login' %}">Seller sign in</a></div></div></div><div class="art"><div class="orbit"><div class="core">🏪</div><span class="bubble b1">List</span><span class="bubble b2">Manage</span><span class="bubble b3">Grow</span></div></div></div>
+<div class="controls"><div class="dots">{% for n in "01234567" %}<button class="dot{% if forloop.first %} on{% endif %}" data-go="{{ forloop.counter0 }}" aria-label="Slide {{ forloop.counter }}"></button>{% endfor %}</div><div class="arrows"><button class="arrow" id="prev" aria-label="Previous">‹</button><button class="arrow" id="next" aria-label="Next">›</button></div></div><div class="progress"><i id="bar"></i></div>
+</div></div></section>
+<section class="wrap shortcuts"><a class="shortcut" href="{% url 'products' %}"><span class="si">🔎</span><span><b>Search the marketplace</b><span>Find products quickly</span></span></a><a class="shortcut" href="{% url 'seller_register' %}"><span class="si">🏪</span><span><b>Discover sellers</b><span>Explore local businesses</span></span></a><a class="shortcut" href="{% url 'customer_login' %}"><span class="si">📦</span><span><b>Follow your order</b><span>Journey visibility built in</span></span></a><a class="shortcut" href="{% url 'categories' %}"><span class="si">💚</span><span><b>Shopiva for Kenya</b><span>Built around local shopping</span></span></a></section>
+<section class="wrap section"><div class="head"><div><div class="kicker">Explore the marketplace</div><h2>Shop by mood, need or moment.</h2></div><a class="link" href="{% url 'categories' %}">View categories →</a></div><div class="cats"><a class="cat" href="{% url 'products' %}?category=Electronics"><i>📱</i><b>Electronics</b></a><a class="cat" href="{% url 'products' %}?category=Fashion"><i>👕</i><b>Fashion</b></a><a class="cat" href="{% url 'products' %}?category=Footwear"><i>👟</i><b>Footwear</b></a><a class="cat" href="{% url 'products' %}?category=Beauty"><i>✨</i><b>Beauty</b></a><a class="cat" href="{% url 'products' %}?category=Home"><i>🏠</i><b>Home</b></a><a class="cat" href="{% url 'products' %}?category=Sports"><i>⚽</i><b>Sports</b></a><a class="cat" href="{% url 'products' %}?category=Essentials"><i>🧺</i><b>Essentials</b></a><a class="cat" href="{% url 'products' %}"><i>⚡</i><b>All products</b></a></div></section>
+<section class="wrap section" id="featured"><div class="head"><div><div class="kicker">Curated for discovery</div><h2>Featured Shopiva picks.</h2><p>This area automatically fills with featured, promotional and recent products when the marketplace has inventory.</p></div><a class="link" href="{% url 'products' %}">Open marketplace →</a></div><div class="products">{% for product in featured_products %}<article class="card"><a class="visual" href="{% url 'product_detail' product.id %}">{% if product.discount_percent %}<span class="badge">-{{ product.discount_percent }}%</span>{% endif %}{% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">{% else %}<span class="placeholder">🛍️</span>{% endif %}</a><div class="info"><div class="meta"><span>{{ product.category|default:'Marketplace' }}</span>{% if product.seller %}<span>{{ product.seller.business_name|default:'Shopiva Seller'|truncatechars:18 }}</span>{% endif %}</div><a class="name" href="{% url 'product_detail' product.id %}">{{ product.name|truncatechars:45 }}</a><p class="desc">{{ product.description|default:'A Shopiva marketplace pick ready for discovery.'|truncatechars:82 }}</p><div class="bottom"><span class="price">KSh {{ product.discounted_price|floatformat:2 }}{% if product.discount_percent %}<span class="old"><del>KSh {{ product.price|floatformat:2 }}</del></span>{% endif %}</span><a class="view" href="{% url 'product_detail' product.id %}">View</a></div></div></article>{% empty %}<div class="empty"><div style="font-size:42px">🛍️</div><strong>The marketplace is warming up.</strong><p>Shopiva is ready for products. Browse the catalogue, create an account, or become a seller and put the next great product on the shelf.</p><div class="actions" style="justify-content:center"><a class="btn primary" style="background:var(--ink);color:#fff" href="{% url 'products' %}">Browse marketplace</a><a class="btn" style="background:#eafff1;color:#08743e" href="{% url 'seller_register' %}">Sell on Shopiva</a></div></div>{% endfor %}</div></section>
+{% if discounted_products %}<section class="wrap section"><div class="head"><div><div class="kicker">Promotions</div><h2>Deals worth a closer look.</h2></div><a class="link" href="{% url 'products' %}">See all deals →</a></div><div class="products">{% for product in discounted_products|slice:":4" %}<article class="card"><a class="visual" href="{% url 'product_detail' product.id %}"><span class="badge">SAVE {{ product.discount_percent }}%</span>{% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">{% else %}<span class="placeholder">🏷️</span>{% endif %}</a><div class="info"><div class="meta"><span>{{ product.promo_text|default:'Shopiva deal'|truncatechars:24 }}</span><span>Limited</span></div><a class="name" href="{% url 'product_detail' product.id %}">{{ product.name|truncatechars:45 }}</a><div class="bottom"><span class="price">KSh {{ product.discounted_price|floatformat:2 }}</span><a class="view" href="{% url 'product_detail' product.id %}">Grab it</a></div></div></article>{% endfor %}</div></section>{% endif %}
+<section class="wrap story"><div class="story-grid"><div><div class="kicker" style="color:var(--green)">Built to feel like a marketplace</div><h3>Not just a catalogue. A living shopping experience.</h3><p>Shopiva connects customers, sellers, products, checkout and delivery visibility into one connected journey — with a storefront designed to make people want to explore.</p><a class="btn primary" href="{% url 'products' %}">Start shopping ↗</a></div><div class="tiles"><div class="tile"><i>⚡</i><b>Fast discovery</b><span>Search, categories and product surfaces.</span></div><div class="tile"><i>🧾</i><b>Order flow</b><span>Basket, checkout and order history.</span></div><div class="tile"><i>📍</i><b>Delivery visibility</b><span>Customer-safe delivery updates.</span></div><div class="tile"><i>🤝</i><b>Seller growth</b><span>Product management for sellers.</span></div></div></div></section>
+<section class="wrap benefits"><div class="benefit"><div class="bi">🔐</div><b>Account-ready shopping</b><p>Customer accounts, addresses, wishlists and order history.</p></div><div class="benefit"><div class="bi">🛒</div><b>Connected basket</b><p>Customers can move from product discovery into cart and checkout.</p></div><div class="benefit"><div class="bi">⭐</div><b>Reviews & trust</b><p>Product reviews support better shopping decisions.</p></div><div class="benefit"><div class="bi">🧠</div><b>Digital marketplace</b><p>A visual storefront ready to grow with smarter tools.</p></div></section>
 </main>
-
-<footer>
-    <div class="wrap footer-grid">
-        <div class="footer-brand"><div class="brand"><div class="brand-mark">S</div><div class="brand-copy"><strong style="color:#fff">Shopiva</strong><span style="color:rgba(255,255,255,.42)">KENYA LTD</span></div></div><p>Shop smarter. Live better. A Kenyan marketplace for discovering products, sellers, deals and delivery.</p></div>
-        <div class="footer-col"><strong>Shop</strong><a href="{% url 'products' %}">All products</a><a href="{% url 'categories' %}">Categories</a><a href="{% url 'cart' %}">Cart</a></div>
-        <div class="footer-col"><strong>Sell</strong><a href="{% url 'seller_register' %}">Become a seller</a><a href="{% url 'seller_login' %}">Seller login</a></div>
-        <div class="footer-col"><strong>Shopiva</strong><a href="{% url 'privacy_policy' %}">Privacy</a><a href="{% url 'terms_of_service' %}">Terms</a><a href="{% url 'ai_shop_assistant' %}">Shopiva assistant</a></div>
-    </div>
-    <div class="wrap footer-bottom"><span>© {% now "Y" %} Shopiva Kenya LTD. All rights reserved.</span><span>Marketplace • Sellers • Delivery • Digital shopping</span></div>
-</footer>
-
+<footer><div class="wrap foot"><div class="foot-brand"><div class="brand"><div class="mark">S</div><div><b style="color:#fff">Shopiva</b><small style="color:rgba(255,255,255,.42)">KENYA LTD</small></div></div><p>Shop smarter. Live better. A Kenyan marketplace for discovering products, sellers, deals and delivery.</p></div><div><b>Shop</b><a href="{% url 'products' %}">All products</a><a href="{% url 'categories' %}">Categories</a><a href="{% url 'cart' %}">Cart</a></div><div><b>Sell</b><a href="{% url 'seller_register' %}">Become a seller</a><a href="{% url 'seller_login' %}">Seller login</a></div><div><b>Shopiva</b><a href="{% url 'privacy_policy' %}">Privacy</a><a href="{% url 'terms_of_service' %}">Terms</a><a href="{% url 'customer_login' %}">Customer account</a></div></div><div class="wrap foot-bottom"><span>© {% now "Y" %} Shopiva Kenya LTD. All rights reserved.</span><span>Marketplace • Sellers • Delivery • Digital shopping</span></div></footer>
 <script>
-(function(){
-    const hero = document.getElementById('shopivaHero');
-    if (!hero) return;
-    const slides = Array.from(hero.querySelectorAll('.hero-slide'));
-    const dots = Array.from(hero.querySelectorAll('.dot'));
-    const prev = document.getElementById('heroPrev');
-    const next = document.getElementById('heroNext');
-    const progress = hero.querySelector('.progress-run');
-    const interval = 4800;
-    let index = 0;
-    let timer;
-
-    function show(nextIndex){
-        index = (nextIndex + slides.length) % slides.length;
-        slides.forEach((slide, i) => slide.classList.toggle('is-active', i === index));
-        dots.forEach((dot, i) => dot.classList.toggle('is-active', i === index));
-        if (progress) { progress.style.animation = 'none'; void progress.offsetWidth; progress.style.animation = 'slideProgress 4.8s linear forwards'; }
-    }
-    function restart(){ clearInterval(timer); timer = setInterval(() => show(index + 1), interval); }
-    dots.forEach(dot => dot.addEventListener('click', () => { show(Number(dot.dataset.go)); restart(); }));
-    if (prev) prev.addEventListener('click', () => { show(index - 1); restart(); });
-    if (next) next.addEventListener('click', () => { show(index + 1); restart(); });
-    hero.addEventListener('mouseenter', () => clearInterval(timer));
-    hero.addEventListener('mouseleave', restart);
-    show(0); restart();
-})();
+(()=>{const root=document.getElementById('hero');if(!root)return;const slides=[...root.querySelectorAll('.slide')],dots=[...root.querySelectorAll('.dot')],bar=document.getElementById('bar');let i=0,t;const show=n=>{i=(n+slides.length)%slides.length;slides.forEach((s,k)=>s.classList.toggle('active',k===i));dots.forEach((d,k)=>d.classList.toggle('on',k===i));bar.style.animation='none';void bar.offsetWidth;bar.style.animation='run 4.8s linear forwards'};const restart=()=>{clearInterval(t);t=setInterval(()=>show(i+1),4800)};dots.forEach(d=>d.onclick=()=>{show(+d.dataset.go);restart()});document.getElementById('prev').onclick=()=>{show(i-1);restart()};document.getElementById('next').onclick=()=>{show(i+1);restart()};root.onmouseenter=()=>clearInterval(t);root.onmouseleave=restart;show(0);restart()})();
 </script>
+<style>@keyframes run{from{width:0}to{width:100%}}</style>
 </body>
 </html>
