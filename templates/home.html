@@ -24,9 +24,24 @@
 footer{margin-top:46px;background:#041b11;color:#dceee3;padding:35px 0 78px}.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:22px}.footer-title{font-size:22px;font-weight:950}.footer-grid h4{margin:0 0 9px}.footer-grid p,.footer-grid a{font-size:12px;color:#a8c3b2;line-height:1.8}.mobile-nav{display:none}
 @media(max-width:1000px){.hero-card{display:none}.trust{grid-template-columns:repeat(2,1fr)}.deals{grid-template-columns:repeat(2,1fr)}.categories{grid-template-columns:repeat(4,1fr)}.nav-inner{flex-wrap:wrap;padding:10px 0}.brand{min-width:auto}.search{order:3;max-width:none;width:100%}}
 @media(max-width:620px){body{padding-bottom:74px}.container{width:min(100% - 20px,520px)}.brand img{width:46px;height:46px}.brand-text strong{font-size:21px}.links a:not(.cart):not(.signup){display:none}.hero{min-height:560px;margin-top:12px;border-radius:22px}.hero-content{padding:34px 24px}.hero h1{font-size:46px}.hero p{font-size:15px}.trust{grid-template-columns:1fr 1fr;gap:9px}.trust-card{padding:13px}.deals{grid-template-columns:1fr 1fr;gap:9px}.deal-media{height:155px}.deal-body{padding:11px}.deal-body h3{font-size:12px}.price{font-size:15px}.shop-btn{padding:7px 8px;font-size:10px}.categories{grid-template-columns:repeat(4,1fr);gap:7px}.cat{padding:11px 4px}.cat-icon{width:38px;height:38px;font-size:19px}.cat b{font-size:9px}.smart{grid-template-columns:1fr;margin-top:20px}.footer-grid{grid-template-columns:1fr 1fr}.mobile-nav{display:flex;position:fixed;left:8px;right:8px;bottom:8px;z-index:2000;padding:8px 5px;border-radius:19px;background:rgba(4,27,17,.96);border:1px solid rgba(255,255,255,.12);justify-content:space-around;box-shadow:0 18px 50px rgba(0,0,0,.3)}.mobile-nav a{color:#dceee3;font-size:9px;text-align:center;font-weight:800}.mobile-nav b{display:block;font-size:19px;margin-bottom:2px}.mobile-nav a:first-child{color:#5ef29a}}
+
+/* SHOPIVA FAST BOOT — show the real brand immediately while Django finishes paint */
+#shopiva-boot{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:#031b12;opacity:1;visibility:visible;transition:opacity .28s ease,visibility .28s ease}
+#shopiva-boot.is-ready{opacity:0;visibility:hidden;pointer-events:none}
+#shopiva-boot .boot-card{text-align:center;color:#fff;transform:translateY(0);animation:shopivaBootIn .35s ease-out both}
+#shopiva-boot img{width:min(180px,42vw);height:min(180px,42vw);border-radius:34px;display:block;margin:auto;box-shadow:0 20px 70px rgba(0,0,0,.38)}
+#shopiva-boot strong{display:block;margin-top:18px;font-size:22px;letter-spacing:-.04em}
+#shopiva-boot span{display:block;margin-top:6px;color:#a9cdbb;font-size:11px;letter-spacing:.16em;font-weight:800}
+#shopiva-boot .boot-line{width:110px;height:3px;margin:18px auto 0;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}
+#shopiva-boot .boot-line i{display:block;width:45%;height:100%;background:#39ed7c;border-radius:99px;animation:shopivaBootLine .75s ease-in-out infinite}
+@keyframes shopivaBootIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:none}}
+@keyframes shopivaBootLine{0%{transform:translateX(-120%)}100%{transform:translateX(340%)}}
+@media(prefers-reduced-motion:reduce){#shopiva-boot{transition:none}#shopiva-boot .boot-line i{animation:none;width:100%}}
 </style>
 </head>
 <body>
+<div id="shopiva-boot" role="status" aria-label="Loading Shopiva"><div class="boot-card"><img src="{% static 'shopiva/shopiva-shopping-logo.svg' %}" alt="Shopiva Kenya LTD"><strong>Shopiva Kenya LTD</strong><span>EVERYTHING YOU NEED, CLOSER TO YOU.</span><div class="boot-line"><i></i></div></div></div>
+
 <header class="nav"><div class="container nav-inner">
 <a class="brand" href="{% url 'home' %}"><img src="{% static 'shopiva/shopiva-shopping-logo.svg' %}" alt="Shopiva Kenya LTD"><span class="brand-text"><strong>Shop<span>iva</span></strong><small>KENYA LTD</small></span></a>
 <form class="search" action="{% url 'products' %}" method="get"><input name="q" placeholder="Search products, brands and deals..." autocomplete="off"><button>Search</button></form>
@@ -43,4 +58,12 @@ footer{margin-top:46px;background:#041b11;color:#dceee3;padding:35px 0 78px}.foo
 <footer><div class="container footer-grid"><div><div class="footer-title">Shop<span style="color:#34e57c">iva</span> Kenya LTD</div><p>Everything You Need, Closer to You.</p></div><div><h4>Shop</h4><a href="{% url 'products' %}">Products</a><br><a href="{% url 'categories' %}">Categories</a><br><a href="{% url 'cart' %}">Cart</a></div><div><h4>Customer</h4><a href="{% url 'customer_login' %}">Sign in</a><br><a href="{% url 'customer_register' %}">Create account</a><br><a href="{% url 'customer_orders' %}">Orders</a></div><div><h4>More</h4><a href="{% url 'shop_assistant' %}">Shopiva AI</a><br><a href="{% url 'seller_register' %}">Sell on Shopiva</a><br><a href="{% url 'app_install' %}">Install app</a></div></div></footer>
 <nav class="mobile-nav"><a href="{% url 'home' %}"><b>⌂</b>Home</a><a href="{% url 'products' %}"><b>▦</b>Shop</a><a href="{% url 'cart' %}"><b>🛒</b>Cart</a><a href="{% url 'customer_orders' %}"><b>▣</b>Orders</a><a href="{% url 'customer_dashboard' %}"><b>●</b>Account</a></nav>
 <script>(function(){let t=3600;const el=document.getElementById('deal-clock');setInterval(function(){t=Math.max(0,t-1);const h=String(Math.floor(t/3600)).padStart(2,'0'),m=String(Math.floor(t%3600/60)).padStart(2,'0'),s=String(t%60).padStart(2,'0');el.textContent=h+':'+m+':'+s;if(t===0)t=3600},1000);const viewed=JSON.parse(localStorage.getItem('shopiva_viewed')||'[]');document.querySelectorAll('.deal a.shop-btn').forEach(a=>a.addEventListener('click',()=>{viewed.unshift(a.href);localStorage.setItem('shopiva_viewed',JSON.stringify([...new Set(viewed)].slice(0,12)))}))})();</script>
+<script>(function(){
+ const boot=document.getElementById('shopiva-boot');
+ if(!boot)return;
+ const hide=()=>requestAnimationFrame(()=>boot.classList.add('is-ready'));
+ if(document.readyState==='interactive'||document.readyState==='complete')hide();
+ else document.addEventListener('DOMContentLoaded',hide,{once:true});
+ setTimeout(hide,1200);
+})();</script>
 </body></html>
