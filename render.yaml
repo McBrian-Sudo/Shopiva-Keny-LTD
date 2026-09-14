@@ -13,6 +13,8 @@ services:
       python manage.py collectstatic --noinput
     startCommand: gunicorn shopiva.wsgi:application
     envVars:
+      - key: DATABASE_URL
+        sync: false
       - key: DEBUG
         value: "false"
       - key: ALLOWED_HOSTS
@@ -58,7 +60,7 @@ services:
       - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
       - key: WHATSAPP_GRAPH_VERSION
-        sync: false
+        value: "v23.0"
       - key: WHATSAPP_TEMPLATE_NAME
         sync: false
       - key: WHATSAPP_TEMPLATE_LANGUAGE
@@ -67,10 +69,8 @@ services:
         sync: false
       - key: GOOGLE_MAPS_MAP_ID
         sync: false
-        value: "sandbox"
-        sync: false
-        sync: false
-        sync: false
+      - key: PUBLIC_SITE_URL
+        value: "https://shopiva-keny-ltd.onrender.com"
       - key: MPESA_ENV
         sync: false
       - key: MPESA_CONSUMER_KEY
