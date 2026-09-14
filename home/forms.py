@@ -6,7 +6,19 @@ import uuid
 
 from .models import Product, ProductReview
 from .media_pipeline import enhance_product_image
-from .product_catalog import catalog_choices, catalog_item
+from .product_catalog import catalog_choices as base_catalog_choices, catalog_item as base_catalog_item
+from .vehicle_parts_catalog import vehicle_parts_choices, vehicle_parts_item
+
+
+def _build_catalog_choices():
+    return tuple(base_catalog_choices) + tuple(vehicle_parts_choices())[1:]
+
+
+catalog_choices = _build_catalog_choices()
+
+
+def catalog_item(key):
+    return vehicle_parts_item(key) or base_catalog_item(key)
 
 
 def _validate_unique_username(username, *, error_message):
@@ -163,7 +175,7 @@ class SellerProductForm(forms.ModelForm):
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": "Catalogue selection will fill this, or enter a custom product"}),
             "description": forms.Textarea(attrs={"rows": 5}),
-            "category": forms.TextInput(attrs={"placeholder": "Electronics, Fashion, Groceries..."}),
+            "category": forms.TextInput(attrs={"placeholder": "Electronics, Fashion, Groceries, Automotive..."}),
             "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
 
