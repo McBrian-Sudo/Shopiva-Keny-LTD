@@ -83,11 +83,8 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
-# Render currently deploys this service from its dashboard build command without collectstatic.
-# Keep the repository static directory as the production static root so the live app never
-# depends on a missing manifest during startup.
-STATIC_ROOT = BASE_DIR / "static"
-STATICFILES_DIRS = []
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
