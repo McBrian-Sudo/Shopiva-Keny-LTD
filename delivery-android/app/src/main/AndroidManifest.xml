@@ -3,7 +3,7 @@
     <application
         android:allowBackup="false"
         android:label="Shopiva Admin"
-        android:icon="@drawable/shopiva_admin_logo"
+        android:icon="@mipmap/ic_launcher"
         android:roundIcon="@drawable/shopiva_admin_logo"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false">
