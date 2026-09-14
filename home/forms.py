@@ -6,6 +6,7 @@ import uuid
 
 from .models import Product, ProductReview
 from .media_pipeline import enhance_product_image
+from .product_catalog import catalog_choices, catalog_item
 
 
 def _validate_unique_username(username, *, error_message):
@@ -109,6 +110,17 @@ class MultipleImageField(forms.FileField):
 
 
 class SellerProductForm(forms.ModelForm):
+    catalog_product = forms.ChoiceField(
+        required=False,
+        label="Master Product Catalogue",
+        choices=catalog_choices,
+        help_text=(
+            "Choose the closest manufacturer/brand product from Shopiva's master directory. "
+            "The product name and category are filled in automatically. Use a custom product "
+            "name when your item is not listed."
+        ),
+        widget=forms.Select(attrs={"class": "shopiva-catalog-select", "title": "Search by typing a brand or product"}),
+    )
     discount_percent = forms.IntegerField(
         min_value=0,
         max_value=100,
@@ -135,6 +147,7 @@ class SellerProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = (
+            "catalog_product",
             "name",
             "description",
             "category",
@@ -143,16 +156,42 @@ class SellerProductForm(forms.ModelForm):
             "discount_percent",
             "promo_text",
             "image",
+            "gallery_images",
             "is_active",
             "is_featured",
         )
         widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Catalogue selection will fill this, or enter a custom product"}),
             "description": forms.Textarea(attrs={"rows": 5}),
+            "category": forms.TextInput(attrs={"placeholder": "Electronics, Fashion, Groceries..."}),
             "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
 
+    def clean_catalog_product(self):
+        key = self.cleaned_data.get("catalog_product", "")
+        if not key:
+            return ""
+        if not catalog_item(key):
+            raise forms.ValidationError("That catalogue product is not available. Please choose another item.")
+        return key
+
+    def clean(self):
+        cleaned = super().clean()
+        item = catalog_item(cleaned.get("catalog_product"))
+        if item:
+            cleaned["name"] = item["name"]
+            cleaned["category"] = item["category"]
+        elif not cleaned.get("name"):
+            self.add_error("name", "Choose a master catalogue product or enter a custom product name.")
+        return cleaned
+
     def save(self, commit=True):
         product = super().save(commit=False)
+        item = catalog_item(self.cleaned_data.get("catalog_product"))
+        if item:
+            product.name = item["name"]
+            product.category = item["category"]
+
         uploaded_main = self.files.get("image")
         if uploaded_main:
             product.image = enhance_product_image(uploaded_main, product.name)
@@ -161,9 +200,8 @@ class SellerProductForm(forms.ModelForm):
             prefix = slugify(product.name or "product").replace("-", "").upper()[:24] or "PRODUCT"
             product.sku = f"SPV-{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
-        # The existing seller views intentionally use commit=False so that the
-        # location transaction remains atomic. Keep gallery files on the object
-        # for the post-save signal to persist them after the product is saved.
+        # Existing seller views intentionally use commit=False so location
+        # validation and product save remain inside their transaction.
         product._shopiva_gallery_files = self.cleaned_data.get("gallery_images", [])[:8]
 
         if commit:
