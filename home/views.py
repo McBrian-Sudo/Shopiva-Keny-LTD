@@ -1,9 +1,403 @@
-def home(request):
-    """Fast public storefront landing page.
+import logging
+from decimal import Decimal, InvalidOperation
+import uuid
 
-    Keep the first paint bounded: the homepage only needs a small curated
-    window of products. Catalogue/search pages handle the full inventory.
-    """
+from django.contrib import messages
+from django.db import IntegrityError, transaction
+from django.contrib.auth import login as auth_login, logout as auth_logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.db.models import Sum
+
+logger = logging.getLogger(__name__)
+
+from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm
+from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
+
+
+def _customer_only(request):
+    return not (request.user.is_staff or request.user.is_superuser)
+
+
+def _record_order_event(order, event_type, note="", actor=None, delivery_agent=None):
+    return OrderEvent.objects.create(
+        order=order,
+        event_type=event_type,
+        note=note,
+        actor=actor,
+        delivery_agent=delivery_agent,
+    )
+
+
+def customer_register(request):
+    if request.user.is_authenticated:
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect("/admin/")
+        return redirect("customer_dashboard")
+
+    if request.method == "POST":
+        form = CustomerRegistrationForm(request.POST)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    user = form.save()
+            except IntegrityError:
+                form.add_error(
+                    "username",
+                    "Username exists. Please choose a different username.",
+                )
+            else:
+                auth_login(request, user)
+                messages.success(request, f"Welcome to Shopiva, {user.username}!")
+                return redirect("customer_dashboard")
+    else:
+        form = CustomerRegistrationForm()
+
+    return render(request, "accounts/register.html", {"form": form})
+
+
+def customer_login(request):
+    if request.user.is_authenticated:
+        if request.user.is_staff or request.user.is_superuser:
+            messages.info(
+                request,
+                "Admin accounts can only be used in the Shopiva Admin Control Center.",
+            )
+            return redirect("/admin/")
+        return redirect("customer_dashboard")
+
+    if request.method == "POST":
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            if user.is_staff or user.is_superuser:
+                form.add_error(
+                    None,
+                    "This is an admin account. Please use the Shopiva Admin Control Center.",
+                )
+            else:
+                auth_login(request, user)
+                messages.success(request, f"Welcome back, {user.username}!")
+                return redirect("customer_dashboard")
+    else:
+        form = AuthenticationForm()
+
+    return render(request, "accounts/login.html", {"form": form})
+
+
+def customer_logout(request):
+    auth_logout(request)
+    messages.success(request, "You have been signed out of Shopiva.")
+    return redirect("customer_login")
+
+
+@login_required(login_url="customer_login")
+def customer_dashboard(request):
+    if not _customer_only(request):
+        return redirect("/admin/")
+    orders = (
+        Order.objects.filter(email__iexact=request.user.email)
+        .select_related("delivery_agent")
+        .prefetch_related("events__delivery_agent", "items__product")
+        .order_by("-created_at")
+    )
+    latest_order = orders.first()
+    return render(
+        request,
+        "accounts/dashboard.html",
+        {"orders": orders[:5], "latest_order": latest_order},
+    )
+
+
+@login_required(login_url="customer_login")
+def customer_orders(request):
+    if not _customer_only(request):
+        return redirect("/admin/")
+    orders = Order.objects.filter(email__iexact=request.user.email).prefetch_related("events", "delivery_agent").order_by("-created_at")
+    return render(request, "accounts/orders.html", {"orders": orders})
+
+
+@login_required(login_url="customer_login")
+def customer_delivery_location(request):
+    """Return the latest delivery partner position and customer-safe tracking data."""
+    if not _customer_only(request):
+        return JsonResponse({"ok": False, "error": "Admin accounts use the admin delivery map."}, status=403)
+
+    latest_order = (
+        Order.objects.filter(email__iexact=request.user.email)
+        .select_related("delivery_agent")
+        .prefetch_related("events__delivery_agent")
+        .order_by("-created_at")
+        .first()
+    )
+    if not latest_order or not latest_order.delivery_agent:
+        return JsonResponse({"ok": True, "agent": None, "order": None, "events": []})
+
+    agent = latest_order.delivery_agent
+    latest_ping = agent.location_history.order_by("-recorded_at").first()
+    data = {
+        "id": agent.id,
+        "name": agent.display_name,
+        "phone": agent.phone or "",
+        "vehicle_type": agent.vehicle_type or "",
+        "vehicle_number": agent.vehicle_number or "",
+        "status": agent.get_status_display(),
+        "latitude": float(agent.current_latitude) if agent.current_latitude is not None else None,
+        "longitude": float(agent.current_longitude) if agent.current_longitude is not None else None,
+        "updated": agent.last_location_at.isoformat() if agent.last_location_at else None,
+        "live": agent.location_is_live,
+        "accuracy": float(latest_ping.accuracy_meters) if latest_ping and latest_ping.accuracy_meters is not None else None,
+        "speed_mps": float(latest_ping.speed_mps) if latest_ping and latest_ping.speed_mps is not None else None,
+        "heading_degrees": float(latest_ping.heading_degrees) if latest_ping and latest_ping.heading_degrees is not None else None,
+    }
+
+    events = []
+    for event in latest_order.events.all()[:8]:
+        events.append({
+            "type": event.event_type,
+            "label": event.get_event_type_display(),
+            "note": event.note or "",
+            "created": event.created_at.isoformat(),
+        })
+
+    return JsonResponse({
+        "ok": True,
+        "agent": data,
+        "order": {
+            "id": latest_order.id,
+            "tracking_code": latest_order.tracking_code,
+            "status": latest_order.get_status_display(),
+            "created": latest_order.created_at.isoformat(),
+            "address": latest_order.address,
+        },
+        "events": events,
+    })
+
+
+@login_required(login_url="customer_login")
+def customer_profile(request):
+    if not _customer_only(request):
+        return redirect("/admin/")
+
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip()
+        if email:
+            request.user.email = email
+            request.user.save(update_fields=["email"])
+            messages.success(request, "Your profile has been updated.")
+            return redirect("customer_profile")
+
+    return render(request, "accounts/profile.html")
+
+
+@login_required(login_url="customer_login")
+def customer_addresses(request):
+    if not _customer_only(request):
+        return redirect("/admin/")
+
+    if request.method == "POST":
+        action = request.POST.get("action", "save")
+        address_id = request.POST.get("address_id")
+
+        if action == "delete" and address_id:
+            CustomerAddress.objects.filter(id=address_id, user=request.user).delete()
+            messages.success(request, "Address removed.")
+            return redirect("customer_addresses")
+
+        if action == "default" and address_id:
+            with transaction.atomic():
+                CustomerAddress.objects.filter(user=request.user).update(is_default=False)
+                CustomerAddress.objects.filter(id=address_id, user=request.user).update(is_default=True)
+            messages.success(request, "Default delivery address updated.")
+            return redirect("customer_addresses")
+
+        fields = {
+            "label": request.POST.get("label", "Home").strip() or "Home",
+            "full_name": request.POST.get("full_name", "").strip(),
+            "phone": request.POST.get("phone", "").strip(),
+            "county": request.POST.get("county", "").strip(),
+            "town": request.POST.get("town", "").strip(),
+            "address_line": request.POST.get("address_line", "").strip(),
+            "landmark": request.POST.get("landmark", "").strip(),
+        }
+        if not all(fields[key] for key in ("full_name", "phone", "county", "town", "address_line")):
+            messages.error(request, "Please complete your name, phone, county, town and address.")
+        else:
+            with transaction.atomic():
+                if not CustomerAddress.objects.filter(user=request.user).exists():
+                    fields["is_default"] = True
+                address = CustomerAddress.objects.create(user=request.user, **fields)
+                if address.is_default:
+                    CustomerAddress.objects.filter(user=request.user).exclude(id=address.id).update(is_default=False)
+            messages.success(request, "Delivery address saved.")
+            return redirect("customer_addresses")
+
+    addresses = CustomerAddress.objects.filter(user=request.user)
+    return render(request, "accounts/addresses.html", {"addresses": addresses})
+
+
+@login_required(login_url="customer_login")
+def customer_wishlist(request):
+    if not _customer_only(request):
+        return redirect("/admin/")
+
+    if request.method == "POST":
+        product_id = request.POST.get("product_id")
+        action = request.POST.get("action", "toggle")
+        product = get_object_or_404(Product, id=product_id, is_active=True)
+
+        item = WishlistItem.objects.filter(user=request.user, product=product).first()
+        if action == "remove":
+            if item:
+                item.delete()
+                messages.success(request, f"{product.name} removed from your wishlist.")
+        else:
+            if item:
+                item.delete()
+                messages.info(request, f"{product.name} removed from your wishlist.")
+            else:
+                WishlistItem.objects.create(user=request.user, product=product)
+                messages.success(request, f"{product.name} saved to your wishlist.")
+        return redirect("customer_wishlist")
+
+    wishlist = WishlistItem.objects.filter(user=request.user).select_related("product")
+    return render(request, "accounts/wishlist.html", {"wishlist": wishlist})
+
+
+@login_required(login_url="delivery_login")
+def delivery_portal(request):
+    try:
+        agent = request.user.delivery_agent_profile
+    except DeliveryAgent.DoesNotExist:
+        return redirect("/admin/")
+
+    if not agent.is_active:
+        return render(request, "delivery/not_authorized.html")
+
+    assigned_orders = agent.orders.select_related("delivery_agent").prefetch_related("events").exclude(status="delivered").exclude(status="cancelled").order_by("-created_at")
+    return render(
+        request,
+        "delivery/portal.html",
+        {"agent": agent, "assigned_orders": assigned_orders},
+    )
+
+
+@login_required(login_url="delivery_login")
+def delivery_update_location(request):
+    """Backward-compatible manual location update endpoint."""
+    if request.method != "POST":
+        return redirect("delivery_portal")
+
+    try:
+        agent = request.user.delivery_agent_profile
+    except DeliveryAgent.DoesNotExist:
+        return redirect("/admin/")
+
+    if not agent.is_active:
+        return redirect("/admin/")
+
+    try:
+        latitude = Decimal(request.POST.get("latitude", ""))
+        longitude = Decimal(request.POST.get("longitude", ""))
+    except (InvalidOperation, TypeError):
+        return redirect("delivery_portal")
+
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        return redirect("delivery_portal")
+
+    now = timezone.now()
+    agent.current_latitude = latitude.quantize(Decimal("0.000001"))
+    agent.current_longitude = longitude.quantize(Decimal("0.000001"))
+    agent.last_location_at = now
+    agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
+    agent.save(update_fields=["current_latitude", "current_longitude", "last_location_at", "status"])
+    DeliveryLocationPing.objects.create(
+        agent=agent,
+        latitude=agent.current_latitude,
+        longitude=agent.current_longitude,
+    )
+    return redirect("delivery_portal")
+
+
+@login_required(login_url="delivery_login")
+def delivery_ping_location(request):
+    """Receive an automatic browser GPS ping from a delivery partner."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+    try:
+        agent = request.user.delivery_agent_profile
+    except DeliveryAgent.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Delivery partner profile not found."}, status=403)
+
+    if not agent.is_active:
+        return JsonResponse({"ok": False, "error": "Delivery partner account is inactive."}, status=403)
+
+    try:
+        latitude = Decimal(str(request.POST.get("latitude", "")))
+        longitude = Decimal(str(request.POST.get("longitude", "")))
+    except (InvalidOperation, TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "Invalid coordinates."}, status=400)
+
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        return JsonResponse({"ok": False, "error": "Coordinates are out of range."}, status=400)
+
+    def optional_decimal(field_name, minimum=None, maximum=None):
+        raw = request.POST.get(field_name, "").strip()
+        if not raw:
+            return None
+        try:
+            value = Decimal(raw)
+        except (InvalidOperation, TypeError, ValueError):
+            return None
+        if minimum is not None and value < minimum:
+            return None
+        if maximum is not None and value > maximum:
+            return None
+        return value
+
+    accuracy = optional_decimal("accuracy", minimum=Decimal("0"), maximum=Decimal("100000"))
+    speed = optional_decimal("speed", minimum=Decimal("0"), maximum=Decimal("100"))
+    heading = optional_decimal("heading", minimum=Decimal("0"), maximum=Decimal("360"))
+
+    now = timezone.now()
+    latitude = latitude.quantize(Decimal("0.000001"))
+    longitude = longitude.quantize(Decimal("0.000001"))
+
+    agent.current_latitude = latitude
+    agent.current_longitude = longitude
+    agent.last_location_at = now
+    agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
+    agent.save(update_fields=["current_latitude", "current_longitude", "last_location_at", "status"])
+
+    DeliveryLocationPing.objects.create(
+        agent=agent,
+        latitude=latitude,
+        longitude=longitude,
+        accuracy_meters=accuracy.quantize(Decimal("0.01")) if accuracy is not None else None,
+        speed_mps=speed.quantize(Decimal("0.01")) if speed is not None else None,
+        heading_degrees=heading.quantize(Decimal("0.01")) if heading is not None else None,
+    )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "updated_at": now.isoformat(),
+            "latitude": float(latitude),
+            "longitude": float(longitude),
+            "status": agent.get_status_display(),
+        }
+    )
+
+
+def home(request):
+    """Fast public storefront landing page with bounded first-paint queries."""
     try:
         base_products = (
             Product.objects
@@ -39,3 +433,456 @@ def home(request):
     except Exception:
         logger.exception("SHOPIVA_HOME_REQUEST_FAILED path=%s", request.path)
         raise
+
+def categories(request):
+    categories = (
+        Product.objects.filter(is_active=True)
+        .exclude(category="")
+        .values_list("category", flat=True)
+        .distinct()
+        .order_by("category")
+    )
+    return render(request, "categories.html", {"categories": categories})
+
+
+def product_detail(request, product_id):
+    product = get_object_or_404(Product, id=product_id, is_active=True)
+    return render(request, "product_detail.html", {"product": product})
+
+
+def add_to_cart(request, product_id):
+    product = get_object_or_404(Product, id=product_id, is_active=True)
+    cart_data = request.session.get("cart", {})
+    product_id_str = str(product.id)
+    current_quantity = int(cart_data.get(product_id_str, 0))
+
+    if product.stock_quantity > current_quantity:
+        cart_data[product_id_str] = current_quantity + 1
+        request.session["cart"] = cart_data
+        request.session.modified = True
+
+    return redirect("cart")
+
+
+def _cart_items(cart_data):
+    items = []
+    total = Decimal("0.00")
+
+    for product_id, raw_quantity in cart_data.items():
+        try:
+            product = Product.objects.get(id=product_id, is_active=True)
+            quantity = max(0, int(raw_quantity))
+        except (Product.DoesNotExist, TypeError, ValueError):
+            continue
+
+        if quantity <= 0 or product.stock_quantity <= 0:
+            continue
+
+        quantity = min(quantity, product.stock_quantity)
+        unit_price = product.discounted_price
+        subtotal = unit_price * quantity
+        total += subtotal
+
+        items.append(
+            {
+                "product": product,
+                "quantity": quantity,
+                "subtotal": subtotal,
+                "unit_price": unit_price,
+            }
+        )
+
+    return items, total
+
+
+def cart(request):
+    cart_data = request.session.get("cart", {})
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+        product_id = request.POST.get("product_id", "").strip()
+
+        if product_id:
+            try:
+                product = Product.objects.get(id=product_id, is_active=True)
+            except (Product.DoesNotExist, ValueError, TypeError):
+                product = None
+
+            if product is not None:
+                if action == "remove":
+                    cart_data.pop(str(product.id), None)
+                elif action == "update":
+                    try:
+                        quantity = int(request.POST.get("quantity", "1"))
+                    except (TypeError, ValueError):
+                        quantity = 1
+
+                    quantity = max(0, min(quantity, product.stock_quantity))
+                    if quantity == 0:
+                        cart_data.pop(str(product.id), None)
+                    else:
+                        cart_data[str(product.id)] = quantity
+
+                request.session["cart"] = cart_data
+                request.session.modified = True
+
+        return redirect("cart")
+
+    items, total = _cart_items(cart_data)
+    request.session["cart"] = {
+        str(item["product"].id): item["quantity"] for item in items
+    }
+    request.session.modified = True
+    return render(request, "cart.html", {"items": items, "total": total})
+
+
+def checkout(request):
+    cart_data = request.session.get("cart", {})
+    items, total = _cart_items(cart_data)
+
+    if request.method == "POST":
+        customer_name = request.POST.get("customer_name", "").strip()
+        email = request.POST.get("email", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        address = request.POST.get("address", "").strip()
+
+        if not all([customer_name, email, phone, address]) or not items:
+            return render(
+                request,
+                "checkout.html",
+                {
+                    "items": items,
+                    "total": total,
+                    "error": "Please complete all customer details and make sure your cart is not empty.",
+                },
+            )
+
+        with transaction.atomic():
+            locked_items = []
+            final_total = Decimal("0.00")
+
+            for item in items:
+                product = Product.objects.select_for_update().get(id=item["product"].id)
+                quantity = item["quantity"]
+
+                if not product.is_active or product.stock_quantity < quantity:
+                    return render(
+                        request,
+                        "checkout.html",
+                        {
+                            "items": items,
+                            "total": total,
+                            "error": f"Sorry, {product.name} no longer has enough stock. Please review your cart.",
+                        },
+                    )
+
+                unit_price = product.discounted_price
+                subtotal = unit_price * quantity
+                final_total += subtotal
+                locked_items.append((product, quantity, unit_price))
+
+            tracking_code = f"SPV-{uuid.uuid4().hex[:10].upper()}"
+            order = Order.objects.create(
+                customer_name=customer_name,
+                email=email,
+                phone=phone,
+                address=address,
+                total_amount=final_total,
+                status="pending",
+                payment_status="unpaid",
+                tracking_code=tracking_code,
+            )
+
+            _record_order_event(
+                order,
+                "placed",
+                note="Order placed through Shopiva checkout.",
+                actor=request.user if request.user.is_authenticated else None,
+            )
+
+            for product, quantity, unit_price in locked_items:
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=quantity,
+                    price=unit_price,
+                )
+                product.stock_quantity -= quantity
+                product.save(update_fields=["stock_quantity"])
+
+        request.session["cart"] = {}
+        request.session.modified = True
+        return redirect("order_success", order_id=order.id)
+
+    return render(request, "checkout.html", {"items": items, "total": total})
+
+
+def order_success(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    return render(request, "order_success.html", {"order": order})
+
+
+def products(request):
+    query = request.GET.get("q", "").strip()
+    category = request.GET.get("category", "").strip()
+    product_list = Product.objects.filter(is_active=True).order_by("-id")
+
+    if query:
+        product_list = product_list.filter(
+            Q(name__icontains=query)
+            | Q(description__icontains=query)
+            | Q(category__icontains=query)
+        )
+
+    if category:
+        product_list = product_list.filter(category__iexact=category)
+
+    categories_list = (
+        Product.objects.filter(is_active=True)
+        .exclude(category="")
+        .values_list("category", flat=True)
+        .distinct()
+        .order_by("category")
+    )
+
+    paginator = Paginator(product_list, 12)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(
+        request,
+        "products.html",
+        {
+            "products": page_obj,
+            "page_obj": page_obj,
+            "categories": categories_list,
+            "query": query,
+            "selected_category": category,
+        },
+    )
+
+
+
+@login_required(login_url="customer_login")
+def product_review(request, product_id):
+    if not _customer_only(request):
+        return redirect("/admin/")
+    product = get_object_or_404(Product, id=product_id)
+    eligible_orders = Order.objects.filter(email__iexact=request.user.email, status="delivered", items__product=product).distinct()
+    if not eligible_orders.exists():
+        messages.error(request, "You can review this product only after a delivered purchase.")
+        return redirect("product_detail", product_id=product.id)
+    if request.method == "POST":
+        order = get_object_or_404(eligible_orders, id=request.POST.get("order_id"))
+        form = ProductReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.product = product
+            review.customer = request.user
+            review.order = order
+            review.save()
+            messages.success(request, "Thank you. Your verified review is now live.")
+            return redirect("product_detail", product_id=product.id)
+    else:
+        form = ProductReviewForm()
+    return render(request, "reviews/form.html", {"product": product, "orders": eligible_orders, "form": form})
+
+
+@login_required(login_url="customer_login")
+def customer_notifications(request):
+    if not _customer_only(request):
+        return redirect("/admin/")
+    notifications = request.user.shopiva_notifications.all()[:50]
+    request.user.shopiva_notifications.filter(is_read=False).update(is_read=True)
+    return render(request, "accounts/notifications.html", {"notifications": notifications})
+
+
+def seller_register(request):
+    if request.user.is_authenticated:
+        if hasattr(request.user, "seller_profile"):
+            return redirect("seller_dashboard")
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect("/admin/")
+
+    if request.method == "POST":
+        form = SellerRegistrationForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                user = form.save()
+                seller = SellerProfile.objects.create(
+                    user=user,
+                    business_name=form.cleaned_data["business_name"].strip(),
+                    mpesa_phone=form.cleaned_data["mpesa_phone"].strip(),
+                )
+                SellerWallet.objects.create(seller=seller)
+            auth_login(request, user)
+            messages.success(request, "Seller account created. Add your first product from the seller dashboard.")
+            return redirect("seller_dashboard")
+    else:
+        form = SellerRegistrationForm()
+    return render(request, "seller/register.html", {"form": form})
+
+
+@login_required(login_url="customer_login")
+def seller_dashboard(request):
+    if request.user.is_staff or request.user.is_superuser:
+        return redirect("/admin/")
+    seller = getattr(request.user, "seller_profile", None)
+    if not seller:
+        return redirect("seller_register")
+    wallet, _ = SellerWallet.objects.get_or_create(seller=seller)
+    products = seller.products.order_by("-id")
+    order_items = seller.order_items.select_related("order", "product").order_by("-id")[:50]
+    settlements = seller.settlements.select_related("order").order_by("-created_at")[:25]
+    payouts = seller.payout_requests.order_by("-created_at")[:25]
+    analytics = {
+        "orders": seller.order_items.values("order_id").distinct().count(),
+        "units": seller.order_items.aggregate(total=Sum("quantity"))["total"] or 0,
+        "gross": seller.order_items.aggregate(total=Sum("seller_gross"))["total"] or Decimal("0.00"),
+        "net": seller.order_items.aggregate(total=Sum("seller_net"))["total"] or Decimal("0.00"),
+        "delivered": seller.order_items.filter(order__status="delivered").values("order_id").distinct().count(),
+    }
+    return render(
+        request,
+        "seller/dashboard.html",
+        {
+            "seller": seller,
+            "wallet": wallet,
+            "products": products,
+            "order_items": order_items,
+            "settlements": settlements,
+            "payouts": payouts,
+            "analytics": analytics,
+            "notifications": seller.user.shopiva_notifications.all()[:10],
+        },
+    )
+
+
+@login_required(login_url="customer_login")
+def seller_product_edit(request, product_id):
+    seller = getattr(request.user, "seller_profile", None)
+    if not seller or not seller.is_active:
+        return redirect("seller_register")
+    product = get_object_or_404(Product, id=product_id, seller=seller)
+    if request.method == "POST":
+        form = SellerProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            updated_product = form.save(commit=False)
+            try:
+                updated_product.save()
+            except Exception as exc:
+                logger.exception("Seller product image update failed", exc_info=exc)
+                # Preserve the existing image when a replacement upload fails.
+                updated_product.image = Product.objects.get(pk=product.pk).image
+                updated_product.save(update_fields=[
+                    "name", "description", "category", "sku", "price",
+                    "stock_quantity", "discount_percent", "promo_text",
+                    "is_active", "is_featured", "seller",
+                ])
+                messages.warning(
+                    request,
+                    "Product details were updated, but the new image could not be uploaded. "
+                    "The previous image was kept.",
+                )
+            else:
+                messages.success(request, f"{updated_product.name} has been updated.")
+            return redirect("seller_dashboard")
+    else:
+        form = SellerProductForm(instance=product)
+    return render(request, "seller/product_form.html", {"form": form, "mode": "edit", "product": product})
+
+
+@login_required(login_url="customer_login")
+def seller_product_toggle(request, product_id):
+    seller = getattr(request.user, "seller_profile", None)
+    product = get_object_or_404(Product, id=product_id, seller=seller)
+    if request.method == "POST":
+        product.is_active = not product.is_active
+        product.save(update_fields=["is_active"])
+        messages.success(request, f"{product.name} is now {'live' if product.is_active else 'paused'}.")
+    return redirect("seller_dashboard")
+
+
+@login_required(login_url="customer_login")
+def seller_product_add(request):
+    seller = getattr(request.user, "seller_profile", None)
+    if not seller or not seller.is_active:
+        return redirect("seller_register")
+    if request.method == "POST":
+        form = SellerProductForm(request.POST, request.FILES)
+        if form.is_valid():
+            product = form.save(commit=False)
+            product.seller = seller
+            product.is_active = True
+            try:
+                product.save()
+            except Exception as exc:
+                # Do not turn a product listing into a generic 500 when the
+                # external image storage provider is unavailable/misconfigured.
+                # Save the product without the optional image and tell the seller
+                # exactly what happened.
+                logger.exception("Seller product image upload failed", exc_info=exc)
+                product.image = None
+                product.save(update_fields=[
+                    "name", "description", "category", "sku", "price",
+                    "stock_quantity", "discount_percent", "promo_text",
+                    "is_active", "is_featured", "seller",
+                ])
+                messages.warning(
+                    request,
+                    "Product listed successfully, but the image could not be uploaded. "
+                    "The image-storage connection needs attention; you can edit the product and try the image again.",
+                )
+            else:
+                messages.success(request, f"{product.name} is now listed on Shopiva.")
+            return redirect("seller_dashboard")
+    else:
+        form = SellerProductForm()
+    return render(request, "seller/product_form.html", {"form": form, "mode": "add"})
+
+
+@login_required(login_url="customer_login")
+def seller_product_delete(request, product_id):
+    seller = getattr(request.user, "seller_profile", None)
+    product = get_object_or_404(Product, id=product_id, seller=seller)
+    if request.method == "POST":
+        product.is_active = False
+        product.save(update_fields=["is_active"])
+        messages.success(request, "Product hidden from the shop.")
+    return redirect("seller_dashboard")
+
+
+@login_required(login_url="customer_login")
+def seller_request_payout(request):
+    seller = getattr(request.user, "seller_profile", None)
+    if not seller or not seller.is_active:
+        return redirect("seller_register")
+    if request.method != "POST":
+        return redirect("seller_dashboard")
+    wallet, _ = SellerWallet.objects.get_or_create(seller=seller)
+    try:
+        amount = Decimal(request.POST.get("amount", "0")).quantize(Decimal("0.01"))
+    except (InvalidOperation, TypeError, ValueError):
+        amount = Decimal("0.00")
+    if amount <= 0 or amount > wallet.available_balance:
+        messages.error(request, "Payout amount is invalid or exceeds your available balance.")
+        return redirect("seller_dashboard")
+    phone = request.POST.get("phone", "").strip() or seller.mpesa_phone
+    if not phone:
+        messages.error(request, "Add an M-PESA payout number before requesting a payout.")
+        return redirect("seller_dashboard")
+    with transaction.atomic():
+        wallet = SellerWallet.objects.select_for_update().get(pk=wallet.pk)
+        if amount > wallet.available_balance:
+            messages.error(request, "Your available balance changed. Please try again.")
+            return redirect("seller_dashboard")
+        payout = SellerPayoutRequest.objects.create(
+            seller=seller,
+            amount=amount,
+            phone=phone,
+            status="requested",
+            idempotency_key=f"PAYOUT-{seller.id}-{uuid.uuid4().hex}",
+        )
+        wallet.available_balance -= amount
+        wallet.save(update_fields=["available_balance", "updated_at"])
+    messages.success(request, f"Payout request #{payout.id} submitted for admin processing.")
+    return redirect("seller_dashboard")
