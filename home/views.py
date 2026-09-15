@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -458,6 +458,8 @@ def order_success(request, order_id):
         order = get_object_or_404(Order, id=order_id, customer=request.user)
     else:
         raw_token = request.GET.get("token", "").strip()
+        if not raw_token:
+            raise Http404
         order = get_object_or_404(Order, id=order_id, access_token=raw_token)
     return render(request, "order_success.html", {"order": order})
 
