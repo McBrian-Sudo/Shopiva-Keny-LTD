@@ -8,19 +8,43 @@ from django.shortcuts import redirect, render
 
 
 def seller_login(request):
+    """Authenticate only a dedicated, active seller account.
+
+    Shopiva deliberately keeps customer, seller, delivery and admin sessions
+    on separate portals. An already-authenticated customer cannot silently
+    switch identities by submitting seller credentials in the same session.
+    """
     if request.user.is_authenticated:
         if request.user.is_staff or request.user.is_superuser:
             return redirect("/admin/")
-        if hasattr(request.user, "seller_profile"):
-            return redirect("seller_dashboard")
+        seller = getattr(request.user, "seller_profile", None)
+        if seller:
+            if seller.is_active:
+                return redirect("seller_dashboard")
+            auth_logout(request)
+        else:
+            messages.info(
+                request,
+                "You are signed in as a customer. Sign out first, then use a separate Shopiva seller account.",
+            )
+            return redirect("customer_dashboard")
 
     if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
+            if user.is_staff or user.is_superuser:
+                form.add_error(None, "Admin accounts must use the Shopiva Admin Control Center.")
+                return render(request, "seller/login.html", {"form": form})
             seller = getattr(user, "seller_profile", None)
             if not seller or not seller.is_active:
-                form.add_error(None, "This account is not an active Shopiva seller account.")
+                form.add_error(
+                    None,
+                    "This username belongs to a customer account, or the seller account is inactive. "
+                    "Use Seller Sign Up to create a dedicated seller account.",
+                )
+            elif hasattr(user, "delivery_agent_profile"):
+                form.add_error(None, "Delivery accounts must use the Delivery Portal.")
             else:
                 auth_login(request, user)
                 messages.success(request, f"Welcome back, {seller.business_name or user.username}!")
@@ -46,7 +70,13 @@ def seller_login_required(view_func):
             return redirect("/admin/")
         seller = getattr(request.user, "seller_profile", None)
         if not seller or not seller.is_active:
-            messages.error(request, "Please sign in with an active Shopiva seller account.")
+            messages.error(
+                request,
+                "This is not an active seller session. Customer and seller accounts are kept separate.",
+            )
+            return redirect("seller_login")
+        if hasattr(request.user, "delivery_agent_profile"):
+            messages.error(request, "Delivery accounts cannot access the seller workspace.")
             return redirect("seller_login")
         return view_func(request, *args, **kwargs)
 
