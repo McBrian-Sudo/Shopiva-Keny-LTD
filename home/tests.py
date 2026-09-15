@@ -55,6 +55,89 @@ class SellerRegistrationTests(TestCase):
         self.assertIn("Username exists", str(form.errors["username"]))
 
 
+
+class AccountBoundaryTests(TestCase):
+    def setUp(self):
+        self.password = "StrongPass123!"
+        self.customer = User.objects.create_user(
+            username="customer_boundary",
+            email="customer-boundary@example.com",
+            password=self.password,
+        )
+        self.seller_user = User.objects.create_user(
+            username="seller_boundary",
+            email="seller-boundary@example.com",
+            password=self.password,
+        )
+        self.seller = SellerProfile.objects.create(
+            user=self.seller_user,
+            business_name="Boundary Seller",
+            is_active=True,
+        )
+        SellerWallet.objects.create(seller=self.seller)
+        self.delivery_user = User.objects.create_user(
+            username="delivery_boundary",
+            email="delivery-boundary@example.com",
+            password=self.password,
+        )
+        DeliveryAgent.objects.create(user=self.delivery_user, is_active=True)
+
+    def test_seller_credentials_are_rejected_by_customer_login(self):
+        response = self.client.post(
+            reverse("customer_login"),
+            {"username": self.seller_user.username, "password": self.password},
+            secure=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "seller account")
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    def test_customer_credentials_are_rejected_by_seller_login(self):
+        response = self.client.post(
+            reverse("seller_login"),
+            {"username": self.customer.username, "password": self.password},
+            secure=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "customer account")
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    def test_delivery_credentials_are_rejected_by_customer_login(self):
+        response = self.client.post(
+            reverse("customer_login"),
+            {"username": self.delivery_user.username, "password": self.password},
+            secure=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "delivery account")
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    def test_customer_cannot_become_seller_in_same_authenticated_session(self):
+        self.client.force_login(self.customer)
+        response = self.client.get(reverse("seller_register"), secure=True)
+        self.assertRedirects(response, reverse("customer_dashboard"), fetch_redirect_response=False)
+
+    def test_authenticated_seller_customer_login_goes_to_seller_workspace(self):
+        self.client.force_login(self.seller_user)
+        response = self.client.get(reverse("customer_login"), secure=True)
+        self.assertRedirects(response, reverse("seller_dashboard"), fetch_redirect_response=False)
+
+    def test_authenticated_customer_seller_login_goes_to_customer_workspace(self):
+        self.client.force_login(self.customer)
+        response = self.client.get(reverse("seller_login"), secure=True)
+        self.assertRedirects(response, reverse("customer_dashboard"), fetch_redirect_response=False)
+
+    def test_customer_dashboard_rejects_seller_session(self):
+        self.client.force_login(self.seller_user)
+        response = self.client.get(reverse("customer_dashboard"), secure=True)
+        self.assertRedirects(response, reverse("seller_dashboard"), fetch_redirect_response=False)
+
+    def test_seller_dashboard_rejects_customer_session(self):
+        self.client.force_login(self.customer)
+        response = self.client.get(reverse("seller_dashboard"), secure=True)
+        self.assertRedirects(response, reverse("seller_login"), fetch_redirect_response=False)
+
+
 class CommissionScheduleTests(TestCase):
     def test_commission_rate_rises_with_price(self):
         self.assertEqual(get_platform_commission_percent(Decimal("500.00")), Decimal("5.00"))
