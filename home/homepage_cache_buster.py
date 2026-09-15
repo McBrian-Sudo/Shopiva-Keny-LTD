@@ -51,7 +51,7 @@ class ShopivaHomepageCacheBusterMiddleware:
                     pattern = rf'<div class="cat-icon {re.escape(css_class)}">.*?</div>'
                     replacement = (
                         f'<div class="cat-icon {css_class}" '
-                        f'style="background-image:url(/static/shopiva/category-images/category-sprite.webp);'
+                        f'style="background-image:url(https://raw.githubusercontent.com/McBrian-Sudo/Shopiva-Keny-LTD/main/home/static/shopiva/category-images/category-sprite.webp);'
                         f'background-size:1200% 100%;background-position:{position} 50%;'
                         f'background-repeat:no-repeat;background-color:#f2f5f7;font-size:0;">'
                         f'</div>'
