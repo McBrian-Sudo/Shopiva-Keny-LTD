@@ -31,7 +31,7 @@ def checkout_mpesa_map(request):
                 subtotal = product.discounted_price * quantity
                 total += subtotal
                 items.append({"product": product, "quantity": quantity, "subtotal": subtotal})
-        return render(request, "checkout_map.html", {"items": items, "total": total})
+        return render(request, "customer_checkout_map.html", {"items": items, "total": total})
 
     latitude = _coord(request.POST.get("delivery_latitude"), Decimal("-90"), Decimal("90"))
     longitude = _coord(request.POST.get("delivery_longitude"), Decimal("-180"), Decimal("180"))
@@ -42,13 +42,21 @@ def checkout_mpesa_map(request):
     response = original_checkout_mpesa(request)
     match = re.search(r"/(?:order-success|payments/mpesa/waiting)/(\d+)/", getattr(response, "url", ""))
     if match:
-        Order.objects.filter(pk=int(match.group(1)), email__iexact=request.POST.get("email", "").strip()).update(
-            delivery_latitude=latitude, delivery_longitude=longitude
-        )
+        order_id = int(match.group(1))
+        updates = {"delivery_latitude": latitude, "delivery_longitude": longitude}
+        if request.user.is_authenticated and not request.user.is_staff and not request.user.is_superuser:
+            Order.objects.filter(pk=order_id, customer=request.user).update(**updates)
+        else:
+            Order.objects.filter(pk=order_id, email__iexact=request.POST.get("email", "").strip()).update(**updates)
     return response
 
 
 class _MapGetRequest:
     def __init__(self, request):
         self.session = request.session
+        self.user = request.user
+        self.POST = {}
+        self.FILES = {}
+        self.META = request.META
+        self.COOKIES = request.COOKIES
     method = "GET"
