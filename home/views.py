@@ -16,7 +16,8 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 from .forms import CustomerRegistrationForm
-from .models_product_media import ProductMedia, SellerRegistrationForm, SellerProductForm, ProductReviewForm
+from .models_product_media import ProductMedia
+from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
 
