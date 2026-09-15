@@ -19,8 +19,24 @@ from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProdu
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
 
+def _is_seller_user(user):
+    return bool(getattr(user, "seller_profile", None))
+
+
+def _is_delivery_user(user):
+    return bool(getattr(user, "delivery_agent_profile", None))
+
+
 def _customer_only(request):
-    return not (request.user.is_staff or request.user.is_superuser)
+    """True only for a genuine customer session; seller/admin/delivery are excluded."""
+    user = request.user
+    return bool(
+        user.is_authenticated
+        and not user.is_staff
+        and not user.is_superuser
+        and not _is_seller_user(user)
+        and not _is_delivery_user(user)
+    )
 
 
 def _record_order_event(order, event_type, note="", actor=None, delivery_agent=None):
@@ -31,6 +47,12 @@ def customer_register(request):
     if request.user.is_authenticated:
         if request.user.is_staff or request.user.is_superuser:
             return redirect("/admin/")
+        if _is_seller_user(request.user):
+            messages.info(request, "You are signed in to a seller account. Customer accounts are separate.")
+            return redirect("seller_dashboard")
+        if _is_delivery_user(request.user):
+            messages.info(request, "Delivery accounts use a separate portal.")
+            return redirect("delivery_portal")
         return redirect("customer_dashboard")
     if request.method == "POST":
         form = CustomerRegistrationForm(request.POST)
@@ -50,10 +72,17 @@ def customer_register(request):
 
 
 def customer_login(request):
+    """Authenticate only customer accounts; seller/delivery/admin identities are rejected."""
     if request.user.is_authenticated:
         if request.user.is_staff or request.user.is_superuser:
             messages.info(request, "Admin accounts can only be used in the Shopiva Admin Control Center.")
             return redirect("/admin/")
+        if _is_seller_user(request.user):
+            messages.info(request, "You are signed in as a seller. Use the Seller Workspace.")
+            return redirect("seller_dashboard")
+        if _is_delivery_user(request.user):
+            messages.info(request, "Delivery accounts use the Delivery Portal.")
+            return redirect("delivery_portal")
         return redirect("customer_dashboard")
     if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
@@ -61,6 +90,10 @@ def customer_login(request):
             user = form.get_user()
             if user.is_staff or user.is_superuser:
                 form.add_error(None, "This is an admin account. Please use the Shopiva Admin Control Center.")
+            elif _is_seller_user(user):
+                form.add_error(None, "This is a seller account. Please use the dedicated Seller Login.")
+            elif _is_delivery_user(user):
+                form.add_error(None, "This is a delivery account. Please use the Delivery Portal.")
             else:
                 auth_login(request, user)
                 messages.success(request, f"Welcome back, {user.username}!")
@@ -468,12 +501,28 @@ def customer_notifications(request):
 
 
 @login_required(login_url="customer_login")
+def _is_customer_only_user(user):
+    return bool(
+        user.is_authenticated
+        and not user.is_staff
+        and not user.is_superuser
+        and not _is_seller_user(user)
+        and not _is_delivery_user(user)
+    )
+
+
 def seller_register(request):
     if request.user.is_authenticated:
-        if hasattr(request.user, "seller_profile"):
-            return redirect("seller_dashboard")
         if request.user.is_staff or request.user.is_superuser:
             return redirect("/admin/")
+        if _is_seller_user(request.user):
+            return redirect("seller_dashboard")
+        if _is_customer_only_user(request.user):
+            messages.info(request, "Seller accounts are separate from customer accounts. Sign out before creating a seller account.")
+            return redirect("customer_dashboard")
+        if _is_delivery_user(request.user):
+            messages.info(request, "Delivery accounts cannot be converted into seller accounts.")
+            return redirect("delivery_portal")
     if request.method == "POST":
         form = SellerRegistrationForm(request.POST)
         if form.is_valid():
@@ -494,8 +543,9 @@ def seller_dashboard(request):
     if request.user.is_staff or request.user.is_superuser:
         return redirect("/admin/")
     seller = getattr(request.user, "seller_profile", None)
-    if not seller:
-        return redirect("seller_register")
+    if not seller or not seller.is_active:
+        messages.error(request, "Seller workspace access requires an active seller account.")
+        return redirect("seller_login")
     wallet, _ = SellerWallet.objects.get_or_create(seller=seller)
     products = seller.products.order_by("-id")
     order_items = seller.order_items.select_related("order", "product").order_by("-id")[:50]
