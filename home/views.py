@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 from .forms import CustomerRegistrationForm
 from .models_product_media import ProductMedia
+from .notification_service import notify_user
 from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
@@ -448,6 +449,15 @@ def checkout(request):
                 product.save(update_fields=["stock_quantity"])
         request.session["cart"] = {}
         request.session.modified = True
+        notify_user(
+            order.customer or None,
+            notification_type="order",
+            title=f"Shopiva order #{order.id} received",
+            message=f"Your order {order.tracking_code} has been received. Total: KSh {order.total_amount}.",
+            link=f"/order-success/{order.id}/",
+            email=order.email,
+            phone=order.phone,
+        )
         return redirect("order_success", order_id=order.id)
     return render(request, "checkout.html", {"items": items, "total": total})
 
