@@ -91,20 +91,6 @@ class Product(models.Model):
             models.CheckConstraint(condition=models.Q(discount_percent__gte=0, discount_percent__lte=100), name="product_discount_0_100"),
         ]
 
-
-class ProductMedia(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="media")
-    image = CloudinaryField("image", folder="shopiva/product-media")
-    position = models.PositiveSmallIntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(7)])
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ("position", "created_at")
-        constraints = [models.UniqueConstraint(fields=("product", "position"), name="unique_product_media_position")]
-
-    def __str__(self):
-        return self.product.name + " gallery #" + str(self.position + 1)
-
 class DeliveryAgent(models.Model):
     STATUS_CHOICES = [("offline", "Offline"), ("available", "Available"), ("on_delivery", "On Delivery")]
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="delivery_agent_profile")
