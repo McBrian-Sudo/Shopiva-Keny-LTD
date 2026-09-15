@@ -7,7 +7,21 @@ import uuid
 
 from .models import Product, ProductReview
 from .media_pipeline import enhance_product_image
-from .seller_catalog_search import catalog_search_choices, resolve_catalog_item
+from .shopiva_seller_catalog import (
+    catalog_search_choices as base_catalog_search_choices,
+    resolve_catalog_item as base_resolve_catalog_item,
+)
+from .shopiva_catalog_2026_expansion import catalog_choices_2026, catalog_item_2026
+
+
+def catalog_search_choices():
+    """Return the original seller catalogue plus the broad 2026 expansion."""
+    return tuple(base_catalog_search_choices()) + tuple(catalog_choices_2026())
+
+
+def resolve_catalog_item(key):
+    """Resolve a selected catalogue item from either catalogue generation."""
+    return catalog_item_2026(key) or base_resolve_catalog_item(key)
 
 
 def _validate_unique_username(username, *, error_message):
@@ -28,6 +42,7 @@ class _ShopivaUsernameBoundary:
         return _validate_unique_username(username, error_message=self.username_error_message)
 
     def validate_unique(self):
+        """Prevent Django's second model-level username check from replacing our message."""
         return None
 
 
@@ -62,7 +77,10 @@ class SellerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
     username_error_message = "Username exists. Please choose another username."
     email = forms.EmailField(required=True)
     business_name = forms.CharField(max_length=200)
-    mpesa_phone = forms.CharField(max_length=30, help_text="Kenyan M-PESA number for future seller payouts.")
+    mpesa_phone = forms.CharField(
+        max_length=30,
+        help_text="Kenyan M-PESA number for future seller payouts.",
+    )
 
     class Meta:
         model = User
@@ -99,16 +117,15 @@ class MultipleImageField(forms.FileField):
 
 
 class CatalogSearchWidget(forms.TextInput):
-    """Search-first seller catalogue field with grouped human-readable suggestions."""
+    """Search-first seller catalogue field with browser-native suggestions."""
 
     input_type = "search"
 
     def __init__(self, attrs=None):
         base = {
-            "placeholder": "Search product, brand, model or spare part...",
+            "placeholder": "Search phones, accessories, appliances, utensils, car/motorcycle/bicycle spares and more...",
             "autocomplete": "off",
             "aria-label": "Search and choose a Shopiva product",
-            "list": "shopiva-product-catalog-options",
         }
         if attrs:
             base.update(attrs)
@@ -116,12 +133,16 @@ class CatalogSearchWidget(forms.TextInput):
 
     def render(self, name, value, attrs=None, renderer=None):
         rendered = super().render(name, value, attrs, renderer)
-        options = [
-            f'<option value="{conditional_escape(label)}"></option>'
-            for _, label in catalog_search_choices()
-        ]
-        datalist = '<datalist id="shopiva-product-catalog-options">' + "".join(options) + (
-            '<option value="CUSTOM PRODUCT — enter your own product"></option></datalist>'
+        options = []
+        for key, label in catalog_search_choices():
+            options.append(
+                f'<option value="{conditional_escape(label)}" data-key="{conditional_escape(key)}"></option>'
+            )
+        datalist = (
+            '<datalist id="shopiva-product-catalog-options">'
+            + "".join(options)
+            + '<option value="CUSTOM PRODUCT — enter your own product"></option>'
+            + "</datalist>"
         )
         return rendered + datalist
 
@@ -131,28 +152,31 @@ class SellerProductForm(forms.ModelForm):
         required=False,
         label="Search & choose from Shopiva master catalogue",
         help_text=(
-            "Search by product name, brand, model or part. The expanded catalogue is organised across "
-            "phones, model-specific accessories, computers, electronics, utensils/cookware, home appliances, "
-            "cars, motorcycles, bicycles and custom bicycle/motorcycle parts, fashion, baby, sports, office, "
-            "tools, agriculture, pets and other everyday marketplace categories."
+            "Type a product name, brand, model or spare part. Shopiva searches a broad marketplace "
+            "catalogue covering current and recent phones, model-specific phone accessories, computers, "
+            "electronics, utensils, appliances, car parts, motorcycle parts, bicycle parts/customisation, "
+            "tools and many everyday categories. Choosing a catalogue suggestion fills the product "
+            "name and category automatically. Type CUSTOM PRODUCT to list something new."
         ),
-        widget=CatalogSearchWidget(attrs={"class": "shopiva-catalog-search"}),
+        widget=CatalogSearchWidget(attrs={"list": "shopiva-product-catalog-options", "class": "shopiva-catalog-search"}),
     )
     discount_percent = forms.IntegerField(
         min_value=0,
         max_value=100,
         required=False,
-        help_text="Optional customer discount from the original price. Example: 20 means 20% off.",
+        help_text=(
+            "Optional customer discount from the original price. Example: 20 means the customer pays 80% of the listed price."
+        ),
     )
     promo_text = forms.CharField(
         max_length=120,
         required=False,
-        help_text="Optional short marketing message such as 'Free delivery' or 'Weekend Deal'.",
+        help_text="Optional short marketing message shown with the product, e.g. 'Free delivery' or 'Weekend Deal'.",
     )
     gallery_images = MultipleImageField(
         required=False,
         label="Additional product photos (up to 8)",
-        help_text="Use real photos of the same product. Shopiva automatically enhances them for the gallery.",
+        help_text="Use real photos of the same product. Shopiva automatically enhances them for the marketplace gallery.",
     )
 
     class Meta:
@@ -172,7 +196,7 @@ class SellerProductForm(forms.ModelForm):
             "is_featured",
         )
         widgets = {
-            "name": forms.TextInput(attrs={"placeholder": "Catalogue selection fills this, or use a custom name"}),
+            "name": forms.TextInput(attrs={"placeholder": "Catalogue selection will fill this, or enter a custom product"}),
             "description": forms.Textarea(attrs={"rows": 5}),
             "category": forms.TextInput(attrs={"placeholder": "Electronics, Fashion, Groceries, Vehicle Parts..."}),
             "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
@@ -185,7 +209,7 @@ class SellerProductForm(forms.ModelForm):
         item = resolve_catalog_item(raw)
         if not item:
             raise forms.ValidationError(
-                "No catalogue product matched that search. Select a suggestion or use CUSTOM PRODUCT."
+                "No catalogue product matched that search. Choose a suggestion or type CUSTOM PRODUCT to enter your own item."
             )
         return item["key"]
 
