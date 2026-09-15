@@ -26,7 +26,7 @@
 <img class="mini-logo" src="{% static 'shopiva/shopiva-shopping-logo.svg' %}" alt="Shopiva Kenya LTD shopping app logo">
 <div class="eyebrow">Customer access</div><h2>Sign in to Shopiva</h2><p class="sub">Enter your account details to continue shopping.</p>
 {% if messages %}{% for message in messages %}<div class="success">{{ message }}</div>{% endfor %}{% endif %}
-{% if form.errors %}<div class="error"><strong>We couldn't sign you in.</strong><ul><li>Check your username and password and try again.</li></ul></div>{% endif %}
+{% if form.non_field_errors %}<div class="error"><strong>Sign-in not allowed here.</strong><ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul></div>{% elif form.errors %}<div class="error"><strong>We couldn't sign you in.</strong><ul><li>Check your username and password and try again.</li></ul></div>{% endif %}
 <form method="post" autocomplete="off" data-lpignore="true" data-1p-ignore="true">{% csrf_token %}<div class="form-group"><label for="id_username">Username</label><input type="text" name="username" id="id_username" placeholder="Enter your username" autocomplete="off" autocapitalize="none" spellcheck="false" required></div><div class="form-group"><label for="id_password">Password</label><input type="password" name="password" id="id_password" placeholder="Enter your password" autocomplete="new-password" required></div><button class="submit" type="submit">Sign In</button></form>
 <div class="switch">New to Shopiva? <a href="{% url 'customer_register' %}">Create your account</a></div><div class="back"><a href="{% url 'home' %}">← Back to shopping</a></div><div class="secure">🔐 Your account is protected by Shopiva's secure sign-in.</div>
 </div></section></div>

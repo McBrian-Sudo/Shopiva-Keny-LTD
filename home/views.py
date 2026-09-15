@@ -511,7 +511,6 @@ def customer_notifications(request):
     return render(request, "accounts/notifications.html", {"notifications": notifications})
 
 
-@login_required(login_url="customer_login")
 def _is_customer_only_user(user):
     return bool(
         user.is_authenticated
