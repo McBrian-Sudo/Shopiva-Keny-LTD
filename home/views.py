@@ -16,7 +16,7 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm
-from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
+from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductMedia
 
 
 def _is_seller_user(user):
@@ -156,12 +156,12 @@ def customer_profile(request):
     if not _customer_only(request):
         return redirect("/admin/")
     if request.method == "POST":
-        email = request.POST.get("email", "").strip()
-        if email:
-            request.user.email = email
-            request.user.save(update_fields=["email"])
-            messages.success(request, "Your profile has been updated.")
+        email = request.POST.get("email", "").strip().lower()
+        if email and email != request.user.email.lower():
+            messages.error(request, "Email changes are locked for account security. Contact Shopiva support for a verified email change.")
             return redirect("customer_profile")
+        messages.success(request, "Your profile is up to date.")
+        return redirect("customer_profile")
     return render(request, "accounts/profile.html")
 
 
@@ -597,6 +597,8 @@ def seller_product_add(request):
             product = form.save(commit=False)
             product.seller = seller
             product.save()
+            for position, image_file in enumerate(getattr(product, "_shopiva_gallery_files", [])[:8]):
+                ProductMedia.objects.create(product=product, image=enhance_product_image(image_file, f"{product.name}-gallery-{position + 1}"), position=position)
             messages.success(request, f"{product.name} is now listed on Shopiva.")
             return redirect("seller_dashboard")
     else:
@@ -614,6 +616,11 @@ def seller_product_edit(request, product_id):
         form = SellerProductForm(request.POST, request.FILES, instance=product, seller=seller)
         if form.is_valid():
             product = form.save()
+            gallery_files = getattr(product, "_shopiva_gallery_files", [])
+            if gallery_files:
+                product.media.all().delete()
+                for position, image_file in enumerate(gallery_files[:8]):
+                    ProductMedia.objects.create(product=product, image=enhance_product_image(image_file, f"{product.name}-gallery-{position + 1}"), position=position)
             messages.success(request, f"{product.name} updated.")
             return redirect("seller_dashboard")
     else:
@@ -623,6 +630,8 @@ def seller_product_edit(request, product_id):
 
 @login_required(login_url="customer_login")
 def seller_product_toggle(request, product_id):
+    if request.method != "POST":
+        return redirect("seller_dashboard")
     seller = getattr(request.user, "seller_profile", None)
     product = get_object_or_404(Product, id=product_id, seller=seller)
     product.is_active = not product.is_active
@@ -633,6 +642,8 @@ def seller_product_toggle(request, product_id):
 
 @login_required(login_url="customer_login")
 def seller_product_delete(request, product_id):
+    if request.method != "POST":
+        return redirect("seller_dashboard")
     seller = getattr(request.user, "seller_profile", None)
     product = get_object_or_404(Product, id=product_id, seller=seller)
     product.is_active = False

@@ -22,7 +22,7 @@ services:
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://shopiva-keny-ltd.onrender.com"
       - key: SECURE_SSL_REDIRECT
-        value: "false"
+        value: "true"
       - key: SECRET_KEY
         sync: false
       - key: CLOUDINARY_URL

@@ -19,7 +19,7 @@
             <label>Username</label>
             <input type="text" value="{{ request.user.username }}" disabled>
             <label for="email">Email address</label>
-            <input id="email" type="email" name="email" value="{{ request.user.email }}" required>
+            <input id="email" type="email" value="{{ request.user.email }}" disabled><p style="color:#66756e;font-size:13px;line-height:1.5">Your account email is protected because it is used for account recovery and order communications. Contact Shopiva support for a verified email change.</p>
             <button type="submit">Save Profile</button>
         </form>
     </div>

@@ -283,6 +283,28 @@ class CustomerOrderPrivacyTests(TestCase):
         self.assertContains(response, "A private address")
 
 
+class CommercialHardeningTests(TestCase):
+    def setUp(self):
+        self.customer = User.objects.create_user(username="hardening_customer", email="hardening@example.com", password="StrongPass123!")
+        self.seller_user = User.objects.create_user(username="hardening_seller", email="seller-hardening@example.com", password="StrongPass123!")
+        self.seller = SellerProfile.objects.create(user=self.seller_user, business_name="Hardening Seller")
+
+    def test_customer_cannot_change_account_email_directly(self):
+        self.client.force_login(self.customer)
+        response = self.client.post(reverse("customer_profile"), {"email": "attacker@example.com"})
+        self.customer.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.customer.email, "hardening@example.com")
+
+    def test_seller_product_toggle_requires_post(self):
+        product = Product.objects.create(name="Hardening Product", price=Decimal("100.00"), stock_quantity=5, seller=self.seller)
+        self.client.force_login(self.seller_user)
+        response = self.client.get(reverse("seller_product_toggle", args=[product.id]))
+        product.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(product.is_active)
+
+
 class MpesaCallbackSafetyTests(TestCase):
     def _payment_fixture(self):
         user = User.objects.create_user(username="mpesabuyer", email="mpesa@example.com", password="StrongPass123!")
