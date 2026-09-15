@@ -38,6 +38,17 @@ def _customer_only(request):
         and not _is_delivery_user(user)
     )
 
+def _customer_boundary_redirect(request):
+    """Route an authenticated non-customer back to the correct portal."""
+    user = request.user
+    if user.is_staff or user.is_superuser:
+        return redirect("/admin/")
+    if _is_seller_user(user):
+        return redirect("seller_dashboard")
+    if _is_delivery_user(user):
+        return redirect("delivery_portal")
+    return redirect("customer_login")
+
 
 def _record_order_event(order, event_type, note="", actor=None, delivery_agent=None):
     return OrderEvent.objects.create(order=order, event_type=event_type, note=note, actor=actor, delivery_agent=delivery_agent)
@@ -112,7 +123,7 @@ def customer_logout(request):
 @login_required(login_url="customer_login")
 def customer_dashboard(request):
     if not _customer_only(request):
-        return redirect("/admin/")
+        return _customer_boundary_redirect(request)
     orders = (Order.objects.filter(email__iexact=request.user.email).select_related("delivery_agent").prefetch_related("events__delivery_agent", "items__product").order_by("-created_at"))
     latest_order = orders.first()
     return render(request, "accounts/dashboard.html", {"orders": orders[:5], "latest_order": latest_order})
