@@ -1,5 +1,6 @@
 from django.conf import settings
 from decimal import Decimal
+import uuid
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from cloudinary.models import CloudinaryField
@@ -123,7 +124,9 @@ class Order(models.Model):
     STATUS_CHOICES = [("pending", "Placed / Pending"), ("confirmed", "Confirmed"), ("paid", "Paid"), ("packed", "Packed"), ("processing", "Processing"), ("shipped", "Shipped"), ("out_for_delivery", "Out for Delivery"), ("delivered", "Delivered"), ("cancelled", "Cancelled")]
     PAYMENT_STATUS_CHOICES = [("unpaid", "Unpaid"), ("pending", "Payment Pending"), ("paid", "Paid"), ("failed", "Failed"), ("refunded", "Refunded")]
     customer_name = models.CharField(max_length=200)
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="shopiva_orders")
     email = models.EmailField()
+    access_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     phone = models.CharField(max_length=30)
     address = models.TextField()
     delivery_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

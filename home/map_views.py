@@ -186,7 +186,7 @@ def customer_delivery_location_map(request):
         return JsonResponse({"ok": False, "error": "Admin accounts use the admin delivery map."}, status=403)
 
     latest_order = (
-        Order.objects.filter(email__iexact=request.user.email)
+        Order.objects.filter(customer=request.user)
         .select_related("delivery_agent")
         .prefetch_related("events")
         .order_by("-created_at")

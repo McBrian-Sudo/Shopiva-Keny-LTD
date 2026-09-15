@@ -234,6 +234,55 @@ class DataIntegrityConstraintTests(TestCase):
             CustomerAddress.objects.create(user=user, label="Office", full_name="Buyer", phone="254700000003", county="Nairobi", town="Nairobi", address_line="Two", is_default=True)
 
 
+
+class CustomerOrderPrivacyTests(TestCase):
+    def setUp(self):
+        self.customer_a = User.objects.create_user(
+            username="privacy_a", email="privacy-a@example.com", password="StrongPass123!"
+        )
+        self.customer_b = User.objects.create_user(
+            username="privacy_b", email="privacy-b@example.com", password="StrongPass123!"
+        )
+        self.order_a = Order.objects.create(
+            customer=self.customer_a, customer_name="Customer A", email=self.customer_a.email,
+            phone="254700000001", address="A private address", total_amount=Decimal("250.00"),
+        )
+        self.order_b = Order.objects.create(
+            customer=self.customer_b, customer_name="Customer B", email=self.customer_b.email,
+            phone="254700000002", address="B private address", total_amount=Decimal("500.00"),
+        )
+
+    def test_customer_can_only_view_own_order_success(self):
+        self.client.force_login(self.customer_a)
+        response = self.client.get(reverse("order_success", args=[self.order_a.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A private address")
+        response = self.client.get(reverse("order_success", args=[self.order_b.id]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_email_change_does_not_expose_other_customer_orders(self):
+        self.client.force_login(self.customer_a)
+        self.customer_a.email = self.customer_b.email
+        self.customer_a.save(update_fields=["email"])
+        response = self.client.get(reverse("customer_orders"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f"Order #{self.order_a.id}")
+        self.assertNotContains(response, f"Order #{self.order_b.id}")
+        response = self.client.get(reverse("customer_order_tracking", args=[self.order_b.id]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_guest_order_success_requires_secret_access_token(self):
+        self.client.logout()
+        response = self.client.get(reverse("order_success", args=[self.order_a.id]))
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(
+            reverse("order_success", args=[self.order_a.id]),
+            {"token": str(self.order_a.access_token)},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A private address")
+
+
 class MpesaCallbackSafetyTests(TestCase):
     def _payment_fixture(self):
         user = User.objects.create_user(username="mpesabuyer", email="mpesa@example.com", password="StrongPass123!")

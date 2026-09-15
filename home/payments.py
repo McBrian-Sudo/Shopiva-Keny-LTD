@@ -390,6 +390,7 @@ def checkout_mpesa(request):
 
         order = Order.objects.create(
             customer_name=customer_name,
+            customer=request.user if request.user.is_authenticated and not request.user.is_staff and not hasattr(request.user, "seller_profile") and not hasattr(request.user, "delivery_agent_profile") else None,
             email=email,
             phone=phone,
             address=address,
@@ -556,7 +557,7 @@ def mpesa_callback(request):
             seller_ids = []
             if order.email:
                 from django.contrib.auth.models import User
-                customer = User.objects.filter(email__iexact=order.email, is_active=True).first()
+                customer = User.objects.filter(id=order.customer_id, is_active=True).first()
                 customer_id = customer.id if customer else None
             seller_ids = [item.seller.user_id for item in order.items.select_related("seller", "seller__user") if item.seller_id and item.seller]
             tracking = order.tracking_code
@@ -647,7 +648,7 @@ def _create_seller_settlements(order):
 
 def card_payment_success(request, order_id):
     order = get_object_or_404(Order, id=order_id)
-    allowed = request.session.get("payment_order_id") == order.id or (request.user.is_authenticated and (request.user.is_staff or order.email.lower() == request.user.email.lower()))
+    allowed = request.session.get("payment_order_id") == order.id or (request.user.is_authenticated and (request.user.is_staff or order.customer_id == request.user.id))
     if not allowed:
         return JsonResponse({"ok": False, "error": "You are not authorized to view this payment."}, status=403)
     request.session["payment_order_id"] = order.id

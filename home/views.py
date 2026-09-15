@@ -124,7 +124,7 @@ def customer_logout(request):
 def customer_dashboard(request):
     if not _customer_only(request):
         return _customer_boundary_redirect(request)
-    orders = (Order.objects.filter(email__iexact=request.user.email).select_related("delivery_agent").prefetch_related("events__delivery_agent", "items__product").order_by("-created_at"))
+    orders = (Order.objects.filter(customer=request.user).select_related("delivery_agent").prefetch_related("events__delivery_agent", "items__product").order_by("-created_at"))
     latest_order = orders.first()
     return render(request, "accounts/dashboard.html", {"orders": orders[:5], "latest_order": latest_order})
 
@@ -133,7 +133,7 @@ def customer_dashboard(request):
 def customer_orders(request):
     if not _customer_only(request):
         return redirect("/admin/")
-    orders = Order.objects.filter(email__iexact=request.user.email).prefetch_related("events", "delivery_agent").order_by("-created_at")
+    orders = Order.objects.filter(customer=request.user).prefetch_related("events", "delivery_agent").order_by("-created_at")
     return render(request, "accounts/orders.html", {"orders": orders})
 
 
@@ -141,7 +141,7 @@ def customer_orders(request):
 def customer_delivery_location(request):
     if not _customer_only(request):
         return JsonResponse({"ok": False, "error": "Admin accounts use the admin delivery map."}, status=403)
-    latest_order = (Order.objects.filter(email__iexact=request.user.email).select_related("delivery_agent").prefetch_related("events__delivery_agent").order_by("-created_at").first())
+    latest_order = (Order.objects.filter(customer=request.user).select_related("delivery_agent").prefetch_related("events__delivery_agent").order_by("-created_at").first())
     if not latest_order or not latest_order.delivery_agent:
         return JsonResponse({"ok": True, "agent": None, "order": None, "events": []})
     agent = latest_order.delivery_agent
@@ -428,7 +428,17 @@ def checkout(request):
                 final_total += subtotal
                 locked_items.append((product, quantity, unit_price))
             tracking_code = f"SPV-{uuid.uuid4().hex[:10].upper()}"
-            order = Order.objects.create(customer_name=customer_name, email=email, phone=phone, address=address, total_amount=final_total, status="pending", payment_status="unpaid", tracking_code=tracking_code)
+            order = Order.objects.create(
+            customer_name=customer_name,
+            customer=request.user if _customer_only(request) else None,
+            email=email,
+            phone=phone,
+            address=address,
+            total_amount=final_total,
+            status="pending",
+            payment_status="unpaid",
+            tracking_code=tracking_code,
+        )
             _record_order_event(order, "placed", note="Order placed through Shopiva checkout.", actor=request.user if request.user.is_authenticated else None)
             for product, quantity, unit_price in locked_items:
                 OrderItem.objects.create(order=order, product=product, quantity=quantity, price=unit_price)
@@ -441,7 +451,14 @@ def checkout(request):
 
 
 def order_success(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
+    """Show an order confirmation only to its authenticated owner or bearer-token holder."""
+    if request.user.is_authenticated:
+        if not _customer_only(request):
+            return _customer_boundary_redirect(request)
+        order = get_object_or_404(Order, id=order_id, customer=request.user)
+    else:
+        raw_token = request.GET.get("token", "").strip()
+        order = get_object_or_404(Order, id=order_id, access_token=raw_token)
     return render(request, "order_success.html", {"order": order})
 
 
@@ -482,7 +499,7 @@ def product_review(request, product_id):
     if not _customer_only(request):
         return redirect("/admin/")
     product = get_object_or_404(Product, id=product_id)
-    eligible_orders = Order.objects.filter(email__iexact=request.user.email, status="delivered", items__product=product).distinct()
+    eligible_orders = Order.objects.filter(customer=request.user, status="delivered", items__product=product).distinct()
     if not eligible_orders.exists():
         messages.error(request, "You can review this product only after a delivered purchase.")
         return redirect("product_detail", product_id=product.id)

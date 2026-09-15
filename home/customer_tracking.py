@@ -13,7 +13,7 @@ def customer_order_tracking(request, order_id):
     order = get_object_or_404(
         Order.objects.select_related("delivery_agent").prefetch_related("items__product", "events"),
         id=order_id,
-        email__iexact=request.user.email,
+        customer=request.user,
     )
 
     return render(
