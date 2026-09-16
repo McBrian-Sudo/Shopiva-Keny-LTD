@@ -20,11 +20,12 @@ from home.delivery_app import delivery_login, delivery_logout, delivery_action, 
 from home.delivery_platform import delivery_manifest, delivery_service_worker
 from home.admin_delivery_feed import admin_live_delivery_feed
 from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, seller_dashboard, seller_product_toggle, seller_product_delete, product_review, customer_notifications, seller_register, seller_request_payout, delivery_ping_location, delivery_portal, delivery_update_location, home, order_success, product_detail, products
+from home.bicycle_slide_v2 import bicycle_home_v2
 from home.seo import robots_txt, sitemap_xml
 from home.legal import privacy_policy, terms_of_service, account_deletion
 
 urlpatterns = [
-    path("", home, name="home"),
+    path("", bicycle_home_v2, name="home"),
     path("health/", health, name="health"),
     path("robots.txt", robots_txt, name="robots_txt"),
     path("sitemap.xml", sitemap_xml, name="sitemap_xml"),
