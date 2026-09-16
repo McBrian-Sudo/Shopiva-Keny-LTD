@@ -46,8 +46,40 @@ BICYCLE_HERO = r'''
 </section>
 '''.replace("__IMAGE__", BICYCLE_HUB_IMAGE)
 
+def _replace_first_element_by_class(html, tag_name, class_name, replacement):
+    """Replace the first balanced HTML element having the requested class."""
+    tag_rx = re.compile(r"<%s\b[^>]*>" % re.escape(tag_name), re.IGNORECASE)
+    class_rx = re.compile(r"class\s*=\s*['\"]([^'\"]*)['\"]", re.IGNORECASE)
+    opening = None
+
+    for match in tag_rx.finditer(html):
+        classes = class_rx.search(match.group(0))
+        if classes and re.search(r"\b%s\b" % re.escape(class_name), classes.group(1), re.IGNORECASE):
+            opening = match
+            break
+
+    if not opening:
+        return html, False
+
+    token_rx = re.compile(r"<(/?)([A-Za-z][\w:-]*)\b[^>]*>", re.IGNORECASE)
+    depth = 1
+
+    for token in token_rx.finditer(html, opening.end()):
+        full = token.group(0)
+        token_tag = token.group(2).lower()
+        if token_tag != tag_name.lower():
+            continue
+        if token.group(1):
+            depth -= 1
+            if depth == 0:
+                return html[:opening.start()] + replacement + html[token.end():], True
+        elif not full.rstrip().endswith("/>"):
+            depth += 1
+
+    return html, False
+
 class ShopivaBrandingMiddleware:
-    """Own the public Bicycle Spares hero without stacking legacy slide implementations."""
+    """Make the approved Shopiva Bicycle Spares image the single public homepage hero."""
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -60,37 +92,29 @@ class ShopivaBrandingMiddleware:
 
         html = response.content.decode("utf-8", errors="replace")
 
-        # Remove legacy bicycle enhancements from prior iterations.
-        html = re.sub(r'(?is)<style[^>]*id=["\']shopiva-bicycle-hero-css["\'][^>]*>.*?</style>', "", html)
-        html = re.sub(r'(?is)<section[^>]*class=["\'][^"\']*shopiva-bicycle-hero[^"\']*["\'][^>]*>.*?</section>', "", html)
-
-        replacement = BICYCLE_CSS + BICYCLE_HERO
-
-        # Replace the existing homepage hero before the quick cards.
-        new_html, count = re.subn(
-            r'(?is)<div[^>]*class=["\'][^"\']*\bhero\b[^"\']*["\'][^>]*>.*?</div>\s*(?=<div[^>]*class=["\'][^"\']*\bquick\b)',
-            replacement,
+        html = re.sub(
+            r"(?is)<style[^>]*id=['\"]shopiva-bicycle-hero-css['\"][^>]*>.*?</style>",
+            "",
             html,
-            count=1,
+        )
+        html, _ = _replace_first_element_by_class(html, "section", "shopiva-bicycle-hero", "")
+
+        html, replaced = _replace_first_element_by_class(
+            html, "div", "hero", BICYCLE_CSS + BICYCLE_HERO
         )
 
-        # Fallback if the source wrapper differs.
-        if count == 0:
-            new_html, _ = re.subn(
-                r'(?is)<div[^>]*class=["\'][^"\']*\bhero\b[^"\']*["\'][^>]*>.*?</div>',
-                "",
-                html,
-                count=1,
+        if not replaced:
+            quick_rx = re.compile(
+                r"(?is)(<div[^>]*class=['\"][^'\"]*\bquick\b[^'\"]*['\"][^>]*>)"
             )
-            new_html = re.sub(
-                r'(?is)(<div[^>]*class=["\'][^"\']*\bquick\b[^"\']*["\'][^>]*>)',
-                replacement + r"\1",
-                new_html,
-                count=1,
+            html, quick_found = quick_rx.subn(
+                BICYCLE_CSS + BICYCLE_HERO + r"\1", html, count=1
             )
+            if not quick_found:
+                html = html.replace("</body>", BICYCLE_CSS + BICYCLE_HERO + "</body>", 1)
 
         response = HttpResponse(
-            new_html,
+            html,
             status=response.status_code,
             content_type=response.get("Content-Type", "text/html"),
         )
