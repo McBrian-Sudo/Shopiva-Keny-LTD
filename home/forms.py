@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.utils.text import slugify
-from django.utils.html import conditional_escape
+from django.utils.html import conditional_escape, mark_safe
 import uuid
 
 from .models import Product, ProductReview
@@ -144,7 +144,7 @@ class CatalogSearchWidget(forms.TextInput):
             + '<option value="CUSTOM PRODUCT — enter your own product"></option>'
             + "</datalist>"
         )
-        return rendered + datalist
+        return mark_safe(rendered + datalist)
 
 
 class SellerProductForm(forms.ModelForm):
