@@ -77,6 +77,39 @@ class Product(models.Model):
         return self.name
 
     @property
+    def fallback_image_url(self):
+        """Stable visual fallback when a seller has not uploaded a real photo yet."""
+        name = (self.name or "").lower()
+        category = (self.category or "").lower()
+
+        if any(token in name for token in ("iphone", "galaxy", "pixel", "tecno", "infinix", "oppo", "xiaomi", "oneplus", "vivo", "nokia", "phone", "tablet")):
+            return "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1000&q=88"
+        if any(token in category for token in ("laptop", "computer", "office")):
+            return "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1000&q=88"
+        if any(token in category for token in ("tv", "entertainment", "gaming", "electronics")):
+            return "https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=1000&q=88"
+        if any(token in category for token in ("fashion", "shoes")):
+            return "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=1000&q=88"
+        if any(token in category for token in ("beauty", "skincare", "hair", "oral")):
+            return "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1000&q=88"
+        if any(token in category for token in ("home", "furniture", "kitchen", "mattress")):
+            return "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1000&q=88"
+        if any(token in category for token in ("automotive", "vehicle", "motorcycle", "bicycle")):
+            return "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=1000&q=88"
+        if any(token in category for token in ("sports", "fitness")):
+            return "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1000&q=88"
+        if any(token in category for token in ("agriculture", "garden", "farm")):
+            return "https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?auto=format&fit=crop&w=1000&q=88"
+        return "https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=1000&q=88"
+
+    @property
+    def has_real_image(self):
+        try:
+            return bool(self.image and self.image.url)
+        except Exception:
+            return False
+
+    @property
     def average_rating(self):
         from django.db.models import Avg
         return self.reviews.aggregate(value=Avg("rating"))["value"] or 0
