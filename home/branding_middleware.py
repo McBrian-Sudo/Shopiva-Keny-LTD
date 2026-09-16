@@ -41,17 +41,17 @@ BICYCLE_HERO = r"""
 """.replace("__IMAGE__", BICYCLE_HUB_IMAGE)
 
 def _replace_first_element_by_class(html, tag_name, class_name, replacement):
-    tag_rx = re.compile(r"<%s\\b[^>]*>" % re.escape(tag_name), re.IGNORECASE)
-    class_rx = re.compile(r"class\\s*=\\s*['\\\"]([^'\\\"]*)['\\\"]", re.IGNORECASE)
+    tag_rx = re.compile(r"<%s\b[^>]*>" % re.escape(tag_name), re.IGNORECASE)
+    class_rx = re.compile(r"class\s*=\s*['\"]([^'\"]*)['\"]", re.IGNORECASE)
     opening = None
     for match in tag_rx.finditer(html):
         classes = class_rx.search(match.group(0))
-        if classes and re.search(r"\\b%s\\b" % re.escape(class_name), classes.group(1), re.IGNORECASE):
+        if classes and re.search(r"\b%s\b" % re.escape(class_name), classes.group(1), re.IGNORECASE):
             opening = match
             break
     if not opening:
         return html, False
-    token_rx = re.compile(r"<(/?)([A-Za-z][\\w:-]*)\\b[^>]*>", re.IGNORECASE)
+    token_rx = re.compile(r"<(/?)([A-Za-z][\w:-]*)\b[^>]*>", re.IGNORECASE)
     depth = 1
     for token in token_rx.finditer(html, opening.end()):
         if token.group(2).lower() != tag_name.lower():
@@ -64,8 +64,52 @@ def _replace_first_element_by_class(html, tag_name, class_name, replacement):
             depth += 1
     return html, False
 
+
+def _strip_brand_images(html):
+    """Permanently remove logo image elements from the public header brand block.
+
+    The header already has a text-based Shopiva wordmark. Keeping a second <img>
+    here creates a broken-image icon whenever an old logo asset is unavailable.
+    """
+    tag_rx = re.compile(r"<([A-Za-z][\w:-]*)\b[^>]*>", re.IGNORECASE)
+    class_rx = re.compile(r"class\s*=\s*['\"]([^'\"]*)['\"]", re.IGNORECASE)
+    opening = None
+    tag_name = None
+    for match in tag_rx.finditer(html):
+        classes = class_rx.search(match.group(0))
+        if classes and re.search(r"\bbrand\b", classes.group(1), re.IGNORECASE):
+            opening = match
+            tag_name = match.group(1).lower()
+            break
+    if not opening:
+        return html, False
+
+    token_rx = re.compile(r"<(/?)([A-Za-z][\w:-]*)\b[^>]*>", re.IGNORECASE)
+    depth = 1
+    end = None
+    for token in token_rx.finditer(html, opening.end()):
+        if token.group(2).lower() != tag_name:
+            continue
+        if token.group(1):
+            depth -= 1
+            if depth == 0:
+                end = token.end()
+                break
+        elif not token.group(0).rstrip().endswith("/>"):
+            depth += 1
+    if end is None:
+        return html, False
+
+    block = html[opening.end():end - len(token.group(0))]
+    block_clean = re.sub(r"(?is)<img\b[^>]*>\s*", "", block)
+    block_clean = re.sub(r"(?is)<[^>]*\bbrand-fallback\b[^>]*>.*?</[^>]+>\s*", "", block_clean)
+    if block_clean == block:
+        return html, False
+    return html[:opening.end()] + block_clean + html[end - len(token.group(0)):], True
+
+
 class ShopivaBrandingMiddleware:
-    """Use only the approved bicycle-hub photo as the public homepage hero."""
+    """Use only the approved bicycle-hub photo on the public homepage and keep the header image-free."""
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -75,6 +119,12 @@ class ShopivaBrandingMiddleware:
         if request.path != "/" or "text/html" not in content_type or not response.content:
             return response
         html = response.content.decode("utf-8", errors="replace")
+
+        # Trace/fix the broken header image at the final rendered-HTML boundary.
+        # This makes stale or missing legacy logo assets harmless even if they
+        # are reintroduced by the source template or another middleware.
+        html, _ = _strip_brand_images(html)
+
         html = re.sub(r"(?is)<style[^>]*id=['\"]shopiva-bicycle-hero-css['\"][^>]*>.*?</style>", "", html)
         html, _ = _replace_first_element_by_class(html, "section", "shopiva-bicycle-hero", "")
         html = re.sub(r"(?is)<div[^>]*class=['\"][^'\"]*\bshopiva-bike-v2\b[^'\"]*['\"][^>]*>.*?</div>\s*</div>", "", html)
@@ -89,5 +139,5 @@ class ShopivaBrandingMiddleware:
         response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response["Pragma"] = "no-cache"
         response["Expires"] = "0"
-        response["X-Shopiva-Bicycle-Hero"] = "approved-hub-image-v2"
+        response["X-Shopiva-Bicycle-Hero"] = "approved-hub-image-v3-header-clean"
         return response
