@@ -5,6 +5,61 @@
 {% endblock %}
 {% block extrastyle %}{{ block.super }}
 <style>
-#branding .shopiva-admin-brand{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:#fff;font-weight:900}.shopiva-admin-mark{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,#16b66d,#078f54);font-size:14px;letter-spacing:-1px}.shopiva-admin-brand strong{color:#55eaa0}.shopiva-admin-brand small{display:block;margin-top:2px;font-size:8px;letter-spacing:1.6px;opacity:.72}
+/* SHOPIVA ADMIN VISUAL TAKEOVER — keep Django as the engine, not the UI */
+:root{--shopiva-green:#16b66d;--shopiva-green-dark:#078f54;--shopiva-navy:#082334;--shopiva-ink:#10233a;--shopiva-bg:#f4f8fc}
+html,body{background:var(--shopiva-bg)!important;color:var(--shopiva-ink)!important}
+/* Remove Django's navigation graphics/sidebar everywhere */
+#nav-sidebar,
+#toggle-nav-sidebar,
+#nav-filter,
+#nav-filter-clear,
+#nav-filter input,
+#nav-sidebar + *{ }
+#nav-sidebar{display:none!important;visibility:hidden!important;width:0!important;min-width:0!important;max-width:0!important;overflow:hidden!important}
+#toggle-nav-sidebar{display:none!important;visibility:hidden!important}
+/* Force the content workspace to full width */
+#container{width:100%!important;margin:0!important;padding:0!important}
+.main{margin-left:0!important}
+#content{margin-left:0!important;padding:28px 32px!important;width:auto!important;max-width:none!important}
+#content-main{width:100%!important;max-width:none!important;float:none!important}
+#content-related{float:none!important;width:100%!important}
+/* Remove stock Django breadcrumbs */
+#breadcrumbs{display:none!important;height:0!important;overflow:hidden!important}
+/* Shopiva-owned header treatment */
+#header{background:linear-gradient(135deg,#0b526a,#168c73)!important;color:#fff!important;border:0!important;box-shadow:0 8px 24px rgba(8,35,52,.14)!important;padding:10px 32px!important;min-height:58px!important}
+#branding{margin:0!important;padding:0!important}
+#branding a,#branding a:link,#branding a:visited{color:#fff!important}
+#user-tools{font-size:12px!important;letter-spacing:.02em!important}
+#user-tools a{color:#fff!important}
+.shopiva-admin-brand{display:inline-flex!important;align-items:center!important;gap:11px!important;text-decoration:none!important;color:#fff!important;font-weight:900!important}
+.shopiva-admin-mark{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,#16b66d,#078f54);font-size:14px;letter-spacing:-1px;box-shadow:0 7px 18px rgba(0,0,0,.18)}
+.shopiva-admin-brand strong{color:#8ff0bc}
+.shopiva-admin-brand small{display:block;margin-top:2px;font-size:8px;letter-spacing:1.7px;opacity:.78}
+/* Make Django tables/forms feel like Shopiva, not the stock admin */
+.module,#changelist-filter,fieldset{border:1px solid #dce8ee!important;border-radius:16px!important;overflow:hidden!important;box-shadow:0 8px 24px rgba(20,55,70,.06)!important;background:#fff!important}
+.submit-row{border-radius:14px!important;background:#fff!important;border:1px solid #dce8ee!important}
+.button,.submit-row input[type=submit],input[type=submit],.object-tools a{border-radius:10px!important;background:linear-gradient(135deg,var(--shopiva-green),var(--shopiva-green-dark))!important;color:#fff!important;border:0!important}
+input,select,textarea{border-radius:10px!important;border-color:#d7e4eb!important}
+/* Prevent Django from reappearing after dynamic navigation */
 </style>
+{% endblock %}
+{% block extrahead %}{{ block.super }}
+<script>
+(function(){
+  function suppressDjangoChrome(){
+    ['nav-sidebar','toggle-nav-sidebar','breadcrumbs'].forEach(function(id){
+      var el=document.getElementById(id); if(el){el.style.setProperty('display','none','important');}
+    });
+    var container=document.getElementById('container');
+    if(container){container.style.setProperty('width','100%','important');container.style.setProperty('margin','0','important');}
+    var main=document.querySelector('.main');
+    if(main){main.style.setProperty('margin-left','0','important');}
+    var content=document.getElementById('content');
+    if(content){content.style.setProperty('margin-left','0','important');}
+  }
+  document.addEventListener('DOMContentLoaded',suppressDjangoChrome);
+  window.addEventListener('load',suppressDjangoChrome);
+  new MutationObserver(suppressDjangoChrome).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
 {% endblock %}
