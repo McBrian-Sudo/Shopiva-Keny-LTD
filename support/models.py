@@ -41,8 +41,14 @@ class SupportTicket(models.Model):
     class Meta:
         ordering = ("-updated_at",)
         indexes = [
-            models.Index(fields=("user", "status")),
-            models.Index(fields=("status", "priority", "updated_at")),
+            models.Index(
+                fields=("user", "status"),
+                name="support_suptick_user_id_8f5f4f_idx",
+            ),
+            models.Index(
+                fields=("status", "priority", "updated_at"),
+                name="support_suptick_status_6e0c5a_idx",
+            ),
         ]
 
     def __str__(self):
@@ -64,7 +70,12 @@ class SupportMessage(models.Model):
 
     class Meta:
         ordering = ("created_at",)
-        indexes = [models.Index(fields=("ticket", "created_at"))]
+        indexes = [
+            models.Index(
+                fields=("ticket", "created_at"),
+                name="support_suptick_ticket__b1bcfe_idx",
+            )
+        ]
 
     def __str__(self):
         return f"Support message #{self.id}"
