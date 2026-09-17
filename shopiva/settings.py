@@ -17,7 +17,7 @@ if not secret_key:
         raise RuntimeError("SECRET_KEY is required. Set it in the deployment environment.")
 SECRET_KEY = secret_key
 
-_default_hosts = "shopiva-keny-ltd.onrender.com,localhost,127.0.0.1,testserver"
+_default_hosts = "shopivakenya.top,www.shopivakenya.top,shopiva-keny-ltd.onrender.com,localhost,127.0.0.1,testserver"
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", _default_hosts).split(",") if host.strip()]
 
 INSTALLED_APPS = [
@@ -105,11 +105,14 @@ EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "").strip()
 GOOGLE_MAPS_MAP_ID = os.getenv("GOOGLE_MAPS_MAP_ID", "").strip()
 
-PUBLIC_SITE_URL = os.getenv("PUBLIC_SITE_URL", "https://shopiva-keny-ltd.onrender.com").strip().rstrip("/")
+PUBLIC_SITE_URL = os.getenv("PUBLIC_SITE_URL", "https://shopivakenya.top").strip().rstrip("/")
 
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
-    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "https://shopiva-keny-ltd.onrender.com").split(",")
+    for origin in os.getenv(
+        "CSRF_TRUSTED_ORIGINS",
+        "https://shopivakenya.top,https://www.shopivakenya.top,https://shopiva-keny-ltd.onrender.com",
+    ).split(",")
     if origin.strip()
 ]
 SESSION_COOKIE_SECURE = not DEBUG
@@ -154,7 +157,7 @@ MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET", "")
 MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE", "")
 MPESA_TILL_NUMBER = os.getenv("MPESA_TILL_NUMBER", "")
 MPESA_PASSKEY = os.getenv("MPESA_PASSKEY", "")
-MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL", "https://shopiva-keny-ltd.onrender.com/payments/mpesa/callback/")
+MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL", "https://shopivakenya.top/payments/mpesa/callback/")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
 OPENAI_REALTIME_MODEL = os.getenv("OPENAI_REALTIME_MODEL", "gpt-realtime-2.1")
