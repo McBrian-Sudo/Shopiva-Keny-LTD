@@ -14,6 +14,11 @@ from .models import SupportMessage, SupportTicket
 
 User = get_user_model()
 MAX_MESSAGE_LENGTH = 8000
+SYSTEM_SUBJECT_MARKERS = (
+    "Payment assistance for order",
+    "Order cancellation assistance",
+    "Cancelled order assistance",
+)
 
 
 def _role_for(user):
@@ -22,6 +27,10 @@ def _role_for(user):
     if SellerProfile.objects.filter(user=user, is_active=True).exists():
         return "seller"
     return "customer"
+
+
+def _is_system_ticket(ticket):
+    return ticket.subject.startswith(SYSTEM_SUBJECT_MARKERS)
 
 
 def _staff_notify(title, body, link):
@@ -41,7 +50,6 @@ def _staff_notify(title, body, link):
             ]
         )
     except Exception:
-        # Support must remain usable even if the notification subsystem is unavailable.
         return
 
 
@@ -157,6 +165,9 @@ def support_center(request):
     if selected_ticket is None:
         selected_ticket = tickets.first()
 
+    open_user_count = tickets.filter(status__in=("open", "in_progress", "waiting_for_customer")).count()
+    system_count = sum(1 for ticket in tickets if _is_system_ticket(ticket))
+
     return render(
         request,
         "support/center.html",
@@ -167,6 +178,8 @@ def support_center(request):
             "role_label": role_label,
             "back_url": back_url,
             "is_empty": not tickets.exists(),
+            "open_user_count": open_user_count,
+            "system_count": system_count,
         },
     )
 
@@ -178,6 +191,7 @@ def support_admin_center(request):
     status_filter = request.GET.get("status", "").strip()
     role_filter = request.GET.get("role", "").strip()
     priority_filter = request.GET.get("priority", "").strip()
+    source_filter = request.GET.get("source", "").strip()
     search = request.GET.get("q", "").strip()
     if status_filter:
         tickets = tickets.filter(status=status_filter)
@@ -185,8 +199,20 @@ def support_admin_center(request):
         tickets = tickets.filter(role=role_filter)
     if priority_filter:
         tickets = tickets.filter(priority=priority_filter)
+    if source_filter == "system":
+        tickets = tickets.filter(
+            Q(subject__startswith="Payment assistance for order")
+            | Q(subject__startswith="Order cancellation assistance")
+            | Q(subject__startswith="Cancelled order assistance")
+        )
+    elif source_filter == "user":
+        tickets = tickets.exclude(
+            Q(subject__startswith="Payment assistance for order")
+            | Q(subject__startswith="Order cancellation assistance")
+            | Q(subject__startswith="Cancelled order assistance")
+        )
     if search:
-        tickets = tickets.filter(Q(subject__icontains=search) | Q(category__icontains=search) | Q(order_reference__icontains=search) | Q(user__username__icontains=search))
+        tickets = tickets.filter(Q(subject__icontains=search) | Q(category__icontains=search) | Q(order_reference__icontains=search) | Q(user__username__icontains=search) | Q(user__email__icontains=search))
 
     selected_id = request.GET.get("ticket") or request.POST.get("ticket_id")
     selected_ticket = get_object_or_404(SupportTicket.objects.select_related("user").prefetch_related("messages__author"), id=selected_id) if selected_id else tickets.first()
@@ -235,9 +261,16 @@ def support_admin_center(request):
                 messages.success(request, "Support case status updated.")
         return redirect(f"/admin/support-center/?ticket={selected_ticket.id}")
 
-    open_count = SupportTicket.objects.filter(status__in=("open", "in_progress", "waiting_for_customer")).count()
-    urgent_count = SupportTicket.objects.filter(priority="urgent", status__in=("open", "in_progress", "waiting_for_customer")).count()
-    seller_count = SupportTicket.objects.filter(role="seller", status__in=("open", "in_progress", "waiting_for_customer")).count()
+    active_statuses = ("open", "in_progress", "waiting_for_customer")
+    open_count = SupportTicket.objects.filter(status__in=active_statuses).count()
+    urgent_count = SupportTicket.objects.filter(priority="urgent", status__in=active_statuses).count()
+    seller_count = SupportTicket.objects.filter(role="seller", status__in=active_statuses).count()
+    customer_count = SupportTicket.objects.filter(role="customer", status__in=active_statuses).count()
+    system_count = SupportTicket.objects.filter(
+        Q(subject__startswith="Payment assistance for order")
+        | Q(subject__startswith="Order cancellation assistance")
+        | Q(subject__startswith="Cancelled order assistance")
+    ).filter(status__in=active_statuses).count()
 
     return render(
         request,
@@ -248,12 +281,15 @@ def support_admin_center(request):
             "open_count": open_count,
             "urgent_count": urgent_count,
             "seller_count": seller_count,
+            "customer_count": customer_count,
+            "system_count": system_count,
             "status_choices": SupportTicket.STATUS_CHOICES,
             "role_choices": SupportTicket.ROLE_CHOICES,
             "priority_choices": SupportTicket.PRIORITY_CHOICES,
             "current_status": status_filter,
             "current_role": role_filter,
             "current_priority": priority_filter,
+            "current_source": source_filter,
             "query": search,
         },
     )
