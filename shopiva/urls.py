@@ -19,7 +19,7 @@ from shopiva.health import health
 from home.delivery_app import delivery_login, delivery_logout, delivery_action, delivery_status
 from home.delivery_platform import delivery_manifest, delivery_service_worker
 from home.admin_delivery_feed import admin_live_delivery_feed
-from home.notifications_center import notification_center
+from home.notifications_center import customer_notification_center, seller_notification_center, admin_notification_center
 from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, seller_dashboard, seller_product_toggle, seller_product_delete, product_review, seller_register, seller_request_payout, delivery_ping_location, delivery_portal, delivery_update_location, home, order_success, product_detail, products
 from home.seo import robots_txt, sitemap_xml
 from home.legal import privacy_policy, terms_of_service, account_deletion
@@ -47,8 +47,8 @@ urlpatterns = [
     path("payments/mpesa/waiting/<int:order_id>/", mpesa_waiting, name="mpesa_waiting"),
     path("order-success/<int:order_id>/", order_success, name="order_success"),
 
-    path("notifications/", notification_center, name="notification_center"),
-    path("seller/notifications/", notification_center, name="seller_notifications"),
+    path("seller/notifications/", seller_notification_center, name="seller_notifications"),
+    path("notifications/", customer_notification_center, name="notification_center"),
 
     path("seller/register/", seller_register, name="seller_register"),
     path("seller/login/", seller_login, name="seller_login"),
@@ -69,7 +69,7 @@ urlpatterns = [
     path("account/profile/", customer_profile, name="customer_profile"),
     path("account/addresses/", customer_addresses_map, name="customer_addresses"),
     path("account/wishlist/", customer_wishlist, name="customer_wishlist"),
-    path("account/notifications/", notification_center, name="customer_notifications"),
+    path("account/notifications/", customer_notification_center, name="customer_notifications"),
     path("product/<int:product_id>/review/", product_review, name="product_review"),
     path("account/delivery-location/", customer_delivery_location_map, name="customer_delivery_location"),
 
@@ -86,7 +86,7 @@ urlpatterns = [
     path("admin/business-intelligence/", business_intelligence, name="business_intelligence"),
     path("admin/google-delivery-map/", google_admin_delivery_map, name="google_delivery_map"),
     path("admin/live-delivery-feed/", admin_live_delivery_feed, name="admin_live_delivery_feed"),
-    path("admin/notifications/", notification_center, name="admin_notifications"),
+    path("admin/notifications/", admin_notification_center, name="admin_notifications"),
     path("ai/shop-assistant/", shop_assistant, name="shop_assistant"),
     path("ai/voice/transcribe/", transcribe_voice, name="voice_transcribe"),
     path("ai/realtime/call/", realtime_call, name="realtime_call"),
