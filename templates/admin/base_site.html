@@ -1,0 +1,55 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block title %}{{ site_title|default:"Shopiva Control Center" }}{% endblock %}
+{% block extrastyle %}
+{{ block.super }}
+<style>
+/* PROJECT-LEVEL ADMIN SHELL: deliberately overrides Django's stock chrome. */
+:root{--sv-navy:#061a2f;--sv-navy2:#0b3148;--sv-green:#19d978;--sv-ink:#132033;--sv-paper:#f3f7fa;--sv-line:#dce6ed}
+html,body{background:var(--sv-paper)!important;color:var(--sv-ink)!important;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif!important}
+body{margin:0!important}
+#container{background:transparent!important;min-height:100vh!important}
+/* Absolute suppression of Django navigation chrome. */
+#nav-sidebar,#toggle-nav-sidebar,.toggle-nav-sidebar,.nav-sidebar,#breadcrumbs,.breadcrumbs{display:none!important}
+#main{margin:0!important;padding:0!important}
+#content{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+#content-main{width:100%!important;max-width:1500px!important;margin:0 auto!important}
+#header{height:auto!important;min-height:68px!important;padding:0 24px!important;background:linear-gradient(135deg,var(--sv-navy),var(--sv-navy2) 62%,#0c5b3f)!important;color:#fff!important;border:0!important;box-shadow:0 10px 30px rgba(6,26,47,.18)!important;display:flex!important;align-items:center!important}
+#branding{padding:0!important;margin:0!important;min-width:0!important}
+#branding h1,#site-name{margin:0!important;padding:0!important;font-size:0!important}
+#site-name a{display:flex!important;align-items:center!important;gap:11px!important;text-decoration:none!important;color:#fff!important}
+.shopiva-admin-logo{width:40px;height:40px;border-radius:12px;object-fit:cover;background:rgba(255,255,255,.08);box-shadow:0 5px 14px rgba(0,0,0,.18)}
+.shopiva-admin-name{display:flex;flex-direction:column;line-height:1.02}
+.shopiva-admin-name strong{font-size:20px;letter-spacing:-.03em;color:#fff}
+.shopiva-admin-name small{margin-top:4px;font-size:8px;letter-spacing:2px;color:#d8fff0;opacity:.78}
+#user-tools{margin-left:auto!important;padding:0!important;color:rgba(255,255,255,.8)!important;font-size:10px!important}
+#user-tools a{color:#fff!important;text-decoration:none!important}
+#user-tools a:hover{color:var(--sv-green)!important}
+.module,.inline-group,.submit-row,.paginator,.calendarbox,.clockbox,.selector,#changelist-filter{border:1px solid var(--sv-line)!important;border-radius:16px!important;box-shadow:0 10px 30px rgba(7,24,46,.05)!important;background:#fff!important}
+.module caption,.module h2,.inline-group h2{background:linear-gradient(135deg,var(--sv-navy),var(--sv-navy2))!important;color:#fff!important;border-radius:15px 15px 0 0!important}
+.button,.button.default,input[type=submit],input[type=button],button,.submit-row input{border-radius:10px!important;font-weight:800!important}
+.button.default,input[type=submit].default,.submit-row input.default{background:var(--sv-green)!important;color:#052111!important;border:0!important}
+input,select,textarea{border:1px solid #d6e0e7!important;border-radius:10px!important}
+input:focus,select:focus,textarea:focus{border-color:var(--sv-green)!important;box-shadow:0 0 0 3px rgba(25,217,120,.12)!important;outline:0!important}
+#footer{padding:18px 24px!important;background:transparent!important;color:#7b8794!important}
+.messagelist li{border-radius:11px!important}
+/* Django's own mobile/sidebar controls cannot reappear. */
+@media(max-width:900px){#header{padding:0 14px!important}.shopiva-admin-logo{width:34px;height:34px}.shopiva-admin-name strong{font-size:16px}.shopiva-admin-name small{font-size:7px;letter-spacing:1.5px}#user-tools{font-size:8px!important}}
+</style>
+{% endblock %}
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'shopiva_admin:index' %}" aria-label="Shopiva Control Center home"><img class="shopiva-admin-logo" src="{% static 'shopiva/shopiva-admin-logo.svg' %}" alt="Shopiva"><span class="shopiva-admin-name"><strong>Shopiva Control Center</strong><small>PRIVATE OPERATIONS · KENYA LTD</small></span></a></h1>
+{% endblock %}
+{% block nav-global %}
+{{ block.super }}
+<script>
+(function(){
+  function neutralizeDjangoChrome(){
+    ['#nav-sidebar','#toggle-nav-sidebar','.toggle-nav-sidebar','.nav-sidebar','#breadcrumbs','.breadcrumbs'].forEach(function(sel){document.querySelectorAll(sel).forEach(function(el){el.remove()})});
+    var header=document.getElementById('header'); if(header) header.setAttribute('data-shopiva-shell','true');
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',neutralizeDjangoChrome)}else{neutralizeDjangoChrome()}
+  window.addEventListener('load',neutralizeDjangoChrome);
+})();
+</script>
+{% endblock %}
