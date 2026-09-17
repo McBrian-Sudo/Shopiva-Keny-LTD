@@ -23,6 +23,7 @@ from home.notifications_center import customer_notification_center, seller_notif
 from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, seller_dashboard, seller_product_toggle, seller_product_delete, product_review, seller_register, seller_request_payout, delivery_ping_location, delivery_portal, delivery_update_location, home, order_success, product_detail, products
 from home.seo import robots_txt, sitemap_xml
 from home.legal import privacy_policy, terms_of_service, account_deletion
+from support.views import support_admin_center, support_center
 
 urlpatterns = [
     path("", home, name="home"),
@@ -46,6 +47,9 @@ urlpatterns = [
     path("payments/mpesa/status/<int:order_id>/", mpesa_payment_status, name="mpesa_payment_status"),
     path("payments/mpesa/waiting/<int:order_id>/", mpesa_waiting, name="mpesa_waiting"),
     path("order-success/<int:order_id>/", order_success, name="order_success"),
+
+    path("support/", support_center, name="support_center"),
+    path("admin/support-center/", support_admin_center, name="support_admin_center"),
 
     path("seller/notifications/", seller_notification_center, name="seller_notifications"),
     path("notifications/", customer_notification_center, name="notification_center"),
