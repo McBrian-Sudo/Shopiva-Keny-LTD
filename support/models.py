@@ -43,11 +43,11 @@ class SupportTicket(models.Model):
         indexes = [
             models.Index(
                 fields=("user", "status"),
-                name="support_suptick_user_id_8f5f4f_idx",
+                name="support_ticket_user_stat_idx",
             ),
             models.Index(
                 fields=("status", "priority", "updated_at"),
-                name="support_suptick_status_6e0c5a_idx",
+                name="support_ticket_status_pri_idx",
             ),
         ]
 
@@ -73,7 +73,7 @@ class SupportMessage(models.Model):
         indexes = [
             models.Index(
                 fields=("ticket", "created_at"),
-                name="support_suptick_ticket__b1bcfe_idx",
+                name="support_msg_ticket_created_idx",
             )
         ]
 
