@@ -30,6 +30,8 @@ class SupportCenterTests(TestCase):
         ticket = SupportTicket.objects.get(user=self.customer)
         self.assertEqual(ticket.role, "customer")
         self.assertEqual(ticket.priority, "high")
+        self.assertEqual(ticket.status, "open")
+        self.assertIsNone(ticket.last_response_at)
         self.assertEqual(ticket.messages.count(), 1)
 
         response = self.client.post(reverse("support_center"), {
@@ -81,6 +83,44 @@ class SupportCenterTests(TestCase):
         self.assertEqual(response.status_code, 302)
         ticket.refresh_from_db()
         self.assertEqual(ticket.status, "resolved")
+
+    def test_closed_case_rejects_customer_reply(self):
+        ticket = SupportTicket.objects.create(
+            user=self.customer,
+            role="customer",
+            subject="Closed issue",
+            category="General",
+            status="closed",
+        )
+        self.client.force_login(self.customer)
+        response = self.client.post(reverse("support_center"), {
+            "action": "reply",
+            "ticket_id": str(ticket.id),
+            "body": "Trying to reply to a closed case.",
+        })
+        self.assertEqual(response.status_code, 302)
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.messages.count(), 0)
+        self.assertEqual(ticket.status, "closed")
+
+    def test_closed_case_rejects_staff_reply(self):
+        ticket = SupportTicket.objects.create(
+            user=self.customer,
+            role="customer",
+            subject="Closed staff case",
+            category="General",
+            status="closed",
+        )
+        self.client.force_login(self.staff)
+        response = self.client.post(reverse("support_admin_center"), {
+            "action": "reply",
+            "ticket_id": str(ticket.id),
+            "body": "Trying to reply to a closed case.",
+        })
+        self.assertEqual(response.status_code, 302)
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.messages.count(), 0)
+        self.assertEqual(ticket.status, "closed")
 
     def test_non_staff_cannot_open_admin_support_center(self):
         self.client.force_login(self.customer)
