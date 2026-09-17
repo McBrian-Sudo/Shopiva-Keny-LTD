@@ -13,6 +13,7 @@ from home.models import Notification, SellerProfile
 from .models import SupportMessage, SupportTicket
 
 User = get_user_model()
+MAX_MESSAGE_LENGTH = 8000
 
 
 def _role_for(user):
@@ -24,29 +25,38 @@ def _role_for(user):
 
 
 def _staff_notify(title, body, link):
-    staff_users = User.objects.filter(is_staff=True, is_active=True)
-    Notification.objects.bulk_create(
-        [
-            Notification(
-                user=staff_user,
-                notification_type="system",
-                title=title[:160],
-                message=body,
-                link=link[:255],
-            )
-            for staff_user in staff_users
-        ]
-    )
+    """Best-effort operational notification; never break a support action."""
+    try:
+        staff_users = User.objects.filter(is_staff=True, is_active=True)
+        Notification.objects.bulk_create(
+            [
+                Notification(
+                    user=staff_user,
+                    notification_type="system",
+                    title=title[:160],
+                    message=body[:2000],
+                    link=link[:255],
+                )
+                for staff_user in staff_users
+            ]
+        )
+    except Exception:
+        # Support must remain usable even if the notification subsystem is unavailable.
+        return
 
 
 def _user_notify(user, title, body, link):
-    Notification.objects.create(
-        user=user,
-        notification_type="system",
-        title=title[:160],
-        message=body,
-        link=link[:255],
-    )
+    """Best-effort customer/seller notification; never break a support action."""
+    try:
+        Notification.objects.create(
+            user=user,
+            notification_type="system",
+            title=title[:160],
+            message=body[:2000],
+            link=link[:255],
+        )
+    except Exception:
+        return
 
 
 def _messages_payload(ticket):
@@ -60,6 +70,11 @@ def _messages_payload(ticket):
         }
         for message in ticket.messages.select_related("author").all()
     ]
+
+
+def _valid_message(body):
+    body = (body or "").strip()
+    return body if body else None
 
 
 @login_required(login_url="customer_login")
@@ -91,7 +106,7 @@ def support_center(request):
         action = request.POST.get("action", "")
         if action == "new":
             subject = request.POST.get("subject", "").strip()
-            body = request.POST.get("body", "").strip()
+            body = _valid_message(request.POST.get("body"))
             category = request.POST.get("category", "General").strip() or "General"
             priority = request.POST.get("priority", "normal")
             order_reference = request.POST.get("order_reference", "").strip()
@@ -109,9 +124,9 @@ def support_center(request):
                         category=category[:80],
                         priority=priority,
                         order_reference=order_reference[:120],
-                        last_response_at=timezone.now(),
+                        status="open",
                     )
-                    SupportMessage.objects.create(ticket=ticket, author=request.user, body=body[:8000], from_staff=False)
+                    SupportMessage.objects.create(ticket=ticket, author=request.user, body=body[:MAX_MESSAGE_LENGTH], from_staff=False)
                     transaction.on_commit(
                         lambda: _staff_notify(
                             f"New {role_label.lower()} support case",
@@ -123,14 +138,16 @@ def support_center(request):
                 return redirect(f"/support/?ticket={ticket.id}")
 
         elif action == "reply" and selected_ticket:
-            body = request.POST.get("body", "").strip()
-            if body:
-                SupportMessage.objects.create(ticket=selected_ticket, author=request.user, body=body[:8000], from_staff=False)
+            body = _valid_message(request.POST.get("body"))
+            if selected_ticket.status == "closed":
+                messages.error(request, "This support case is closed. Open a new case if you still need help.")
+            elif body:
+                SupportMessage.objects.create(ticket=selected_ticket, author=request.user, body=body[:MAX_MESSAGE_LENGTH], from_staff=False)
                 selected_ticket.status = "open"
                 selected_ticket.last_response_at = timezone.now()
                 selected_ticket.save(update_fields=["status", "last_response_at", "updated_at"])
                 _staff_notify(
-                    f"Customer replied to support case" if role == "customer" else "Seller replied to support case",
+                    "Customer replied to support case" if role == "customer" else "Seller replied to support case",
                     f"{role_label} {request.user.username} replied to '{selected_ticket.subject}'.",
                     f"/admin/support-center/?ticket={selected_ticket.id}",
                 )
@@ -187,9 +204,11 @@ def support_admin_center(request):
     if request.method == "POST" and selected_ticket:
         action = request.POST.get("action", "")
         if action == "reply":
-            body = request.POST.get("body", "").strip()
-            if body:
-                SupportMessage.objects.create(ticket=selected_ticket, author=request.user, body=body[:8000], from_staff=True)
+            body = _valid_message(request.POST.get("body"))
+            if selected_ticket.status == "closed":
+                messages.error(request, "Closed support cases cannot receive new replies. Reopen the case first.")
+            elif body:
+                SupportMessage.objects.create(ticket=selected_ticket, author=request.user, body=body[:MAX_MESSAGE_LENGTH], from_staff=True)
                 selected_ticket.status = "waiting_for_customer"
                 selected_ticket.last_response_at = timezone.now()
                 selected_ticket.save(update_fields=["status", "last_response_at", "updated_at"])
