@@ -649,6 +649,56 @@ def seller_product_edit(request, product_id):
 
 
 @login_required(login_url="customer_login")
+def seller_order_update(request, order_id):
+    if request.method != "POST":
+        return redirect("seller_dashboard")
+    seller = getattr(request.user, "seller_profile", None)
+    if not seller or not seller.is_active:
+        return redirect("seller_login")
+    allowed = {"confirmed", "packed", "processing", "shipped", "out_for_delivery"}
+    next_status = request.POST.get("status", "").strip()
+    if next_status not in allowed:
+        messages.error(request, "That order action is not available.")
+        return redirect("seller_dashboard")
+    with transaction.atomic():
+        order = get_object_or_404(
+            Order.objects.select_for_update(),
+            id=order_id,
+            items__seller=seller,
+        )
+        current_items = order.items.filter(seller=seller)
+        if not current_items.exists():
+            messages.error(request, "This order does not belong to your shop.")
+            return redirect("seller_dashboard")
+        if order.status in {"delivered", "cancelled"}:
+            messages.error(request, "Delivered or cancelled orders cannot be moved back into processing.")
+            return redirect("seller_dashboard")
+        if next_status == "shipped" and order.status not in {"packed", "processing"}:
+            messages.error(request, "Pack the order before marking it shipped.")
+            return redirect("seller_dashboard")
+        if next_status == "out_for_delivery" and order.status != "shipped":
+            messages.error(request, "Mark the order shipped before sending it out for delivery.")
+            return redirect("seller_dashboard")
+        order.status = next_status
+        update_fields = ["status"]
+        if next_status == "packed":
+            order.packed_at = timezone.now()
+            update_fields.append("packed_at")
+        order.save(update_fields=update_fields)
+        event_map = {
+            "confirmed": ("confirmed", "Seller confirmed the order."),
+            "packed": ("packed", "Seller packed the order."),
+            "processing": ("processing", "Seller is preparing the order."),
+            "shipped": ("shipped", "Order handed over for shipping/delivery."),
+            "out_for_delivery": ("out_for_delivery", "Order is out for delivery."),
+        }
+        event_type, note = event_map[next_status]
+        OrderEvent.objects.create(order=order, event_type=event_type, note=note, actor=request.user)
+    messages.success(request, f"Order #{order.id} moved to {order.get_status_display()}.")
+    return redirect("seller_dashboard")
+
+
+@login_required(login_url="customer_login")
 def seller_product_stock_update(request, product_id):
     if request.method != "POST":
         return redirect("seller_dashboard")
