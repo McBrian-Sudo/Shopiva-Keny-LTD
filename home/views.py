@@ -641,6 +641,38 @@ def seller_product_edit(request, product_id):
 
 
 @login_required(login_url="customer_login")
+def seller_product_stock_update(request, product_id):
+    if request.method != "POST":
+        return redirect("seller_dashboard")
+    seller = getattr(request.user, "seller_profile", None)
+    if not seller or not seller.is_active:
+        return redirect("seller_login")
+    try:
+        quantity = int(request.POST.get("stock_quantity", "0"))
+    except (TypeError, ValueError):
+        messages.error(request, "Stock must be a whole number.")
+        return redirect("seller_dashboard")
+    if quantity < 0 or quantity > 100000000:
+        messages.error(request, "Enter a stock quantity between 0 and 100,000,000.")
+        return redirect("seller_dashboard")
+    with transaction.atomic():
+        product = get_object_or_404(
+            Product.objects.select_for_update(),
+            id=product_id,
+            seller=seller,
+        )
+        product.stock_quantity = quantity
+        product.save(update_fields=["stock_quantity"])
+    if quantity == 0:
+        messages.warning(request, f"{product.name} is now out of stock.")
+    elif quantity <= 5:
+        messages.warning(request, f"{product.name} stock updated to {quantity}. Low-stock alert.")
+    else:
+        messages.success(request, f"{product.name} stock updated to {quantity}.")
+    return redirect("seller_dashboard")
+
+
+@login_required(login_url="customer_login")
 def seller_product_toggle(request, product_id):
     if request.method != "POST":
         return redirect("seller_dashboard")
