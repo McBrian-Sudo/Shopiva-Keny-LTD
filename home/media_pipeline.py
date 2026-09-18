@@ -31,3 +31,23 @@ def enhance_product_image(uploaded_file, name_hint="product"):
         except Exception:
             pass
         return uploaded_file
+
+
+
+def upload_product_image(file_obj, name_hint="product"):
+    """Upload an already-enhanced seller image to Cloudinary and return its public ID."""
+    import cloudinary.uploader
+
+    safe_name = Path(str(name_hint or "product")).stem[:48] or "product"
+    result = cloudinary.uploader.upload(
+        file_obj,
+        folder="shopiva/products",
+        public_id=f"{safe_name}-shopiva",
+        overwrite=False,
+        unique_filename=True,
+        resource_type="image",
+    )
+    public_id = result.get("public_id")
+    if not public_id:
+        raise RuntimeError("Cloudinary did not return a public_id for the product image.")
+    return public_id
