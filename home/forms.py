@@ -39,6 +39,26 @@ def resolve_catalog_item(key):
     return catalog_item_complete(key) or catalog_item_2026(key) or base_resolve_catalog_item(key)
 
 
+def catalog_browser_choices():
+    """Return structured catalogue rows for the seller dashboard browser."""
+    rows = []
+    for key, label in catalog_search_choices():
+        if " → " in label:
+            category, brand, name = label.split(" → ", 2)
+        elif " — " in label:
+            name, category, brand = label.rsplit(" — ", 2)
+        else:
+            name, category, brand = label, "General", "Universal"
+        rows.append({
+            "key": key,
+            "name": name,
+            "category": category,
+            "brand": brand,
+            "label": label,
+        })
+    return rows
+
+
 def _validate_unique_username(username, *, error_message):
     """Normalize and enforce Shopiva's case-insensitive username rule in one place."""
     normalized = str(username or "").strip()
