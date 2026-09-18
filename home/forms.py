@@ -12,16 +12,31 @@ from .shopiva_seller_catalog import (
     resolve_catalog_item as base_resolve_catalog_item,
 )
 from .shopiva_catalog_2026_expansion import catalog_choices_2026, catalog_item_2026
+from .shopiva_catalog_complete import catalog_choices_complete, catalog_item_complete
 
 
 def catalog_search_choices():
-    """Return the original seller catalogue plus the broad 2026 expansion."""
-    return tuple(base_catalog_search_choices()) + tuple(catalog_choices_2026())
+    """Return one deduplicated master catalogue covering the full seller marketplace."""
+    sources = (
+        base_catalog_search_choices(limit=10000),
+        catalog_choices_2026(),
+        catalog_choices_complete(),
+    )
+    seen = set()
+    choices = []
+    for source in sources:
+        for key, label in source:
+            normalized = label.casefold().strip()
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            choices.append((key, label))
+    return tuple(choices)
 
 
 def resolve_catalog_item(key):
-    """Resolve a selected catalogue item from either catalogue generation."""
-    return catalog_item_2026(key) or base_resolve_catalog_item(key)
+    """Resolve a selected catalogue item from any Shopiva catalogue generation."""
+    return catalog_item_complete(key) or catalog_item_2026(key) or base_resolve_catalog_item(key)
 
 
 def _validate_unique_username(username, *, error_message):
@@ -163,9 +178,9 @@ class SellerProductForm(forms.ModelForm):
         label="Search & choose from Shopiva master catalogue",
         help_text=(
             "Type a product name, brand, model or spare part. Shopiva searches a broad marketplace "
-            "catalogue covering current and recent phones, model-specific phone accessories, computers, "
+            "catalogue covering phones, computers, electronics, home, furniture, fashion, groceries, building, "
             "electronics, utensils, appliances, car parts, motorcycle parts, bicycle parts/customisation, "
-            "tools and many everyday categories. Choosing a catalogue suggestion fills the product "
+            "tools, agriculture, automotive, motorcycles, bicycles, office, beauty, sports, baby, pets and many everyday categories. Choosing a catalogue suggestion fills the product "
             "name and category automatically. Type CUSTOM PRODUCT to list something new."
         ),
         widget=CatalogSearchWidget(attrs={"list": "shopiva-product-catalog-options", "class": "shopiva-catalog-search"}),
