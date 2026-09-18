@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 from .forms import CustomerRegistrationForm
 from .models_product_media import ProductMedia
 from .notification_service import notify_user
-from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm
+from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm, catalog_browser_choices
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
 
@@ -593,7 +593,7 @@ def seller_dashboard(request):
     settlements = seller.settlements.select_related("order").order_by("-created_at")[:25]
     payouts = seller.payout_requests.order_by("-created_at")[:25]
     analytics = {"orders": seller.order_items.values("order_id").distinct().count(), "units": seller.order_items.aggregate(total=Sum("quantity"))["total"] or 0, "gross": seller.order_items.aggregate(total=Sum("seller_gross"))["total"] or Decimal("0.00"), "net": seller.order_items.aggregate(total=Sum("seller_net"))["total"] or Decimal("0.00"), "delivered": seller.order_items.filter(order__status="delivered").values("order_id").distinct().count()}
-    return render(request, "seller/dashboard.html", {"seller": seller, "wallet": wallet, "products": products, "order_items": order_items, "settlements": settlements, "payouts": payouts, "analytics": analytics, "notifications": seller.user.shopiva_notifications.all()[:10]})
+    return render(request, "seller/dashboard.html", {"seller": seller, "wallet": wallet, "products": products, "order_items": order_items, "settlements": settlements, "payouts": payouts, "analytics": analytics, "notifications": seller.user.shopiva_notifications.all()[:10], "master_catalog": catalog_browser_choices()})
 
 
 @login_required(login_url="customer_login")
