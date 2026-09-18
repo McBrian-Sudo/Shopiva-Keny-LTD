@@ -3,10 +3,11 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.utils.html import conditional_escape, mark_safe
+from django.core.exceptions import ValidationError
 import uuid
 
 from .models import Product, ProductReview
-from .media_pipeline import enhance_product_image
+from .media_pipeline import enhance_product_image, upload_product_image
 from .shopiva_seller_catalog import (
     catalog_search_choices as base_catalog_search_choices,
     resolve_catalog_item as base_resolve_catalog_item,
@@ -302,7 +303,13 @@ class SellerProductForm(forms.ModelForm):
 
         uploaded_main = self.files.get("image")
         if uploaded_main:
-            product.image = enhance_product_image(uploaded_main, product.name)
+            enhanced = enhance_product_image(uploaded_main, product.name)
+            try:
+                product.image = upload_product_image(enhanced, product.name)
+            except Exception as exc:
+                raise ValidationError(
+                    "Product photo could not be uploaded to Cloudinary. Check the Cloudinary deployment setting and try again."
+                ) from exc
 
         if not product.sku:
             prefix = slugify(product.name or "product").replace("-", "").upper()[:24] or "PRODUCT"
