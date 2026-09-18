@@ -102,13 +102,19 @@ class ShopivaSeoMiddleware:
         else:
             schema = {
                 "@context": "https://schema.org",
-                "@type": "OnlineStore",
-                "name": "Shopiva Kenya LTD",
-                "alternateName": "Shopiva Kenya",
-                "url": site + "/",
-                "description": description,
-                "areaServed": "KE",
-                        "sameAs": [],
+                "@graph": [
+                    {
+                        "@type": "Organization",
+                        "name": "Shopiva Kenya LTD",
+                        "url": site + "/",
+                    },
+                    {
+                        "@type": "OnlineStore",
+                        "name": "Shopiva Kenya LTD",
+                        "alternateName": "Shopiva Kenya",
+                        "url": site + "/",
+                        "description": description,
+                        "areaServed": "KE",
                     },
                     {
                         "@type": "WebSite",
