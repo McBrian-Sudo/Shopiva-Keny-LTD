@@ -69,9 +69,12 @@ WSGI_APPLICATION = "shopiva.wsgi.application"
 DATABASES = {
     "default": dj_database_url.parse(
         os.environ["DATABASE_URL"],
-        conn_max_age=600,
+        conn_max_age=60,
     )
 }
+# Neon/Postgres connections can be rotated or dropped while Render workers stay alive.
+# Health checks prevent Django from reusing a stale connection.
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
