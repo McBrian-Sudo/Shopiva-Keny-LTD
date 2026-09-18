@@ -2,6 +2,7 @@ from decimal import Decimal, InvalidOperation
 import logging
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import JsonResponse
@@ -51,22 +52,26 @@ def seller_product_add_map(request):
         if location_error:
             messages.error(request, location_error)
         elif form.is_valid():
-            product = form.save(commit=False)
-            product.seller = seller
-            product.is_active = True
             try:
-                with transaction.atomic():
+                product = form.save(commit=False)
+            except ValidationError as exc:
+                form.add_error("image", exc)
+            else:
+                product.seller = seller
+                product.is_active = True
+                try:
+                    with transaction.atomic():
                     seller.business_address = business_address
                     seller.business_latitude = latitude
                     seller.business_longitude = longitude
                     seller.save(update_fields=["business_address", "business_latitude", "business_longitude"])
                     product.save()
-            except Exception as exc:
-                logger.exception("Seller product save failed", exc_info=exc)
-                messages.error(request, "The product could not be saved. Please correct the listing and try again.")
-            else:
-                messages.success(request, f"{product.name} is now listed on Shopiva.")
-                return redirect("seller_dashboard")
+                except Exception as exc:
+                    logger.exception("Seller product save failed", exc_info=exc)
+                    messages.error(request, "The product could not be saved. Please correct the listing and try again.")
+                else:
+                    messages.success(request, f"{product.name} is now listed on Shopiva.")
+                    return redirect("seller_dashboard")
     else:
         form = SellerProductForm()
 
