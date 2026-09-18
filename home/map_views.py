@@ -61,11 +61,11 @@ def seller_product_add_map(request):
                 product.is_active = True
                 try:
                     with transaction.atomic():
-                    seller.business_address = business_address
-                    seller.business_latitude = latitude
-                    seller.business_longitude = longitude
-                    seller.save(update_fields=["business_address", "business_latitude", "business_longitude"])
-                    product.save()
+                        seller.business_address = business_address
+                        seller.business_latitude = latitude
+                        seller.business_longitude = longitude
+                        seller.save(update_fields=["business_address", "business_latitude", "business_longitude"])
+                        product.save()
                 except Exception as exc:
                     logger.exception("Seller product save failed", exc_info=exc)
                     messages.error(request, "The product could not be saved. Please correct the listing and try again.")
