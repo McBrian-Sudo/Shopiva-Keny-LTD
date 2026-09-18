@@ -51,6 +51,27 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:#f
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
 <script>
 (()=>{
+const catalogInput=document.querySelector('input[name="catalog_product"]');
+if(catalogInput){
+  const params=new URLSearchParams(window.location.search);
+  const requestedKey=params.get('catalog');
+  if(requestedKey){
+    const option=document.querySelector('#shopiva-product-catalog-options option[data-key="'+CSS.escape(requestedKey)+'"]');
+    if(option){
+      catalogInput.value=option.value;
+      catalogInput.dispatchEvent(new Event('input',{bubbles:true}));
+      catalogInput.dispatchEvent(new Event('change',{bubbles:true}));
+      const notice=document.createElement('div');
+      notice.style.cssText='margin-top:7px;padding:8px 10px;border-radius:9px;background:#ecfdf5;border:1px solid #bbf7d0;color:#166534;font-size:10px;font-weight:800';
+      notice.textContent='✓ Catalogue item selected. Review the generated name/category, then complete price, stock and photo.';
+      catalogInput.parentElement.appendChild(notice);
+    }
+  }
+}
+})();
+</script>
+<script>
+(()=>{
 const input=document.querySelector('input[name="image"]'),img=document.getElementById('previewImg'),empty=document.getElementById('previewEmpty'),stage=document.getElementById('previewStage'),clean=document.getElementById('cleanToggle'),motion=document.getElementById('motionToggle'),status=document.getElementById('engineStatus');
 if(input){input.addEventListener('change',()=>{const file=input.files&&input.files[0];if(!file)return;const url=URL.createObjectURL(file);img.src=url;img.hidden=false;empty.hidden=true;status.textContent='Ready: real product photo loaded. Automatic presentation is active.'});}
 clean.onclick=()=>{stage.classList.toggle('clean');clean.classList.toggle('on');clean.textContent=stage.classList.contains('clean')?'🌿 Clean mode on':'✨ Clean presentation'};
