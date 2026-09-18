@@ -593,7 +593,15 @@ def seller_dashboard(request):
     settlements = seller.settlements.select_related("order").order_by("-created_at")[:25]
     payouts = seller.payout_requests.order_by("-created_at")[:25]
     analytics = {"orders": seller.order_items.values("order_id").distinct().count(), "units": seller.order_items.aggregate(total=Sum("quantity"))["total"] or 0, "gross": seller.order_items.aggregate(total=Sum("seller_gross"))["total"] or Decimal("0.00"), "net": seller.order_items.aggregate(total=Sum("seller_net"))["total"] or Decimal("0.00"), "delivered": seller.order_items.filter(order__status="delivered").values("order_id").distinct().count()}
-    return render(request, "seller/dashboard.html", {"seller": seller, "wallet": wallet, "products": products, "order_items": order_items, "settlements": settlements, "payouts": payouts, "analytics": analytics, "notifications": seller.user.shopiva_notifications.all()[:10], "master_catalog": catalog_browser_choices()})
+    inventory = {
+        "total": products.count(),
+        "live": products.filter(is_active=True).count(),
+        "paused": products.filter(is_active=False).count(),
+        "out": products.filter(stock_quantity=0).count(),
+        "low": products.filter(stock_quantity__gt=0, stock_quantity__lte=5).count(),
+        "units": products.aggregate(total=Sum("stock_quantity"))["total"] or 0,
+    }
+    return render(request, "seller/dashboard.html", {"seller": seller, "wallet": wallet, "products": products, "order_items": order_items, "settlements": settlements, "payouts": payouts, "analytics": analytics, "notifications": seller.user.shopiva_notifications.all()[:10], "master_catalog": catalog_browser_choices(), "inventory": inventory})
 
 
 @login_required(login_url="customer_login")
