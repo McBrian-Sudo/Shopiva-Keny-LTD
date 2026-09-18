@@ -312,6 +312,102 @@ CATALOG_2026 = [
     ("Tools & Hardware", "Universal", ["Hammer", "Screwdriver Set", "Drill", "Impact Drill", "Impact Driver", "Angle Grinder", "Jigsaw", "Circular Saw", "Reciprocating Saw", "Router", "Heat Gun", "Soldering Iron", "Welding Machine", "Measuring Tape", "Spirit Level", "Laser Level", "Adjustable Wrench", "Pliers Set", "Socket Set", "Tool Box", "Tool Chest", "Ladder", "Workbench", "Safety Helmet", "Work Gloves", "Safety Goggles", "Dust Mask"]),
     ("Garden & Agriculture", "Universal", ["Garden Hose", "Hose Reel", "Sprinkler", "Watering Can", "Pressure Sprayer", "Knapsack Sprayer", "Pruning Shears", "Hedge Trimmer", "Brush Cutter", "Chainsaw", "Lawn Mower", "Wheelbarrow", "Shovel", "Hoe", "Rake", "Garden Fork", "Seedling Tray", "Irrigation Pipe", "Drip Kit", "Water Pump", "Solar Water Pump", "Greenhouse Kit"]),
     ("Pet Supplies", "Universal", ["Dog Food", "Cat Food", "Pet Bed", "Pet Carrier", "Pet Bowl", "Leash", "Collar", "Harness", "Pet Shampoo", "Grooming Brush", "Nail Clipper", "Pet Toy", "Aquarium", "Fish Tank Filter", "Bird Cage", "Pet Feeder", "Automatic Pet Feeder"]),
+    # ------------------------------------------------------------------
+    # SHOPIVA MARKETPLACE CORE EXPANSION: HOME, BUILDING, LIFESTYLE & RETAIL
+    # ------------------------------------------------------------------
+    ("Door Locks & Security Hardware", "Universal", [
+        "Digital Door Lock", "Smart Door Lock", "Fingerprint Door Lock", "PIN Code Door Lock",
+        "Keypad Door Lock", "Mortise Lock", "Deadbolt Lock", "Cylinder Lock", "Euro Cylinder",
+        "Rim Lock", "Night Latch", "Door Handle Set", "Lever Handle", "Door Knob", "Padlock",
+        "Heavy Duty Padlock", "Combination Padlock", "Gate Lock", "Sliding Gate Lock", "Cabinet Lock",
+        "Drawer Lock", "Window Lock", "Door Closer", "Door Hinge", "Security Hasp", "Door Viewer",
+        "Door Chain", "Digital Cabinet Lock", "RFID Access Lock", "Access Control Lock",
+    ]),
+    ("Paints & Finishes", "Universal", [
+        "Emulsion Wall Paint", "Gloss Paint", "Matt Paint", "Satin Paint", "Exterior Paint",
+        "Interior Paint", "Primer", "Undercoat", "Wood Varnish", "Wood Stain", "Metal Paint",
+        "Roof Paint", "Floor Paint", "Anti-Rust Paint", "Textured Paint", "Waterproof Coating",
+        "Damp Proof Coating", "Sealer", "Wall Filler", "Crack Filler", "Paint Thinner",
+        "Turpentine", "Paint Brush", "Paint Roller", "Roller Tray", "Paint Scraper",
+        "Masking Tape", "Drop Cloth", "Sandpaper", "Paint Mixing Stick",
+    ]),
+    ("Building Materials & Plumbing", "Universal", [
+        "Cement", "Mortar", "Tile Adhesive", "Grout", "Building Sand", "Ballast", "Hardcore",
+        "Bricks", "Concrete Blocks", "Roofing Sheets", "Roof Tiles", "Ridge Caps", "Timber",
+        "Plywood", "MDF Board", "Gypsum Board", "Steel Bar", "Binding Wire", "Nails", "Screws",
+        "Wall Plug", "PVC Pipe", "PPR Pipe", "HDPE Pipe", "PVC Elbow", "PVC Tee", "Pipe Coupler",
+        "Ball Valve", "Stop Cock", "Flexible Hose", "Basin Tap", "Kitchen Tap", "Shower Mixer",
+        "Floor Drain", "Water Tank", "Water Pump", "Toilet Seat", "Wash Basin", "Bathtub",
+    ]),
+    ("Furniture", "Universal", [
+        "3-Seater Sofa", "2-Seater Sofa", "Sectional Sofa", "Sofa Bed", "Recliner", "Armchair",
+        "Coffee Table", "Side Table", "TV Stand", "Dining Table", "Dining Chair", "Bar Stool",
+        "Office Desk", "Computer Desk", "Office Chair", "Executive Chair", "Bookshelf", "Bookcase",
+        "Wardrobe", "Sliding Door Wardrobe", "Bed Frame", "King Size Bed", "Queen Size Bed",
+        "Single Bed", "Bunk Bed", "Bedside Table", "Chest of Drawers", "Dressing Table",
+        "Shoe Rack", "Outdoor Furniture Set",
+    ]),
+    ("Home Décor & Lighting", "Universal", [
+        "Curtains", "Blackout Curtains", "Blinds", "Sheer Curtains", "Rug", "Area Rug", "Carpet",
+        "Doormat", "Wall Mirror", "Decorative Mirror", "Wall Clock", "Wall Art", "Photo Frame",
+        "Artificial Plant", "Flower Vase", "Cushion", "Throw Pillow", "Blanket", "Floor Lamp",
+        "Table Lamp", "Pendant Light", "Ceiling Light", "Chandelier", "Wall Light", "LED Strip Light",
+        "Night Light", "Solar Garden Light", "Decorative Lantern",
+    ]),
+    ("Cleaning & Household Supplies", "Universal", [
+        "Laundry Detergent", "Dishwashing Liquid", "Multipurpose Cleaner", "Glass Cleaner",
+        "Toilet Cleaner", "Bleach", "Disinfectant", "Fabric Softener", "Air Freshener",
+        "Insect Killer", "Mop", "Bucket", "Broom", "Dustpan", "Floor Squeegee", "Scrub Brush",
+        "Microfiber Cloth", "Cleaning Gloves", "Garbage Bags", "Laundry Basket", "Storage Box",
+        "Food Storage Container", "Clothes Hangers", "Ironing Board", "Clothes Drying Rack",
+    ]),
+    ("Fashion, Shoes & Accessories", "Universal", [
+        "Men's T-Shirt", "Men's Shirt", "Men's Jeans", "Men's Trousers", "Men's Jacket",
+        "Men's Suit", "Women's Dress", "Women's Blouse", "Women's Jeans", "Women's Skirt",
+        "Women's Jacket", "Kids Clothing", "Sneakers", "Running Shoes", "Formal Shoes",
+        "Sandals", "Slippers", "Boots", "Handbag", "Backpack", "Wallet", "Belt", "Cap",
+        "Hat", "Sunglasses", "Watch", "Fashion Jewellery", "Earrings", "Necklace", "Bracelet",
+    ]),
+    ("Groceries & Food", "Universal", [
+        "Rice", "Maize Flour", "Wheat Flour", "Sugar", "Cooking Oil", "Tea", "Coffee",
+        "Milk", "UHT Milk", "Juice", "Soda", "Bottled Water", "Cereal", "Oats", "Pasta",
+        "Spaghetti", "Biscuits", "Bread", "Canned Food", "Baking Flour", "Baking Powder",
+        "Salt", "Spices", "Tomato Sauce", "Peanut Butter", "Honey", "Snacks", "Baby Food",
+    ]),
+    ("Health, Wellness & Personal Care", "Universal", [
+        "First Aid Kit", "Digital Thermometer", "Blood Pressure Monitor", "Pulse Oximeter",
+        "Glucometer", "Hot Water Bottle", "Reusable Ice Pack", "Face Mask", "Hand Sanitizer",
+        "Soap", "Body Wash", "Shampoo", "Conditioner", "Toothpaste", "Toothbrush",
+        "Deodorant", "Body Lotion", "Sunscreen", "Hair Dryer", "Hair Clipper", "Electric Shaver",
+        "Beard Trimmer", "Personal Scale", "Yoga Recovery Roller", "Wellness Massager",
+    ]),
+    ("Books, Stationery & Crafts", "Universal", [
+        "Exercise Book", "Notebook", "Journal", "Diary", "Ballpoint Pen", "Gel Pen", "Pencil",
+        "Colored Pencils", "Marker Set", "Highlighter", "Eraser", "Sharpener", "Ruler",
+        "Geometry Set", "Calculator", "School Bag", "Laptop Backpack", "Printer Paper",
+        "Envelopes", "File Folder", "Ring Binder", "Stapler", "Staples", "Paper Clips",
+        "Glue", "Craft Paper", "Acrylic Paint Set", "Sketchbook",
+    ]),
+    ("Security, CCTV & Smart Home", "Universal", [
+        "CCTV Camera", "IP Camera", "PTZ Camera", "Doorbell Camera", "NVR", "DVR",
+        "CCTV Hard Drive", "PoE Switch", "Video Intercom", "Fingerprint Access System",
+        "RFID Reader", "Biometric Attendance Machine", "Alarm System", "Motion Sensor",
+        "Door Sensor", "Smoke Detector", "Siren", "Smart Door Lock", "Smart Light",
+        "Smart Plug", "Smart Switch", "Smart Motion Sensor", "Smart Doorbell",
+    ]),
+    ("Travel, Bags & Luggage", "Universal", [
+        "Suitcase", "Carry-On Suitcase", "Travel Bag", "Duffel Bag", "Laptop Bag",
+        "Backpack", "School Backpack", "Camera Bag", "Waist Bag", "Travel Organizer",
+        "Toiletry Bag", "Passport Holder", "Luggage Cover", "Packing Cubes", "Travel Pillow",
+        "Travel Blanket", "Water Bottle", "Travel Adapter", "Power Bank", "Umbrella",
+    ]),
+    ("Toys, Games & Hobbies", "Universal", [
+        "Building Blocks", "Remote Control Car", "Toy Drone", "Doll", "Doll House",
+        "Action Figure", "Board Game", "Puzzle", "Playing Cards", "Toy Kitchen",
+        "Toy Tool Set", "Kids Tablet", "Drawing Board", "Art Kit", "Musical Toy",
+        "Outdoor Toy", "Football Toy", "Scooter", "Remote Control Boat",
+    ]),
+
 ]
 
 
