@@ -131,6 +131,7 @@ class ShopivaSeoMiddleware:
 
         page_type = "product" if path.startswith("/product/") else "website"
         tags = [
+            '<meta name="google-site-verification" content="A4Sfn4It4gBw8q7zNtkFzg0mhBSsl_eI99o504alT-A">',
             f'<link rel="canonical" href="{escape(canonical, quote=True)}">',
             f'<meta name="description" content="{escape(description, quote=True)}">',
             '<meta name="robots" content="index, follow, max-image-preview:large">',
