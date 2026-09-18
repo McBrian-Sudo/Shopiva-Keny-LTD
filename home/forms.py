@@ -35,8 +35,33 @@ def catalog_search_choices():
 
 
 def resolve_catalog_item(key):
-    """Resolve a selected catalogue item from any Shopiva catalogue generation."""
-    return catalog_item_complete(key) or catalog_item_2026(key) or base_resolve_catalog_item(key)
+    """Resolve a catalogue key, visible datalist label, or product search phrase."""
+    direct = (
+        catalog_item_complete(key)
+        or catalog_item_2026(key)
+        or base_resolve_catalog_item(key)
+    )
+    if direct:
+        return direct
+
+    text = str(key or "").strip().casefold()
+    if not text:
+        return None
+
+    sources = (
+        base_catalog_search_choices(limit=10000),
+        catalog_choices_2026(),
+        catalog_choices_complete(),
+    )
+    for source in sources:
+        for item_key, label in source:
+            if str(label).strip().casefold() == text:
+                return (
+                    catalog_item_complete(item_key)
+                    or catalog_item_2026(item_key)
+                    or base_resolve_catalog_item(item_key)
+                )
+    return None
 
 
 def catalog_browser_choices():
