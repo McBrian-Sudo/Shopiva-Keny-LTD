@@ -57,9 +57,9 @@ class ShopivaSeoMiddleware:
 
         site = _site_url()
         canonical = urljoin(site + "/", path.lstrip("/"))
-        title = "Shopiva Kenya | Smart Shopping Marketplace"
+        title = "Shopiva Kenya LTD | Online Marketplace in Kenya"
         description = (
-            "Shopiva Kenya is a smart online marketplace for shopping, products, sellers, secure ordering, "
+            "Shopiva Kenya LTD is an online marketplace in Kenya for products, trusted sellers, secure ordering, "
             "M-PESA payments and delivery across Kenya."
         )
         image = ""
@@ -103,11 +103,24 @@ class ShopivaSeoMiddleware:
             schema = {
                 "@context": "https://schema.org",
                 "@type": "OnlineStore",
-                "name": "Shopiva Kenya",
-                "alternateName": "Shopiva Kenya LTD",
+                "name": "Shopiva Kenya LTD",
+                "alternateName": "Shopiva Kenya",
                 "url": site + "/",
                 "description": description,
                 "areaServed": "KE",
+                        "sameAs": [],
+                    },
+                    {
+                        "@type": "WebSite",
+                        "name": "Shopiva Kenya LTD",
+                        "url": site + "/",
+                        "potentialAction": {
+                            "@type": "SearchAction",
+                            "target": site + "/products/?q={search_term_string}",
+                            "query-input": "required name=search_term_string",
+                        },
+                    },
+                ],
             }
 
         page_type = "product" if path.startswith("/product/") else "website"
@@ -136,8 +149,13 @@ class ShopivaSeoMiddleware:
             )
 
         injection = "\n".join(tags)
-        marker = "</head>"
         lower_html = html.lower()
+        title_start = lower_html.find("<title>")
+        title_end = lower_html.find("</title>")
+        if title_start >= 0 and title_end > title_start:
+            html = html[:title_start] + "<title>" + escape(title) + "</title>" + html[title_end + len("</title>"):]
+            lower_html = html.lower()
+        marker = "</head>"
         index = lower_html.find(marker)
         if index >= 0:
             html = html[:index] + injection + "\n" + html[index:]
