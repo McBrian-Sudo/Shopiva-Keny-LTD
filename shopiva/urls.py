@@ -24,7 +24,7 @@ from home.delivery_app import delivery_login, delivery_logout, delivery_action, 
 from home.delivery_platform import delivery_manifest, delivery_service_worker
 from home.admin_delivery_feed import admin_live_delivery_feed
 from home.notifications_center import customer_notification_center, seller_notification_center, admin_notification_center
-from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, seller_dashboard, seller_product_toggle, seller_product_delete, product_review, seller_register, seller_request_payout, delivery_ping_location, delivery_portal, delivery_update_location, home, order_success, product_detail, products
+from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, seller_dashboard, seller_product_toggle, seller_product_delete, seller_product_stock_update, product_review, seller_register, seller_request_payout, delivery_ping_location, delivery_portal, delivery_update_location, home, order_success, product_detail, products
 from home.seo import robots_txt, sitemap_xml
 from home.legal import privacy_policy, terms_of_service, account_deletion
 from support.views import support_admin_center, support_center
@@ -72,6 +72,7 @@ urlpatterns = [
     path("seller/products/add/", seller_login_required(seller_product_add_map), name="seller_product_add"),
     path("seller/products/<int:product_id>/edit/", seller_login_required(seller_product_edit_map), name="seller_product_edit"),
     path("seller/products/<int:product_id>/toggle/", seller_login_required(seller_product_toggle), name="seller_product_toggle"),
+    path("seller/products/<int:product_id>/stock/", seller_login_required(seller_product_stock_update), name="seller_product_stock_update"),
     path("seller/products/<int:product_id>/hide/", seller_login_required(seller_product_delete), name="seller_product_delete"),
     path("seller/payout/request/", seller_login_required(seller_request_payout), name="seller_request_payout"),
 
