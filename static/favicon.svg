@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Shopiva">
+<rect width="256" height="256" rx="56" fill="#061b31"/>
+<circle cx="128" cy="128" r="92" fill="#19d978"/>
+<path d="M83 103c0-18 17-30 43-30 22 0 39 7 51 21l-18 16c-9-10-19-14-33-14-9 0-15 3-15 8 0 6 6 8 21 12 26 6 48 13 48 38 0 23-20 39-51 39-25 0-46-9-61-27l19-17c12 13 25 19 43 19 12 0 19-4 19-10 0-7-7-9-23-13-24-5-43-13-43-42z" fill="#fff"/>
+<circle cx="96" cy="188" r="8" fill="#ffd34f"/><circle cx="160" cy="188" r="8" fill="#ffd34f"/>
+</svg>
