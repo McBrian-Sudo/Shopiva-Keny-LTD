@@ -197,6 +197,7 @@
   }
   {% endfor %}
   const search=document.getElementById('sellerOrderSearch'),filter=document.getElementById('sellerOrderFilter'),pay=document.getElementById('sellerOrderPayment'),reset=document.getElementById('sellerOrderReset');
+  const orderUpdateBase="{% url "seller_order_update" 0 %}";
   const statIds={pending:'osNew',paid:'osPaid',packed:'osPacking',processing:'osPacking',shipped:'osShipped',out_for_delivery:'osDelivery'};
   function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
   function nextAction(o){
@@ -212,7 +213,7 @@
     const filtered=orders.filter(o=>(!q||[o.id,o.tracking,o.product,o.customer].join(' ').toLowerCase().includes(q))&&(!f||o.status===f)&&(!p||o.payment===p));
     list.innerHTML=filtered.length?filtered.map(o=>{
       const act=nextAction(o);
-      const button=act?'<form method="post" action="{% url "seller_order_update" 0 %}".replace('/0/','/'+o.id+'/')><input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><input type="hidden" name="status" value="'+act[0]+'"><button class="order-action primary" type="submit">'+act[1]+'</button></form>':'';
+      const button=act?'<form method="post" action="'+orderUpdateBase.replace('/0/','/'+o.id+'/')+'"><input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><input type="hidden" name="status" value="'+act[0]+'"><button class="order-action primary" type="submit">'+act[1]+'</button></form>':'';
       return '<article class="order-card"><div class="order-top"><div><div class="order-title">Order #'+esc(o.id)+' · '+esc(o.tracking||'No tracking code')+'</div><div class="order-meta">'+esc(o.product)+' · Qty '+esc(o.qty)+' · '+esc(o.created)+'<br>Customer: '+esc(o.customer||'Customer')+' · Payment: '+esc(o.paymentLabel)+' · Gross: KSh '+esc(o.gross)+'</div></div><span class="order-status '+esc(o.status)+'">'+esc(o.statusLabel)+'</span></div><div class="order-actions">'+button+'<a class="order-action" href="#products">View inventory</a></div></article>';
     }).join(''):'<div class="order-empty">No orders match these filters.</div>';
     document.getElementById('sellerOrderCount').textContent=filtered.length+' shown · '+orders.length+' total';
