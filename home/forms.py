@@ -212,11 +212,13 @@ class SellerProductForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         kwargs.pop("seller", None)
         super().__init__(*args, **kwargs)
-        # New marketplace listings must have a real seller photo; edits keep existing photos optional.
-        self.fields["image"].required = self.instance.pk is None
+        # A listing must remain publishable even if Cloudinary is temporarily unavailable.
+        # Real photos are preferred and uploaded when Cloudinary is healthy; the marketplace
+        # keeps a stable visual fallback when no photo is available.
+        self.fields["image"].required = False
         self.fields["image"].help_text = (
-            "Required for a new listing. Upload a clear real photo of the exact product; "
-            "Shopiva will enhance it and store it in Cloudinary."
+            "Optional but recommended. Upload a clear real photo of the exact product; "
+            "Shopiva will enhance it and store it in Cloudinary when available."
         )
 
     catalog_product = forms.CharField(
@@ -306,10 +308,10 @@ class SellerProductForm(forms.ModelForm):
             enhanced = enhance_product_image(uploaded_main, product.name)
             try:
                 product.image = upload_product_image(enhanced, product.name)
-            except Exception as exc:
-                raise ValidationError(
-                    "Product photo could not be uploaded to Cloudinary. Check the Cloudinary deployment setting and try again."
-                ) from exc
+            except Exception:
+                # Never block a valid marketplace listing because image storage is unavailable.
+                # The public product page has a deterministic category/product fallback image.
+                product.image = None
 
         if not product.sku:
             prefix = slugify(product.name or "product").replace("-", "").upper()[:24] or "PRODUCT"
