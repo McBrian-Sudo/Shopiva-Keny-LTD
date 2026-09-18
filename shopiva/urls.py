@@ -11,7 +11,7 @@ from home.customer_tracking import customer_order_tracking
 from home.checkout_map import checkout_mpesa_map
 from home.google_admin_map import google_admin_delivery_map
 from home.map_views import customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
-from home.platform import app_install, app_manifest, service_worker
+from home.platform import app_install, app_manifest, service_worker, favicon
 from home.payments import mpesa_callback, mpesa_payment_status, mpesa_waiting
 from home.seller_auth import seller_login, seller_logout, seller_login_required
 from home.voice_ai import realtime_action, realtime_call, speak_text, transcribe_voice
@@ -33,6 +33,7 @@ urlpatterns = [
     path("privacy/", privacy_policy, name="privacy_policy"),
     path("terms/", terms_of_service, name="terms_of_service"),
     path("account/delete/", account_deletion, name="account_deletion"),
+    path("favicon.ico", favicon, name="favicon"),
     path("products/", products, name="products"),
     path("categories/", categories, name="categories"),
     path("product/<int:product_id>/", product_detail, name="product_detail"),
@@ -69,7 +70,7 @@ urlpatterns = [
     path("customer/logout/", customer_logout, name="customer_logout"),
     path("account/", customer_dashboard, name="customer_dashboard"),
     path("account/orders/", customer_orders, name="customer_orders"),
-    path("account/orders/<int:order_id>/", customer_order_tracking, name="customer_order_tracking"),
+    path("account/orders/<int:order_id>/", customer_tracking, name="customer_order_tracking"),
     path("account/profile/", customer_profile, name="customer_profile"),
     path("account/addresses/", customer_addresses_map, name="customer_addresses"),
     path("account/wishlist/", customer_wishlist, name="customer_wishlist"),
