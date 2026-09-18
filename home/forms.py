@@ -149,9 +149,10 @@ class CatalogSearchWidget(forms.TextInput):
 
 class SellerProductForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
+        kwargs.pop("seller", None)
         super().__init__(*args, **kwargs)
         # New marketplace listings must have a real seller photo; edits keep existing photos optional.
-        self.fields["image"].required = self.instance is None
+        self.fields["image"].required = self.instance.pk is None
         self.fields["image"].help_text = (
             "Required for a new listing. Upload a clear real photo of the exact product; "
             "Shopiva will enhance it and store it in Cloudinary."
