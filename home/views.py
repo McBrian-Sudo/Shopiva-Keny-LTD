@@ -336,8 +336,28 @@ def home(request):
 
 
 def categories(request):
-    categories = Product.objects.filter(is_active=True).exclude(category="").values_list("category", flat=True).distinct().order_by("category")
-    return render(request, "categories.html", {"categories": categories})
+    db_categories = list(
+        Product.objects.filter(is_active=True)
+        .exclude(category="")
+        .values_list("category", flat=True)
+        .distinct()
+        .order_by("category")
+    )
+    catalog_categories = []
+    seen = set()
+    for row in catalog_browser_choices():
+        category = str(row["category"]).strip()
+        key = category.casefold()
+        if category and key not in seen:
+            seen.add(key)
+            catalog_categories.append(category)
+        if len(catalog_categories) >= 40:
+            break
+    categories = db_categories + [
+        category for category in catalog_categories
+        if category.casefold() not in {item.casefold() for item in db_categories}
+    ]
+    return render(request, "categories.html", {"categories": categories[:40], "catalog_categories": catalog_categories})
 
 
 def product_detail(request, product_id):
@@ -502,10 +522,30 @@ def products(request):
         max_price_raw = ""
     order_map = {"newest": "-id", "price_low": "price", "price_high": "-price", "discount": "-discount_percent", "name": "name"}
     product_list = product_list.order_by(order_map.get(sort, "-id"))
-    categories_list = Product.objects.filter(is_active=True).exclude(category="").values_list("category", flat=True).distinct().order_by("category")
+    db_categories = list(
+        Product.objects.filter(is_active=True)
+        .exclude(category="")
+        .values_list("category", flat=True)
+        .distinct()
+        .order_by("category")
+    )
+    catalog_categories = []
+    seen_categories = set()
+    for row in catalog_browser_choices():
+        catalog_category = str(row["category"]).strip()
+        key = catalog_category.casefold()
+        if catalog_category and key not in seen_categories:
+            seen_categories.add(key)
+            catalog_categories.append(catalog_category)
+        if len(catalog_categories) >= 40:
+            break
+    categories_list = db_categories + [
+        category for category in catalog_categories
+        if category.casefold() not in {item.casefold() for item in db_categories}
+    ]
     paginator = Paginator(product_list, 12)
     page_obj = paginator.get_page(request.GET.get("page"))
-    return render(request, "products.html", {"products": page_obj, "page_obj": page_obj, "categories": categories_list, "query": query, "selected_category": category, "discount_only": discount_only, "selected_sort": sort, "min_price": min_price_raw, "max_price": max_price_raw})
+    return render(request, "products.html", {"products": page_obj, "page_obj": page_obj, "categories": categories_list[:40], "catalog_categories": catalog_categories, "query": query, "selected_category": category, "discount_only": discount_only, "selected_sort": sort, "min_price": min_price_raw, "max_price": max_price_raw})
 
 
 @login_required(login_url="customer_login")
