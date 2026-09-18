@@ -65,7 +65,7 @@ footer{margin-top:44px;background:#041321;color:#dce8ef;padding:36px 0 78px}.foo
 
 .market-showcase{padding-top:38px}
 .market-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-.featured-market{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 28px}
+.featured-market{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 28px}.real-image-featured .featured-card{background:#101923}.real-image-featured .featured-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;display:block;transition:transform .55s ease}.real-image-featured .featured-card:hover .featured-photo{transform:scale(1.045)}.real-image-featured .featured-card:before{background:linear-gradient(180deg,rgba(4,18,30,.04) 10%,rgba(4,18,30,.82) 100%)}.real-image-featured .featured-tools,.real-image-featured .featured-bike,.real-image-featured .featured-paint{background:#27333d}.real-image-featured .featured-content{z-index:4}.real-image-featured .featured-badge{box-shadow:0 5px 16px rgba(0,0,0,.16)}
 .featured-card{position:relative;min-height:390px;border-radius:22px;overflow:hidden;border:1px solid rgba(6,26,47,.09);box-shadow:0 14px 35px rgba(6,26,47,.10);color:#fff;isolation:isolate;transition:transform .25s ease,box-shadow .25s ease}
 .featured-card:hover{transform:translateY(-5px);box-shadow:0 22px 48px rgba(6,26,47,.16)}
 .featured-card:before{content:"";position:absolute;inset:0;z-index:-2}
@@ -208,17 +208,17 @@ footer{margin-top:44px;background:#041321;color:#dce8ef;padding:36px 0 78px}.foo
 <section class="section market-showcase">
 <div class="head"><div><div class="kicker">More to discover</div><h2>Shop every side of life</h2><p>From phones and home appliances to vehicle parts, bikes, fashion and everyday essentials.</p></div><a href="{% url 'categories' %}">Explore all categories →</a></div>
 
-<div class="featured-market">
+<div class="featured-market real-image-featured">
 <a class="featured-card featured-tools" href="{% url 'products' %}?q=tools">
-<div class="featured-art"><div class="tool-box"></div><div class="tool-drill"></div><div class="tool-hammer"></div><div class="tool-handle"></div><div class="tool-bits"></div></div>
+<img class="featured-photo" src="https://nurvale.co.uk/cdn/shop/collections/73244802-D01C-4289-AF6E-F5666B2E7C8E.png?v=1779100416&width=1500" alt="Real tools and hardware workshop" loading="eager">
 <div class="featured-content"><span class="featured-badge">WORKSHOP</span><h3>Tools & Hardware</h3><p>Power tools, hand tools, toolboxes, ladders, safety gear and workshop essentials.</p><span class="featured-link">Shop Tools →</span><div class="featured-strip"><span>Quality Tools</span><span>Trusted Brands</span><span>Built to Last</span></div></div>
 </a>
 <a class="featured-card featured-bike" href="{% url 'products' %}?q=bicycle">
-<div class="featured-art"><div class="bike-wheel left"></div><div class="bike-wheel right"></div><div class="bike-frame"></div><div class="bike-seat"></div><div class="bike-bar"></div></div>
+<img class="featured-photo" src="https://skill-bike.ru/storage/tiny/2-top-15-poleznyh-aksessuarov-dlya-velosipeda.jpg" alt="Real bicycle spares and cycling accessories" loading="lazy">
 <div class="featured-content"><span class="featured-badge">CYCLE SHOP</span><h3>Bicycles & Spares</h3><p>Bikes, cassettes, chains, wheels, tyres, tools, upgrades and cycling accessories.</p><span class="featured-link">Shop Bicycles →</span><div class="featured-strip"><span>Top Brands</span><span>Quality Spares</span><span>Fast Delivery</span></div></div>
 </a>
 <a class="featured-card featured-paint" href="{% url 'products' %}?q=paint">
-<div class="featured-art"><div class="paint-can one"></div><div class="paint-can two"></div><div class="paint-can three"></div><div class="paint-roller"></div></div>
+<img class="featured-photo" src="https://static.wixstatic.com/media/7fcfe1_2d4a0d617c7a489cbf4e61e54a13cd92~mv2.png/v1/fill/w_1000,h_1000,al_c,q_90,usm_0.66_1.00_0.01/7fcfe1_2d4a0d617c7a489cbf4e61e54a13cd92~mv2.png" alt="Real paint cans, brushes and rollers" loading="lazy">
 <div class="featured-content"><span class="featured-badge">BUILD & FINISH</span><h3>Paints & Finishes</h3><p>Wall paints, emulsions, primers, varnishes, brushes, rollers and finishing supplies.</p><span class="featured-link">Shop Paints →</span><div class="featured-strip"><span>Quality Finishes</span><span>Trusted Brands</span><span>Great Results</span></div></div>
 </a>
 </div>
