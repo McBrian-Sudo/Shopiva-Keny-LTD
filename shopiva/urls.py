@@ -26,6 +26,7 @@ from home.admin_delivery_feed import admin_live_delivery_feed
 from home.notifications_center import customer_notification_center, seller_notification_center, admin_notification_center
 from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, seller_dashboard, seller_product_toggle, seller_product_delete, seller_product_stock_update, seller_order_update, product_review, seller_register, seller_request_payout, delivery_ping_location, delivery_portal, delivery_update_location, home, order_success, product_detail, products
 from home.seo import robots_txt, sitemap_xml
+from home.indexnow import indexnow_key
 from home.legal import privacy_policy, terms_of_service, account_deletion
 from support.views import support_admin_center, support_center
 
@@ -33,6 +34,7 @@ urlpatterns = [
     path("", home, name="home"),
     path("health/", health, name="health"),
     path("robots.txt", robots_txt, name="robots_txt"),
+    path("<str:key>.txt", indexnow_key, name="indexnow_key"),
     path("sitemap.xml", sitemap_xml, name="sitemap_xml"),
     path("privacy/", privacy_policy, name="privacy_policy"),
     path("terms/", terms_of_service, name="terms_of_service"),
