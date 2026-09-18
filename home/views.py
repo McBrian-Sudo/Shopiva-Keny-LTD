@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 from .forms import CustomerRegistrationForm
 from .models_product_media import ProductMedia
 from .notification_service import notify_user
-from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm, catalog_browser_choices
+from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm, catalog_browser_choices, resolve_catalog_item
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
 
@@ -662,7 +662,16 @@ def seller_product_add(request):
             messages.success(request, f"{product.name} is now listed on Shopiva.")
             return redirect("seller_dashboard")
     else:
-        form = SellerProductForm(seller=seller)
+        catalog_value = request.GET.get("catalog", "").strip()
+        catalog_item = resolve_catalog_item(catalog_value)
+        initial = {}
+        if catalog_item:
+            initial = {
+                "catalog_product": catalog_value,
+                "name": catalog_item["name"],
+                "category": catalog_item["category"],
+            }
+        form = SellerProductForm(initial=initial, seller=seller)
     return render(request, "seller/product_form.html", {"form": form, "seller": seller, "mode": "add"})
 
 
