@@ -1,6 +1,7 @@
 import logging
 from decimal import Decimal, InvalidOperation
 import uuid
+from django.conf import settings
 
 from django.contrib import messages
 from django.db import IntegrityError, transaction
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 from .forms import CustomerRegistrationForm
 from .models_product_media import ProductMedia
+from .indexnow import submit_urls
 from .notification_service import notify_user
 from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm, catalog_browser_choices, resolve_catalog_item
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
@@ -56,6 +58,11 @@ def _customer_boundary_redirect(request):
 def _record_order_event(order, event_type, note="", actor=None, delivery_agent=None):
     return OrderEvent.objects.create(order=order, event_type=event_type, note=note, actor=actor, delivery_agent=delivery_agent)
 
+
+
+def _notify_product_indexnow(product):
+    site = str(getattr(settings, "PUBLIC_SITE_URL", "https://shopivakenya.top") or "https://shopivakenya.top").rstrip("/")
+    submit_urls([f"{site}/product/{product.id}/"])
 
 def customer_register(request):
     if request.user.is_authenticated:
@@ -691,6 +698,7 @@ def seller_product_edit(request, product_id):
                 for position, image_file in enumerate(gallery_files[:8]):
                     ProductMedia.objects.create(product=product, image=enhance_product_image(image_file, f"{product.name}-gallery-{position + 1}"), position=position)
             messages.success(request, f"{product.name} updated.")
+            _notify_product_indexnow(product)
             return redirect("seller_dashboard")
     else:
         form = SellerProductForm(instance=product, seller=seller)
@@ -770,6 +778,7 @@ def seller_product_stock_update(request, product_id):
         )
         product.stock_quantity = quantity
         product.save(update_fields=["stock_quantity"])
+    _notify_product_indexnow(product)
     if quantity == 0:
         messages.warning(request, f"{product.name} is now out of stock.")
     elif quantity <= 5:
@@ -787,6 +796,7 @@ def seller_product_toggle(request, product_id):
     product = get_object_or_404(Product, id=product_id, seller=seller)
     product.is_active = not product.is_active
     product.save(update_fields=["is_active"])
+    _notify_product_indexnow(product)
     messages.success(request, f"{product.name} is now {'live' if product.is_active else 'hidden'}.")
     return redirect("seller_dashboard")
 
@@ -799,6 +809,7 @@ def seller_product_delete(request, product_id):
     product = get_object_or_404(Product, id=product_id, seller=seller)
     product.is_active = False
     product.save(update_fields=["is_active"])
+    _notify_product_indexnow(product)
     messages.success(request, f"{product.name} has been hidden from the marketplace.")
     return redirect("seller_dashboard")
 
