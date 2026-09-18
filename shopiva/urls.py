@@ -12,7 +12,11 @@ from home.checkout_map import checkout_mpesa_map
 from home.google_admin_map import google_admin_delivery_map
 from home.map_views import customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
 from home.platform import app_install, app_manifest, service_worker, favicon
-from home.payments import (\n    mpesa_callback, mpesa_payment_status, mpesa_waiting,\n    pesapal_callback, pesapal_ipn, pesapal_cancel,\n    card_payment_success, card_payment_cancel, stripe_webhook,\n)
+from home.payments import (
+    mpesa_callback, mpesa_payment_status, mpesa_waiting,
+    pesapal_callback, pesapal_ipn, pesapal_cancel,
+    card_payment_success, card_payment_cancel, stripe_webhook,
+)
 from home.seller_auth import seller_login, seller_logout, seller_login_required
 from home.voice_ai import realtime_action, realtime_call, speak_text, transcribe_voice
 from shopiva.health import health
@@ -46,7 +50,13 @@ urlpatterns = [
     path("checkout/", checkout_mpesa_map, name="checkout"),
     path("payments/mpesa/callback/", mpesa_callback, name="mpesa_callback"),
     path("payments/mpesa/status/<int:order_id>/", mpesa_payment_status, name="mpesa_payment_status"),
-    path("payments/mpesa/waiting/<int:order_id>/", mpesa_waiting, name="mpesa_waiting"),\n    path("payments/pesapal/callback/", pesapal_callback, name="pesapal_callback"),\n    path("payments/pesapal/ipn/", pesapal_ipn, name="pesapal_ipn"),\n    path("payments/pesapal/cancel/", pesapal_cancel, name="pesapal_cancel"),\n    path("payments/card/success/<int:order_id>/", card_payment_success, name="card_payment_success"),\n    path("payments/card/cancel/<int:order_id>/", card_payment_cancel, name="card_payment_cancel"),\n    path("payments/stripe/webhook/", stripe_webhook, name="stripe_webhook"),
+    path("payments/mpesa/waiting/<int:order_id>/", mpesa_waiting, name="mpesa_waiting"),
+    path("payments/pesapal/callback/", pesapal_callback, name="pesapal_callback"),
+    path("payments/pesapal/ipn/", pesapal_ipn, name="pesapal_ipn"),
+    path("payments/pesapal/cancel/", pesapal_cancel, name="pesapal_cancel"),
+    path("payments/card/success/<int:order_id>/", card_payment_success, name="card_payment_success"),
+    path("payments/card/cancel/<int:order_id>/", card_payment_cancel, name="card_payment_cancel"),
+    path("payments/stripe/webhook/", stripe_webhook, name="stripe_webhook"),
     path("order-success/<int:order_id>/", order_success, name="order_success"),
 
     path("support/", support_center, name="support_center"),
