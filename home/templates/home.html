@@ -165,26 +165,97 @@ footer{margin-top:44px;background:#041321;color:#dce8ef;padding:36px 0 78px}.foo
 
 <section class="section market-showcase">
 <div class="head"><div><div class="kicker">More to discover</div><h2>Shop every side of life</h2><p>From phones and home appliances to vehicle parts, bikes, fashion and everyday essentials.</p></div><a href="{% url 'categories' %}">Explore all categories →</a></div>
+
 <div class="market-grid">
-<a class="market-card wide" href="{% url 'products' %}?q=phones">
-<img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1100&q=88" alt="Smartphones and accessories" loading="lazy">
+<a class="market-card wide" href="{% url 'products' %}?q=furniture">
+<img src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1100&q=88" alt="Furniture including sofas and tables" loading="lazy">
+<div class="market-card-content"><span class="market-badge">HOME & LIVING</span><h3>Furniture</h3><p>Sofas, beds, tables, chairs, wardrobes, office furniture and home décor.</p><span class="market-link">Shop furniture →</span></div>
+</a>
+<a class="market-card wide" href="{% url 'products' %}?q=door+locks">
+<img src="https://images.unsplash.com/photo-1558008258-3256797b43f3?auto=format&fit=crop&w=1100&q=88" alt="Modern door locks and security hardware" loading="lazy">
+<div class="market-card-content"><span class="market-badge">HOME SECURITY</span><h3>Door Locks & Security</h3><p>Smart locks, digital locks, handles, padlocks, access systems and security hardware.</p><span class="market-link">Shop locks →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=paint">
+<img src="https://images.unsplash.com/photo-1562259949-e8e7685d4e9a?auto=format&fit=crop&w=900&q=88" alt="Paints and home finishing supplies" loading="lazy">
+<div class="market-card-content"><span class="market-badge">BUILD & FINISH</span><h3>Paints & Finishes</h3><p>Wall paints, emulsions, primers, varnishes, brushes, rollers and finishing supplies.</p><span class="market-link">Shop paints →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=building+materials">
+<img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=900&q=88" alt="Construction and building materials" loading="lazy">
+<div class="market-card-content"><span class="market-badge">CONSTRUCTION</span><h3>Building Materials</h3><p>Construction supplies, plumbing, electrical fittings, cement tools and site essentials.</p><span class="market-link">Shop building →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=solar">
+<img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=900&q=88" alt="Solar panels and renewable energy products" loading="lazy">
+<div class="market-card-content"><span class="market-badge">POWER & SOLAR</span><h3>Solar & Electrical</h3><p>Solar panels, inverters, batteries, lighting, cables, power stations and electrical gear.</p><span class="market-link">Shop power →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=phones">
+<img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=88" alt="Smartphones and accessories" loading="lazy">
 <div class="market-card-content"><span class="market-badge">TRENDING TECH</span><h3>Phones & Accessories</h3><p>Smartphones, chargers, cases, screen protectors, earbuds, power banks and more.</p><span class="market-link">Shop phones →</span></div>
 </a>
-<a class="market-card wide" href="{% url 'products' %}?q=appliances">
-<img src="https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1100&q=88" alt="Home appliances and kitchen equipment" loading="lazy">
-<div class="market-card-content"><span class="market-badge">HOME UPGRADES</span><h3>Home Appliances</h3><p>Kitchen equipment, cleaning appliances, small electronics and practical home upgrades.</p><span class="market-link">Shop home →</span></div>
+<a class="market-card" href="{% url 'products' %}?q=computers">
+<img src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=88" alt="Computers and office technology" loading="lazy">
+<div class="market-card-content"><span class="market-badge">WORK & STUDY</span><h3>Computers & Office</h3><p>Laptops, desktops, monitors, printers, networking gear and office technology.</p><span class="market-link">Shop computers →</span></div>
 </a>
-<a class="market-card" href="{% url 'products' %}?q=car+spares"><img src="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=900&q=88" alt="Car spare parts and tools" loading="lazy"><div class="market-card-content"><span class="market-badge">AUTO ZONE</span><h3>Car Spares</h3><p>Parts, accessories, maintenance items and workshop tools.</p><span class="market-link">Browse auto →</span></div></a>
-<a class="market-card" href="{% url 'products' %}?q=motorcycle+spares"><img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=900&q=88" alt="Motorcycle and motorbike parts" loading="lazy"><div class="market-card-content"><span class="market-badge">BIKE GARAGE</span><h3>Motorcycle Spares</h3><p>Service parts, riding gear, accessories and customization picks.</p><span class="market-link">Shop motorbikes →</span></div></a>
-<a class="market-card" href="{% url 'products' %}?q=bicycle"><img src="{% static 'images/bicycle-spares-card.svg' %}" alt="Bicycle spares and cycling parts" loading="lazy"><div class="market-card-content"><span class="market-badge">CYCLE SHOP</span><h3>Bicycle Spares</h3><p>Cassettes, hubs, freehubs, gears, tyres, tools and cycling essentials.</p><span class="market-link">Shop bicycle spares →</span></div></a>
-<a class="market-card" href="{% url 'products' %}?q=kitchen+utensils"><img src="https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=900&q=88" alt="Kitchen utensils and cookware" loading="lazy" decoding="async"><div class="market-card-content"><span class="market-badge">KITCHEN EDIT</span><h3>Utensils & Cookware</h3><p>Pots, pans, cutlery, storage, serving sets and kitchen essentials.</p><span class="market-link">Shop kitchen →</span></div></a>
-<a class="market-card" href="{% url 'products' %}?q=beauty"><img src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=88" alt="Beauty and personal care products" loading="lazy" decoding="async"><div class="market-card-content"><span class="market-badge">BEAUTY EDIT</span><h3>Beauty & Wellness</h3><p>Skincare, haircare, grooming, fragrances and everyday self-care picks.</p><span class="market-link">Shop beauty →</span></div></a>
-<a class="market-card" href="{% url 'products' %}?q=baby+kids"><img src="https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=900&q=88" alt="Baby and kids products" loading="lazy" decoding="async"><div class="market-card-content"><span class="market-badge">FAMILY PICKS</span><h3>Baby & Kids</h3><p>Clothing, toys, school essentials, feeding products and family needs.</p><span class="market-link">Shop family →</span></div></a>
-<a class="market-card" href="{% url 'products' %}?q=sports"><img src="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=900&q=88" alt="Sports and outdoor equipment" loading="lazy" decoding="async"><div class="market-card-content"><span class="market-badge">ACTIVE LIFE</span><h3>Sports & Outdoors</h3><p>Fitness gear, sports equipment, camping, running and outdoor essentials.</p><span class="market-link">Shop active →</span></div></a>
-<a class="market-card" href="{% url 'products' %}?q=office+school"><img src="https://images.unsplash.com/photo-1456324504439-367cee3b3c32?auto=format&fit=crop&w=900&q=88" alt="Office and school supplies" loading="lazy" decoding="async"><div class="market-card-content"><span class="market-badge">WORK & STUDY</span><h3>Office & School</h3><p>Stationery, desks, bags, printers, learning tools and workplace essentials.</p><span class="market-link">Shop supplies →</span></div></a>
-<a class="market-card" href="{% url 'products' %}?q=agriculture"><img src="https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?auto=format&fit=crop&w=900&q=88" alt="Agriculture and farming products" loading="lazy" decoding="async"><div class="market-card-content"><span class="market-badge">FARM & GARDEN</span><h3>Agriculture & Garden</h3><p>Farm tools, gardening supplies, irrigation accessories and growing essentials.</p><span class="market-link">Shop farm →</span></div></a>
-<a class="market-card" href="{% url 'products' %}?q=electronics"><img src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=900&q=88" alt="Consumer electronics and devices" loading="lazy" decoding="async"><div class="market-card-content"><span class="market-badge">SMART DEVICES</span><h3>Electronics & Gadgets</h3><p>Speakers, cameras, wearables, accessories, smart devices and useful tech.</p><span class="market-link">Shop gadgets →</span></div></a>
-</div></section>
+<a class="market-card" href="{% url 'products' %}?q=appliances">
+<img src="https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=900&q=88" alt="Home appliances and kitchen equipment" loading="lazy">
+<div class="market-card-content"><span class="market-badge">HOME UPGRADES</span><h3>Home Appliances</h3><p>Fridges, cookers, microwaves, washing machines, fans, vacuums and more.</p><span class="market-link">Shop home →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=fashion">
+<img src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=900&q=88" alt="Fashion and clothing" loading="lazy">
+<div class="market-card-content"><span class="market-badge">STYLE</span><h3>Fashion & Clothing</h3><p>Men's, women's and kids' clothing, shoes, bags, accessories and everyday style.</p><span class="market-link">Shop fashion →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=groceries">
+<img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=88" alt="Groceries and household essentials" loading="lazy">
+<div class="market-card-content"><span class="market-badge">EVERYDAY ESSENTIALS</span><h3>Groceries</h3><p>Food, drinks, household supplies, pantry staples and everyday essentials.</p><span class="market-link">Shop groceries →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=beauty">
+<img src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=88" alt="Beauty and personal care products" loading="lazy">
+<div class="market-card-content"><span class="market-badge">BEAUTY</span><h3>Beauty & Personal Care</h3><p>Skincare, haircare, grooming, fragrances and everyday self-care products.</p><span class="market-link">Shop beauty →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=tools">
+<img src="https://images.unsplash.com/photo-1581147036324-c1c9bf9a1b1b?auto=format&fit=crop&w=900&q=88" alt="Tools and hardware" loading="lazy">
+<div class="market-card-content"><span class="market-badge">WORKSHOP</span><h3>Tools & Hardware</h3><p>Power tools, hand tools, toolboxes, ladders, safety gear and workshop essentials.</p><span class="market-link">Shop tools →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=car+spares">
+<img src="https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=900&q=88" alt="Car spare parts and tools" loading="lazy">
+<div class="market-card-content"><span class="market-badge">AUTO ZONE</span><h3>Car Spares</h3><p>Parts, accessories, maintenance items, tyres and workshop supplies.</p><span class="market-link">Browse auto →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=motorcycle+spares">
+<img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=900&q=88" alt="Motorcycle spare parts and accessories" loading="lazy">
+<div class="market-card-content"><span class="market-badge">BIKE GARAGE</span><h3>Motorcycle Spares</h3><p>Service parts, riding gear, accessories, tyres and customization products.</p><span class="market-link">Shop motorcycles →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=bicycle">
+<img src="{% static 'images/bicycle-spares-card.svg' %}" alt="Bicycle spares and cycling parts" loading="lazy">
+<div class="market-card-content"><span class="market-badge">CYCLE SHOP</span><h3>Bicycles & Spares</h3><p>Bikes, cassettes, chains, wheels, tyres, tools, upgrades and cycling accessories.</p><span class="market-link">Shop cycling →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=baby+kids">
+<img src="https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=900&q=88" alt="Baby and kids products" loading="lazy">
+<div class="market-card-content"><span class="market-badge">FAMILY</span><h3>Baby & Kids</h3><p>Baby care, clothing, toys, school bags, feeding products and kids' essentials.</p><span class="market-link">Shop family →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=sports">
+<img src="https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=900&q=88" alt="Sports and outdoor equipment" loading="lazy">
+<div class="market-card-content"><span class="market-badge">ACTIVE LIFE</span><h3>Sports & Outdoors</h3><p>Fitness gear, sports equipment, camping, running and outdoor essentials.</p><span class="market-link">Shop active →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=health+medical">
+<img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=88" alt="Health and medical supplies" loading="lazy">
+<div class="market-card-content"><span class="market-badge">HEALTH</span><h3>Health & Medical</h3><p>First-aid supplies, wellness products, medical devices and personal health essentials.</p><span class="market-link">Shop health →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=pet">
+<img src="https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=900&q=88" alt="Pet and animal care supplies" loading="lazy">
+<div class="market-card-content"><span class="market-badge">PET CARE</span><h3>Pet & Animal Care</h3><p>Pet food, beds, carriers, grooming, toys and everyday animal-care supplies.</p><span class="market-link">Shop pet care →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=office+school">
+<img src="https://images.unsplash.com/photo-1456324504439-367cee3b3c32?auto=format&fit=crop&w=900&q=88" alt="Office and school supplies" loading="lazy">
+<div class="market-card-content"><span class="market-badge">LEARN & CREATE</span><h3>Books, Stationery & Crafts</h3><p>Books, stationery, school supplies, art materials, crafts and learning tools.</p><span class="market-link">Shop supplies →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=agriculture">
+<img src="https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?auto=format&fit=crop&w=900&q=88" alt="Agriculture and garden products" loading="lazy">
+<div class="market-card-content"><span class="market-badge">FARM & GARDEN</span><h3>Agriculture & Garden</h3><p>Farm tools, gardening supplies, irrigation accessories and growing essentials.</p><span class="market-link">Shop farm →</span></div>
+</a>
+<a class="market-card" href="{% url 'products' %}?q=electronics">
+<img src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=900&q=88" alt="Consumer electronics and gadgets" loading="lazy">
+<div class="market-card-content"><span class="market-badge">SMART LIFE</span><h3>Electronics & Gadgets</h3><p>Speakers, cameras, wearables, smart devices, gaming and useful technology.</p><span class="market-link">Shop gadgets →</span></div>
+</a>
+</div></div></section>
 
 <section class="smart">
 <div class="smart-main">
