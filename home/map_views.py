@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation
+from django.conf import settings
 import logging
 
 from django.contrib import messages
@@ -9,10 +10,16 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import SellerProductForm
+from .indexnow import submit_urls
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, Product
 
 logger = logging.getLogger(__name__)
 
+
+
+def _notify_product_indexnow(product):
+    site = str(getattr(settings, "PUBLIC_SITE_URL", "https://shopivakenya.top") or "https://shopivakenya.top").rstrip("/")
+    submit_urls([f"{site}/product/{product.id}/"])
 
 def _coordinate(value, minimum, maximum):
     try:
@@ -71,6 +78,7 @@ def seller_product_add_map(request):
                     messages.error(request, "The product could not be saved. Please correct the listing and try again.")
                 else:
                     messages.success(request, f"{product.name} is now listed on Shopiva.")
+                    _notify_product_indexnow(product)
                     return redirect("seller_dashboard")
     else:
         form = SellerProductForm()
@@ -114,6 +122,7 @@ def seller_product_edit_map(request, product_id):
                 messages.error(request, "The product update could not be completed. Please try again.")
             else:
                 messages.success(request, f"{updated_product.name} has been updated.")
+                _notify_product_indexnow(updated_product)
                 return redirect("seller_dashboard")
     else:
         form = SellerProductForm(instance=product)
