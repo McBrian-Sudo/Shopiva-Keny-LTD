@@ -109,6 +109,7 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "").strip()
 GOOGLE_MAPS_MAP_ID = os.getenv("GOOGLE_MAPS_MAP_ID", "").strip()
 
 PUBLIC_SITE_URL = os.getenv("PUBLIC_SITE_URL", "https://shopivakenya.top").strip().rstrip("/")
+INDEXNOW_KEY = os.getenv("INDEXNOW_KEY", "").strip()
 
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
