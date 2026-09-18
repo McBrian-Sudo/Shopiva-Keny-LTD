@@ -11,11 +11,19 @@ def _site_url():
 
 
 def _absolute_image(product):
+    """Return a crawlable absolute product image, using the deterministic fallback when needed."""
     try:
-        url = product.image.url
+        if product.image and product.image.url:
+            return product.image.url
     except Exception:
-        return ""
-    return urljoin(_site_url() + "/", url.lstrip("/"))
+        pass
+    try:
+        fallback = product.fallback_image_url
+        if fallback:
+            return fallback
+    except Exception:
+        pass
+    return ""
 
 
 class ShopivaSeoMiddleware:
@@ -93,6 +101,11 @@ class ShopivaSeoMiddleware:
                                 if product.stock_quantity > 0
                                 else "https://schema.org/OutOfStock"
                             ),
+                            "itemCondition": "https://schema.org/NewCondition",
+                            "seller": {
+                                "@type": "Organization",
+                                "name": "Shopiva Kenya LTD",
+                            },
                         },
                     }
                     if image:
