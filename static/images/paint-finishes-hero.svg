@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4d8b0"/><stop offset=".48" stop-color="#d79b62"/><stop offset="1" stop-color="#7b4428"/></linearGradient>
+ <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f7efe5"/><stop offset="1" stop-color="#d9c5ad"/></linearGradient>
+ <linearGradient id="can" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fdfdfd"/><stop offset=".55" stop-color="#d6dbe0"/><stop offset="1" stop-color="#8d969f"/></linearGradient>
+ <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#18a8ff"/><stop offset="1" stop-color="#0755a4"/></linearGradient>
+ <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2bd878"/><stop offset="1" stop-color="#087a45"/></linearGradient>
+ <linearGradient id="red" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff6b50"/><stop offset="1" stop-color="#a51f2c"/></linearGradient>
+ <filter id="shadow"><feDropShadow dx="0" dy="20" stdDeviation="22" flood-opacity=".25"/></filter>
+ <filter id="soft"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<rect width="1600" height="900" fill="url(#bg)"/>
+<rect x="0" y="0" width="1600" height="570" fill="url(#wall)"/>
+<path d="M0 520 Q430 470 820 535 T1600 505 V900 H0Z" fill="#b77b4e"/>
+<rect x="110" y="100" width="480" height="280" rx="18" fill="#fff" opacity=".38"/>
+<rect x="150" y="140" width="400" height="200" rx="12" fill="#dce8ef"/>
+<path d="M150 340h400" stroke="#fff" stroke-width="16" opacity=".65"/>
+<g opacity=".75">
+ <circle cx="1180" cy="160" r="90" fill="#fff"/>
+ <circle cx="1180" cy="160" r="68" fill="#d9efff"/>
+ <circle cx="1300" cy="235" r="62" fill="#fff"/>
+ <circle cx="1300" cy="235" r="44" fill="#ffe3b5"/>
+</g>
+<g filter="url(#shadow)">
+ <ellipse cx="460" cy="735" rx="280" ry="58" fill="#3b241a" opacity=".35"/>
+ <path d="M245 475h430l-35 270H280Z" fill="url(#can)"/>
+ <ellipse cx="460" cy="475" rx="215" ry="52" fill="#eef2f4"/>
+ <ellipse cx="460" cy="480" rx="178" ry="38" fill="url(#blue)"/>
+ <path d="M330 610h260v92H330Z" fill="#fff" opacity=".9"/>
+ <text x="460" y="652" text-anchor="middle" font-family="Arial,sans-serif" font-size="46" font-weight="800" fill="#12304a">PAINT</text>
+ <text x="460" y="688" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#567080">PREMIUM FINISH</text>
+</g>
+<g filter="url(#shadow)">
+ <ellipse cx="890" cy="760" rx="280" ry="52" fill="#3b241a" opacity=".3"/>
+ <path d="M690 520h400l-30 245H720Z" fill="url(#can)"/>
+ <ellipse cx="890" cy="520" rx="200" ry="48" fill="#eef2f4"/>
+ <ellipse cx="890" cy="524" rx="165" ry="34" fill="url(#green)"/>
+ <path d="M770 625h240v82H770Z" fill="#fff" opacity=".9"/>
+ <text x="890" y="666" text-anchor="middle" font-family="Arial,sans-serif" font-size="38" font-weight="800" fill="#174d34">WALL COAT</text>
+</g>
+<g filter="url(#shadow)">
+ <path d="M1180 710L1410 410" stroke="#493226" stroke-width="34" stroke-linecap="round"/>
+ <rect x="1350" y="355" width="120" height="210" rx="25" fill="#e7edf0" transform="rotate(37 1410 460)"/>
+ <path d="M1360 390h100v105h-100Z" fill="url(#red)" transform="rotate(37 1410 460)"/>
+ <path d="M1150 705q80-30 155 35l-22 55q-100-52-160-5Z" fill="#f4a261"/>
+</g>
+<g transform="translate(80 610)">
+ <rect width="220" height="100" rx="18" fill="#fff" opacity=".94"/>
+ <circle cx="45" cy="50" r="25" fill="#18a8ff"/><circle cx="105" cy="50" r="25" fill="#2bd878"/><circle cx="165" cy="50" r="25" fill="#ff6b50"/>
+ <text x="110" y="88" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#243746">COLOUR • PROTECTION • FINISH</text>
+</g>
+</svg>
