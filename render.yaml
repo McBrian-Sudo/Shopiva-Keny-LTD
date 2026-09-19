@@ -3,10 +3,13 @@ services:
     name: shopiva-keny-ltd
     runtime: python
     healthCheckPath: /health/
+    autoDeployTrigger: checksPass
+    renderSubdomainPolicy: disabled
     buildCommand: >-
       pip install -r requirements.txt &&
       python manage.py check --deploy &&
-      python manage.py check &&
+      python manage.py check
+    preDeployCommand: >-
       python manage.py migrate --noinput &&
       python manage.py migrate --check &&
       python manage.py system_preflight &&
