@@ -1,4 +1,6 @@
 from decimal import Decimal, InvalidOperation
+from datetime import timedelta
+import secrets
 
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -8,7 +10,12 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from .models import DeliveryAgent, DeliveryLocationPing, Order, OrderEvent
+from .models import DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, SellerSettlement, SellerWallet
+from .notification_service import notify_user
+
+
+DELIVERY_CODE_MAX_ATTEMPTS = 5
+DELIVERY_CODE_LOCK_MINUTES = 10
 
 
 def _agent(request):
@@ -17,6 +24,21 @@ def _agent(request):
     except DeliveryAgent.DoesNotExist:
         return None
     return agent if agent.is_active else None
+
+
+def _release_seller_settlements(order, now):
+    released = []
+    for settlement in SellerSettlement.objects.select_for_update().filter(order=order, status="pending"):
+        wallet, _ = SellerWallet.objects.get_or_create(seller=settlement.seller)
+        wallet = SellerWallet.objects.select_for_update().get(pk=wallet.pk)
+        wallet.pending_balance = max(Decimal("0.00"), wallet.pending_balance - settlement.seller_amount)
+        wallet.available_balance += settlement.seller_amount
+        wallet.save(update_fields=("pending_balance", "available_balance", "updated_at"))
+        settlement.status = "available"
+        settlement.released_at = now
+        settlement.save(update_fields=("status", "released_at"))
+        released.append(settlement)
+    return released
 
 
 def delivery_login(request):
@@ -70,7 +92,7 @@ def delivery_action(request, order_id):
     action = request.POST.get("action", "").strip().lower()
     transitions = {
         "start": ("out_for_delivery", "out_for_delivery", "Delivery partner started the delivery."),
-        "delivered": ("delivered", "delivered", "Delivery partner marked the order delivered."),
+        "delivered": ("delivered", "delivered", "Delivery handover verified by the customer code."),
     }
     transition = transitions.get(action)
     if not transition:
@@ -78,13 +100,14 @@ def delivery_action(request, order_id):
 
     target_status, event_type, note = transition
     allowed = {
-        "out_for_delivery": {"packed", "processing", "shipped", "confirmed", "paid"},
+        "start": {"packed", "processing", "shipped", "confirmed", "paid"},
         "delivered": {"out_for_delivery"},
     }
+    notifications = []
 
     with transaction.atomic():
         try:
-            order = Order.objects.select_for_update().get(id=order_id, delivery_agent=agent)
+            order = Order.objects.select_for_update().select_related("customer").get(id=order_id, delivery_agent=agent)
         except Order.DoesNotExist:
             return JsonResponse({"ok": False, "error": "Delivery order not found or not assigned to you."}, status=404)
 
@@ -94,30 +117,98 @@ def delivery_action(request, order_id):
                 "error": f"Order cannot be marked {target_status.replace('_', ' ')} from its current status.",
             }, status=409)
 
-        order.status = target_status
-        if target_status == "out_for_delivery":
-            order.assigned_at = order.assigned_at or timezone.now()
-        order.save(
-            update_fields=["status", "assigned_at"]
-            if target_status == "out_for_delivery"
-            else ["status"]
-        )
-        OrderEvent.objects.create(
-            order=order,
-            event_type=event_type,
-            note=note,
-            actor=request.user,
-            delivery_agent=agent,
-        )
+        now = timezone.now()
+
+        if action == "delivered":
+            supplied_code = "".join(ch for ch in request.POST.get("code", "").strip() if ch.isdigit())
+            if len(supplied_code) != 6:
+                return JsonResponse({"ok": False, "error": "Enter the customer's 6-digit delivery code."}, status=400)
+
+            if not order.delivery_confirmation_code:
+                order.ensure_delivery_confirmation_code()
+                order.save(update_fields=[
+                    "delivery_confirmation_code",
+                    "delivery_verification_attempts",
+                    "delivery_verification_locked_at",
+                ])
+
+            if order.delivery_verification_locked_at and now - order.delivery_verification_locked_at < timedelta(minutes=DELIVERY_CODE_LOCK_MINUTES):
+                return JsonResponse({"ok": False, "error": "Delivery verification is temporarily locked after too many failed codes."}, status=429)
+
+            if order.delivery_verification_locked_at:
+                order.delivery_verification_attempts = 0
+                order.delivery_verification_locked_at = None
+
+            if not secrets.compare_digest(supplied_code, order.delivery_confirmation_code):
+                order.delivery_verification_attempts += 1
+                if order.delivery_verification_attempts >= DELIVERY_CODE_MAX_ATTEMPTS:
+                    order.delivery_verification_locked_at = now
+                order.save(update_fields=["delivery_verification_attempts", "delivery_verification_locked_at"])
+                remaining = max(0, DELIVERY_CODE_MAX_ATTEMPTS - order.delivery_verification_attempts)
+                status_code = 429 if order.delivery_verification_locked_at else 400
+                return JsonResponse({
+                    "ok": False,
+                    "error": "Too many invalid delivery codes. Verification is locked for 10 minutes." if status_code == 429 else "Invalid delivery code.",
+                    "attempts_remaining": remaining,
+                }, status=status_code)
+
+            order.status = "delivered"
+            order.delivered_at = now
+            order.delivery_verification_attempts = 0
+            order.delivery_verification_locked_at = None
+            order.save(update_fields=["status", "delivered_at", "delivery_verification_attempts", "delivery_verification_locked_at"])
+            OrderEvent.objects.create(order=order, event_type=event_type, note=note, actor=request.user, delivery_agent=agent)
+
+            released = _release_seller_settlements(order, now)
+            for settlement in released:
+                notifications.append((
+                    settlement.seller.user, "Seller earnings released",
+                    f"Order {order.tracking_code} was delivered. KSh {settlement.seller_amount:,.2f} is now available for payout.",
+                    "payout", "/seller/", "", "",
+                ))
+            if order.customer:
+                notifications.append((
+                    order.customer, "Order delivered",
+                    f"Order {order.tracking_code} has been delivered successfully.",
+                    "delivery", f"/account/orders/{order.id}/", order.email, order.phone,
+                ))
+        else:
+            order.status = target_status
+            order.assigned_at = order.assigned_at or now
+            order.ensure_delivery_confirmation_code()
+            order.save(update_fields=[
+                "status", "assigned_at", "delivery_confirmation_code",
+                "delivery_verification_attempts", "delivery_verification_locked_at",
+            ])
+            OrderEvent.objects.create(order=order, event_type=event_type, note=note, actor=request.user, delivery_agent=agent)
+            if order.customer:
+                notifications.append((
+                    order.customer, "Your order is out for delivery",
+                    f"Your order {order.tracking_code} is now on the way. Your 6-digit delivery handover code is {order.delivery_confirmation_code}. Share it only at handover.",
+                    "delivery", f"/account/orders/{order.id}/", order.email, order.phone,
+                ))
+
         agent.status = "available" if target_status == "delivered" else "on_delivery"
         agent.save(update_fields=["status"])
 
-    return JsonResponse({
-        "ok": True,
-        "status": order.get_status_display(),
-        "order_id": order.id,
-    })
+    for user, title, message, notification_type, link, email, phone in notifications:
+        notify_user(user, notification_type, title, message, link=link, email=email, phone=phone)
 
+    return JsonResponse({"ok": True, "status": order.get_status_display(), "order_id": order.id})
+
+
+@login_required(login_url="delivery_login")
+def delivery_history(request):
+    agent = _agent(request)
+    if not agent:
+        return render(request, "delivery/not_authorized.html", status=403)
+    orders = (
+        agent.orders.filter(status="delivered")
+        .select_related("customer")
+        .prefetch_related("events")
+        .order_by("-delivered_at", "-id")[:50]
+    )
+    return render(request, "delivery/history.html", {"agent": agent, "orders": orders})
 
 @login_required(login_url="delivery_login")
 def delivery_status(request):
