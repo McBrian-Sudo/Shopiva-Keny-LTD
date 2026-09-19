@@ -1,5 +1,6 @@
 from decimal import Decimal
 from xml.etree.ElementTree import Element, SubElement, tostring
+from urllib.parse import urlsplit, urlunsplit
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -20,11 +21,20 @@ def _site_url():
 
 def _image_url(product):
     try:
-        if product.image and product.image.url:
-            return product.image.url
+        url = product.image.url if product.image else ""
+        if not url:
+            return ""
+        # Cloudinary public IDs are stored without a file extension. Google
+        # Merchant Center requires an image URL whose extension matches the
+        # served format, so explicitly request the WebP representation.
+        parts = urlsplit(str(url))
+        path = parts.path
+        if not path.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff")):
+            path = path.rstrip("/") + ".webp"
+            url = urlunsplit((parts.scheme, parts.netloc, path, parts.query, parts.fragment))
+        return url
     except Exception:
-        pass
-    return ""
+        return ""
 
 
 def merchant_feed_xml(request):
