@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 from .forms import CustomerRegistrationForm
 from .models_product_media import ProductMedia
 from .indexnow import submit_urls
-from .notification_service import notify_user
+from .notification_service import notify_user, notify_wishlist_product_change
 from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm, catalog_browser_choices, resolve_catalog_item
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
 
@@ -731,9 +731,11 @@ def seller_product_edit(request, product_id):
     seller = getattr(request.user, "seller_profile", None)
     product = get_object_or_404(Product, id=product_id, seller=seller)
     if request.method == "POST":
+        old_price, old_discount, old_stock = product.price, product.discount_percent, product.stock_quantity
         form = SellerProductForm(request.POST, request.FILES, instance=product, seller=seller)
         if form.is_valid():
             product = form.save()
+            notify_wishlist_product_change(product, old_price, old_discount, old_stock, actor_label="Seller update")
             gallery_files = getattr(product, "_shopiva_gallery_files", [])
             if gallery_files:
                 product.media.all().delete()
