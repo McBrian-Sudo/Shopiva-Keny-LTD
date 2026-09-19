@@ -437,3 +437,200 @@ class DeliveryLogoutSecurityTests(TestCase):
         self.assertFalse(response.wsgi_request.user.is_authenticated)
         self.agent.refresh_from_db()
         self.assertEqual(self.agent.status, "offline")
+
+
+class DeliveryVerificationTests(TestCase):
+    def setUp(self):
+        self.customer = User.objects.create_user(
+            username="delivery_customer",
+            email="delivery-customer@example.com",
+            password="StrongPass123!",
+        )
+        self.rider_user = User.objects.create_user(
+            username="delivery_rider",
+            email="delivery-rider@example.com",
+            password="StrongPass123!",
+        )
+        self.agent = DeliveryAgent.objects.create(
+            user=self.rider_user, is_active=True, status="available"
+        )
+        seller_user = User.objects.create_user(
+            username="delivery_seller",
+            email="delivery-seller@example.com",
+            password="StrongPass123!",
+        )
+        self.seller = SellerProfile.objects.create(user=seller_user, business_name="Delivery Seller")
+        self.wallet = SellerWallet.objects.create(seller=self.seller)
+        product = Product.objects.create(
+            name="Delivery Item", sku="DELIVERY-VERIFY-001", price=Decimal("1000.00"),
+            stock_quantity=2, seller=self.seller
+        )
+        self.order = Order.objects.create(
+            customer=self.customer, customer_name="Delivery Buyer",
+            email=self.customer.email, phone="254700000010", address="Nairobi",
+            total_amount=Decimal("1000.00"), status="shipped", delivery_agent=self.agent,
+        )
+        self.order.ensure_delivery_confirmation_code()
+        self.order.save(update_fields=["delivery_confirmation_code"])
+        OrderItem.objects.create(
+            order=self.order, product=product, quantity=1, price=Decimal("1000.00"),
+            seller=self.seller, seller_gross=Decimal("1000.00"),
+            platform_commission=Decimal("125.00"), seller_net=Decimal("1000.00"),
+        )
+        SellerSettlement.objects.create(
+            order=self.order, seller=self.seller, gross_amount=Decimal("1000.00"),
+            platform_commission=Decimal("125.00"), seller_amount=Decimal("1000.00"),
+            status="pending",
+        )
+
+    def _wrong_code(self):
+        code = int(self.order.delivery_confirmation_code)
+        return str((code + 1) % 1000000).zfill(6)
+
+    def test_wrong_code_does_not_deliver(self):
+        self.client.force_login(self.rider_user)
+        start = self.client.post(reverse("delivery_action", args=[self.order.id]), {"action": "start"})
+        self.assertEqual(start.status_code, 200)
+        self.order.refresh_from_db()
+        response = self.client.post(
+            reverse("delivery_action", args=[self.order.id]),
+            {"action": "delivered", "code": self._wrong_code()},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "out_for_delivery")
+
+    def test_correct_code_delivers_and_releases_settlement(self):
+        self.client.force_login(self.rider_user)
+        self.client.post(reverse("delivery_action", args=[self.order.id]), {"action": "start"})
+        self.order.refresh_from_db()
+        response = self.client.post(
+            reverse("delivery_action", args=[self.order.id]),
+            {"action": "delivered", "code": self.order.delivery_confirmation_code},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.wallet.refresh_from_db()
+        settlement = SellerSettlement.objects.get(order=self.order, seller=self.seller)
+        self.assertEqual(self.order.status, "delivered")
+        self.assertIsNotNone(self.order.delivered_at)
+        self.assertEqual(settlement.status, "available")
+        self.assertEqual(self.wallet.available_balance, Decimal("1000.00"))
+
+    def test_code_is_not_returned_in_rider_status_feed(self):
+        self.client.force_login(self.rider_user)
+        self.client.post(reverse("delivery_action", args=[self.order.id]), {"action": "start"})
+        payload = self.client.get(reverse("delivery_status")).json()
+        self.assertNotIn("delivery_confirmation_code", payload["orders"][0])
+
+    def test_verification_locks_after_five_bad_codes(self):
+        self.client.force_login(self.rider_user)
+        self.client.post(reverse("delivery_action", args=[self.order.id]), {"action": "start"})
+        wrong = self._wrong_code()
+        for _ in range(4):
+            response = self.client.post(
+                reverse("delivery_action", args=[self.order.id]),
+                {"action": "delivered", "code": wrong},
+            )
+            self.assertEqual(response.status_code, 400)
+        response = self.client.post(
+            reverse("delivery_action", args=[self.order.id]),
+            {"action": "delivered", "code": wrong},
+        )
+        self.assertEqual(response.status_code, 429)
+        self.order.refresh_from_db()
+        self.assertIsNotNone(self.order.delivery_verification_locked_at)
+
+
+class ReorderTests(TestCase):
+    def setUp(self):
+        self.customer = User.objects.create_user(
+            username="reorder_customer",
+            email="reorder-customer@example.com",
+            password="StrongPass123!",
+        )
+        self.product = Product.objects.create(
+            name="Reorder Item", sku="REORDER-001", price=Decimal("1500.00"),
+            stock_quantity=3, is_active=True,
+        )
+        self.order = Order.objects.create(
+            customer=self.customer, customer_name="Repeat Buyer",
+            email=self.customer.email, phone="254700000011", address="Nairobi",
+            total_amount=Decimal("1500.00"), status="delivered",
+        )
+        OrderItem.objects.create(
+            order=self.order, product=self.product, quantity=2, price=Decimal("1500.00")
+        )
+
+    def test_reorder_adds_available_items_to_cart(self):
+        self.client.force_login(self.customer)
+        response = self.client.post(reverse("reorder_order", args=[self.order.id]))
+        self.assertRedirects(response, reverse("cart"), fetch_redirect_response=False)
+        self.assertEqual(self.client.session["cart"], {str(self.product.id): 2})
+
+    def test_reorder_does_not_exceed_stock(self):
+        self.product.stock_quantity = 1
+        self.product.save(update_fields=["stock_quantity"])
+        self.client.force_login(self.customer)
+        self.client.post(reverse("reorder_order", args=[self.order.id]))
+        self.assertEqual(self.client.session["cart"], {str(self.product.id): 1})
+
+
+class CustomerDeliveryLocationPrivacyTests(TestCase):
+    def setUp(self):
+        self.customer_a = User.objects.create_user(
+            username="map_a", email="map-a@example.com", password="StrongPass123!"
+        )
+        self.customer_b = User.objects.create_user(
+            username="map_b", email="map-b@example.com", password="StrongPass123!"
+        )
+        self.order_a = Order.objects.create(
+            customer=self.customer_a, customer_name="A", email=self.customer_a.email,
+            phone="254700000012", address="A address", total_amount=Decimal("100.00")
+        )
+        self.order_b = Order.objects.create(
+            customer=self.customer_b, customer_name="B", email=self.customer_b.email,
+            phone="254700000013", address="B address", total_amount=Decimal("100.00")
+        )
+
+    def test_customer_cannot_query_another_customer_order_location(self):
+        self.client.force_login(self.customer_a)
+        response = self.client.get(
+            reverse("customer_delivery_location"), {"order_id": self.order_b.id}
+        )
+        self.assertEqual(response.status_code, 404)
+
+
+class DeliveryAssignmentGuardTests(TestCase):
+    def test_seller_cannot_send_order_out_for_delivery_without_rider(self):
+        seller_user = User.objects.create_user(
+            username="seller_guard", email="seller-guard@example.com",
+            password="StrongPass123!",
+        )
+        seller = SellerProfile.objects.create(user=seller_user, business_name="Guard Seller")
+        customer = User.objects.create_user(
+            username="guard_customer", email="guard-customer@example.com",
+            password="StrongPass123!",
+        )
+        product = Product.objects.create(
+            name="Guard Item", sku="GUARD-001", price=Decimal("250.00"),
+            stock_quantity=2, seller=seller
+        )
+        order = Order.objects.create(
+            customer=customer, customer_name="Guard Buyer", email=customer.email,
+            phone="254700000014", address="Nairobi", total_amount=Decimal("250.00"),
+            status="shipped"
+        )
+        OrderItem.objects.create(
+            order=order, product=product, quantity=1, price=Decimal("250.00"),
+            seller=seller, seller_gross=Decimal("250.00"),
+            platform_commission=Decimal("25.00"), seller_net=Decimal("250.00")
+        )
+        self.client.force_login(seller_user)
+        response = self.client.post(
+            reverse("seller_order_update", args=[order.id]),
+            {"status": "out_for_delivery"},
+        )
+        order.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(order.status, "shipped")
