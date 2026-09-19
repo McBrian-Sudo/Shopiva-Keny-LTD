@@ -395,3 +395,41 @@ class DeliveryGpsCertificationTests(TestCase):
         response = self.client.get(reverse("shopiva_admin:delivery_locations"))
         self.assertEqual(response.status_code, 302)
         self.assertIn("admin/login", response["Location"])
+
+    def test_delivery_ping_is_rate_limited(self):
+        self.client.force_login(self.user)
+        first = self.client.post(
+            reverse("delivery_ping_location"),
+            {"latitude": "-1.292100", "longitude": "36.821900"},
+        )
+        self.assertEqual(first.status_code, 200)
+        second = self.client.post(
+            reverse("delivery_ping_location"),
+            {"latitude": "-1.292101", "longitude": "36.821901"},
+        )
+        self.assertEqual(second.status_code, 429)
+        self.assertFalse(second.json()["ok"])
+        self.assertEqual(DeliveryLocationPing.objects.filter(agent=self.agent).count(), 1)
+
+
+class DeliveryLogoutSecurityTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="rider_logout", email="rider-logout@example.com", password="StrongPass123!"
+        )
+        self.agent = DeliveryAgent.objects.create(user=self.user, is_active=True, status="available")
+
+    def test_delivery_logout_requires_post(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("delivery_logout"))
+        self.assertEqual(response.status_code, 405)
+        self.agent.refresh_from_db()
+        self.assertEqual(self.agent.status, "available")
+
+    def test_delivery_logout_post_marks_agent_offline_and_logs_out(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("delivery_logout"))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+        self.agent.refresh_from_db()
+        self.assertEqual(self.agent.status, "offline")
