@@ -386,26 +386,26 @@ def checkout_mpesa(request):
     if not (-90 <= customer_latitude <= 90 and -180 <= customer_longitude <= 180):
         return render(request, "checkout.html", {"items": items, "total": total, "error": "Your delivery map location is invalid. Please pin it again."})
 
-    try:
-        quote = calculate_order_quote(
-            [(item["product"], item["quantity"]) for item in items],
-            customer_latitude,
-            customer_longitude,
-        )
-    except ValueError as exc:
-        return render(request, "checkout.html", {"items": items, "total": total, "error": str(exc)})
-
     with transaction.atomic():
         locked_items = []
-        final_total = quote["total"]
         for item in items:
             product = Product.objects.select_for_update().get(id=item["product"].id)
             quantity = item["quantity"]
             if not product.is_active or product.stock_quantity < quantity:
                 return render(request, "checkout.html", {"items": items, "total": total, "error": f"Sorry, {product.name} no longer has enough stock."})
             unit_price = product.discounted_price
-            final_total += unit_price * quantity
             locked_items.append((product, quantity, unit_price))
+
+        try:
+            quote = calculate_order_quote(
+                [(product, quantity) for product, quantity, _ in locked_items],
+                customer_latitude,
+                customer_longitude,
+            )
+        except ValueError as exc:
+            return render(request, "checkout.html", {"items": items, "total": total, "error": str(exc)})
+
+        final_total = quote["total"]
 
         order = Order.objects.create(
             customer_name=customer_name,
