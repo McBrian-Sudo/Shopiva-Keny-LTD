@@ -6,6 +6,7 @@ from django.shortcuts import render
 
 from .models import Order
 from .payments import checkout_mpesa as original_checkout_mpesa
+from .delivery_pricing import calculate_order_quote, tariff_text
 
 
 def _coord(value, low, high):
@@ -15,6 +16,48 @@ def _coord(value, low, high):
         return None
     return value.quantize(Decimal("0.000001")) if low <= value <= high else None
 
+
+
+def checkout_quote(request):
+    if request.method != "GET":
+        return JsonResponse({"ok": False, "error": "GET required."}, status=405)
+    try:
+        latitude = _coord(request.GET.get("lat"), Decimal("-90"), Decimal("90"))
+        longitude = _coord(request.GET.get("lng"), Decimal("-180"), Decimal("180"))
+    except Exception:
+        latitude = longitude = None
+    if latitude is None or longitude is None:
+        return JsonResponse({"ok": False, "error": "Pin an exact delivery location first."}, status=400)
+
+    cart = request.session.get("cart", {})
+    items = []
+    from .models import Product
+    for product_id, raw_quantity in cart.items():
+        try:
+            product = Product.objects.get(id=product_id, is_active=True)
+            quantity = min(max(0, int(raw_quantity)), product.stock_quantity)
+        except (Product.DoesNotExist, TypeError, ValueError):
+            continue
+        if quantity > 0:
+            items.append((product, quantity))
+    if not items:
+        return JsonResponse({"ok": False, "error": "Your cart is empty."}, status=400)
+
+    try:
+        quote = calculate_order_quote(items, latitude, longitude)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+
+    return JsonResponse({
+        "ok": True,
+        "subtotal": f"{quote['subtotal']:.2f}",
+        "commission": f"{quote['commission']:.2f}",
+        "delivery_fee": f"{quote['delivery_fee']:.2f}",
+        "total": f"{quote['total']:.2f}",
+        "distance_km": f"{quote['distance_km']:.2f}",
+        "seller_count": quote["seller_count"],
+        "tariff": tariff_text(),
+    })
 
 def checkout_mpesa_map(request):
     if request.method == "GET":
