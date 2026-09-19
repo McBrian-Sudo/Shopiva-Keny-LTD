@@ -82,6 +82,25 @@ jobs:
       - name: Build admin Android debug, release and AAB
         run: gradle -p delivery-android :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
+  delivery_android:
+    name: Delivery Android release checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "9.5.1"
+      - name: Build delivery Android debug, release and AAB
+        run: gradle -p delivery-driver-android :app:assembleDebug :app:assembleRelease :app:bundleRelease
+      - name: Verify delivery Android release artifacts
+        run: |
+          test -s delivery-driver-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          test -s delivery-driver-android/app/build/outputs/bundle/release/app-release.aab
+
   ios:
     name: Customer iOS release checks
     runs-on: macos-26
@@ -136,7 +155,7 @@ jobs:
   gate:
     name: Release gate summary
     if: ${{ always() }}
-    needs: [backend, security, customer_android, admin_android, ios, production_smoke]
+    needs: [backend, security, customer_android, admin_android, delivery_android, ios, production_smoke]
     runs-on: ubuntu-latest
     steps:
       - name: Fail unless every release check passed
@@ -145,6 +164,7 @@ jobs:
           SECURITY: ${{ needs.security.result }}
           CUSTOMER_ANDROID: ${{ needs.customer_android.result }}
           ADMIN_ANDROID: ${{ needs.admin_android.result }}
+          DELIVERY_ANDROID: ${{ needs.delivery_android.result }}
           IOS: ${{ needs.ios.result }}
           PRODUCTION_SMOKE: ${{ needs.production_smoke.result }}
         run: |
@@ -152,11 +172,13 @@ jobs:
           echo "Security: $SECURITY"
           echo "Customer Android: $CUSTOMER_ANDROID"
           echo "Admin Android: $ADMIN_ANDROID"
+          echo "Delivery Android: $DELIVERY_ANDROID"
           echo "iOS: $IOS"
           echo "Production smoke: $PRODUCTION_SMOKE"
           test "$BACKEND" = success
           test "$SECURITY" = success
           test "$CUSTOMER_ANDROID" = success
           test "$ADMIN_ANDROID" = success
+          test "$DELIVERY_ANDROID" = success
           test "$IOS" = success
           test "$PRODUCTION_SMOKE" = success
