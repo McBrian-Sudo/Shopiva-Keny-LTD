@@ -100,6 +100,14 @@ jobs:
         run: |
           test -s delivery-driver-android/app/build/outputs/apk/release/app-release-unsigned.apk
           test -s delivery-driver-android/app/build/outputs/bundle/release/app-release.aab
+      - name: Upload delivery Android release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shopiva-delivery-android-release-1.0.0
+          path: |
+            delivery-driver-android/app/build/outputs/bundle/release/app-release.aab
+            delivery-driver-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 30
 
   ios:
     name: Customer iOS release checks
