@@ -131,7 +131,7 @@ jobs:
           set -euo pipefail
           curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-connrefused \
             --max-time 30 \
-            https://shopiva-keny-ltd.onrender.com/health/
+            https://shopivakenya.top/health/
 
   gate:
     name: Release gate summary
