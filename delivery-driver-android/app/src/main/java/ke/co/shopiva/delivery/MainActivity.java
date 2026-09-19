@@ -103,6 +103,14 @@ public class MainActivity extends Activity {
             return false;
         }
 
+        if ("tel".equalsIgnoreCase(scheme)) {
+            try {
+                startActivity(new Intent(Intent.ACTION_DIAL, uri));
+            } catch (Exception ignored) {
+            }
+            return true;
+        }
+
         if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) {
             try {
                 startActivity(new Intent(Intent.ACTION_VIEW, uri));
