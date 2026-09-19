@@ -58,7 +58,6 @@ def _routes_api_distance_km(origin_lat, origin_lng, destination_lat, destination
         "origin": {"location": {"latLng": {"latitude": float(origin_lat), "longitude": float(origin_lng)}}},
         "destination": {"location": {"latLng": {"latitude": float(destination_lat), "longitude": float(destination_lng)}}},
         "travelMode": "DRIVE",
-        "routingPreference": "TRAFFIC_AWARE",
         "computeAlternativeRoutes": False,
         "languageCode": "en-US",
         "units": "METRIC",
