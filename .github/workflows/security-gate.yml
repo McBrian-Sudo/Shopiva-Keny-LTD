@@ -27,7 +27,7 @@ jobs:
 
       - name: Django deployment security checks
         env:
-          SECRET_KEY: ci-security-test-key-not-for-production
+          SECRET_KEY: ci-only-long-random-placeholder-8f3d7a2c9b6e1f4a0d5c8b2e7f1a9d3c6e4b8a0f5d2c7e9
           DATABASE_URL: sqlite:///ci-security.sqlite3
           DEBUG: "false"
           ALLOWED_HOSTS: "testserver,localhost,127.0.0.1"
