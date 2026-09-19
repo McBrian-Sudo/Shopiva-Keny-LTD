@@ -31,7 +31,7 @@ def sitemap_xml(request):
     site = _site_url()
     urls = []
 
-    static_names = ["home", "products", "categories", "app_install"]
+    static_names = ["home", "products", "categories", "app_install", "shipping_policy", "returns_policy", "privacy_policy", "terms_of_service"]
     for name in static_names:
         try:
             urls.append(site + reverse(name))
