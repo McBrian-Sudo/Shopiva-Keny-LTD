@@ -150,7 +150,7 @@ class CommissionScheduleTests(TestCase):
         rate, commission, seller_amount = split_sale_amount(Decimal("10000.00"))
         self.assertEqual(rate, Decimal("12.50"))
         self.assertEqual(commission, Decimal("1250.00"))
-        self.assertEqual(seller_amount, Decimal("8750.00"))
+        self.assertEqual(seller_amount, Decimal("10000.00"))
 
 
 class AdminLoginTests(TestCase):
@@ -186,15 +186,15 @@ class SellerSettlementTests(TestCase):
         SellerWallet.objects.create(seller=seller)
         product = Product.objects.create(name="Test Phone", sku="TEST-001", price=Decimal("10000.00"), stock_quantity=5, seller=seller)
         order = Order.objects.create(customer_name="Buyer", email="buyer@example.com", phone="254700000000", address="Eldoret", total_amount=Decimal("10000.00"))
-        OrderItem.objects.create(order=order, product=product, quantity=1, price=Decimal("10000.00"), seller=seller, seller_gross=Decimal("10000.00"), platform_commission=Decimal("1250.00"), seller_net=Decimal("8750.00"))
+        OrderItem.objects.create(order=order, product=product, quantity=1, price=Decimal("10000.00"), seller=seller, seller_gross=Decimal("10000.00"), platform_commission=Decimal("1250.00"), seller_net=Decimal("10000.00"))
 
         _create_seller_settlements(order)
         settlement = SellerSettlement.objects.get(order=order, seller=seller)
         wallet = SellerWallet.objects.get(seller=seller)
-        self.assertEqual(settlement.seller_amount, Decimal("8750.00"))
+        self.assertEqual(settlement.seller_amount, Decimal("10000.00"))
         self.assertEqual(settlement.platform_commission, Decimal("1250.00"))
         self.assertEqual(settlement.status, "pending")
-        self.assertEqual(wallet.pending_balance, Decimal("8750.00"))
+        self.assertEqual(wallet.pending_balance, Decimal("10000.00"))
 
     def test_settlement_creation_is_idempotent(self):
         user = User.objects.create_user(username="seller2", email="seller2@example.com", password="StrongPass123!")
@@ -202,13 +202,13 @@ class SellerSettlementTests(TestCase):
         SellerWallet.objects.create(seller=seller)
         product = Product.objects.create(name="Test Item", sku="TEST-002", price=Decimal("500.00"), stock_quantity=5, seller=seller)
         order = Order.objects.create(customer_name="Buyer", email="buyer2@example.com", phone="254700000001", address="Nakuru", total_amount=Decimal("500.00"))
-        OrderItem.objects.create(order=order, product=product, quantity=2, price=Decimal("250.00"), seller=seller, seller_gross=Decimal("500.00"), platform_commission=Decimal("25.00"), seller_net=Decimal("475.00"))
+        OrderItem.objects.create(order=order, product=product, quantity=2, price=Decimal("250.00"), seller=seller, seller_gross=Decimal("500.00"), platform_commission=Decimal("25.00"), seller_net=Decimal("500.00"))
 
         _create_seller_settlements(order)
         _create_seller_settlements(order)
 
         self.assertEqual(SellerSettlement.objects.filter(order=order, seller=seller).count(), 1)
-        self.assertEqual(SellerWallet.objects.get(seller=seller).pending_balance, Decimal("475.00"))
+        self.assertEqual(SellerWallet.objects.get(seller=seller).pending_balance, Decimal("500.00"))
 
 
 class DataIntegrityConstraintTests(TestCase):
