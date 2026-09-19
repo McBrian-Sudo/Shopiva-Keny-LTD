@@ -8,9 +8,9 @@ from home.admin_session import admin_session_status
 from home.business_intelligence import business_intelligence
 from home.ai import shop_assistant
 from home.customer_tracking import customer_order_tracking
-from home.checkout_map import checkout_mpesa_map
+from home.checkout_map import checkout_mpesa_map, checkout_quote
 from home.google_admin_map import google_admin_delivery_map
-from home.map_views import checkout_quote, customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
+from home.map_views import customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
 from home.platform import app_install, app_manifest, service_worker, favicon
 from home.payments import (
     mpesa_callback, mpesa_payment_status, mpesa_waiting,
