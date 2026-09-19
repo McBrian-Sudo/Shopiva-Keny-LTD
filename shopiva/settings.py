@@ -141,6 +141,28 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 X_FRAME_OPTIONS = "DENY"
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_RESOURCE_POLICY = "same-origin"
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_CSP_REPORT_ONLY = {
+    "default-src": ["'self'"],
+    "base-uri": ["'self'"],
+    "object-src": ["'none'"],
+    "frame-ancestors": ["'none'"],
+    "img-src": ["'self'", "data:", "https:", "blob:"],
+    "font-src": ["'self'", "https:", "data:"],
+    "style-src": ["'self'", "'unsafe-inline'", "https:"],
+    "script-src": ["'self'", "'unsafe-inline'", "https:"],
+    "connect-src": ["'self'", "https:"],
+    "frame-src": ["'self'", "https:"],
+    "media-src": ["'self'", "https:", "blob:"],
+    "worker-src": ["'self'", "blob:"],
+    "manifest-src": ["'self'"],
+    "form-action": ["'self'", "https:"],
+}
+
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "true").lower() == "true"
