@@ -23,6 +23,14 @@
 
     <p>Your order has been received successfully.</p>
 
+    {% if order.delivery_confirmation_code and order.status == 'out_for_delivery' %}
+    <div style="margin:20px 0;padding:18px;border:1px solid #bfe8d0;background:#effaf4;border-radius:14px">
+        <h3 style="margin:0 0 8px">🔐 Delivery handover code</h3>
+        <div style="font-size:30px;letter-spacing:.2em;font-weight:900;color:#087f5b">{{ order.delivery_confirmation_code }}</div>
+        <p style="margin:8px 0 0;font-size:12px">Share this code only with the Shopiva delivery partner at handover.</p>
+    </div>
+    {% endif %}
+
     <a href="{% url 'home' %}">Continue Shopping</a>
 </body>
 </html>
