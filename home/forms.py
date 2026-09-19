@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 import uuid
 
 from .models import Product, ProductReview
-from .media_pipeline import enhance_product_image
+from .media_pipeline import enhance_product_image, upload_product_image
 from .shopiva_seller_catalog import (
     catalog_search_choices as base_catalog_search_choices,
     resolve_catalog_item as base_resolve_catalog_item,
@@ -316,8 +316,12 @@ class SellerProductForm(forms.ModelForm):
         uploaded_main = self.files.get("image")
         if uploaded_main:
             enhanced = enhance_product_image(uploaded_main, product.name)
-            # CloudinaryField performs the cloud upload when product.save() runs.
-            product.image = enhanced
+            try:
+                # Store the Cloudinary public ID as text in CloudinaryField.
+                product.image = upload_product_image(enhanced, product.name)
+            except Exception as exc:
+                self.add_error("image", f"Product photo could not be uploaded to Cloudinary. {exc}")
+                raise forms.ValidationError("Product photo upload failed. Please check the Cloudinary deployment settings and try again.")
 
         if not product.sku:
             prefix = slugify(product.name or "product").replace("-", "").upper()[:24] or "PRODUCT"
