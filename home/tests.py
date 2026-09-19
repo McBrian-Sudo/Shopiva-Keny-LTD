@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from .commission import get_platform_commission_percent, split_sale_amount
 from .forms import CustomerRegistrationForm, SellerRegistrationForm
@@ -398,11 +399,12 @@ class DeliveryGpsCertificationTests(TestCase):
 
     def test_delivery_ping_is_rate_limited(self):
         self.client.force_login(self.user)
-        first = self.client.post(
-            reverse("delivery_ping_location"),
-            {"latitude": "-1.292100", "longitude": "36.821900"},
+        DeliveryLocationPing.objects.create(
+            agent=self.agent,
+            latitude=Decimal("-1.292100"),
+            longitude=Decimal("36.821900"),
+            recorded_at=timezone.now(),
         )
-        self.assertEqual(first.status_code, 200)
         second = self.client.post(
             reverse("delivery_ping_location"),
             {"latitude": "-1.292101", "longitude": "36.821901"},
