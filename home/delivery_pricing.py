@@ -1,5 +1,9 @@
 from decimal import Decimal, ROUND_UP
 from math import asin, cos, radians, sin, sqrt
+import json
+import os
+import urllib.error
+import urllib.request
 
 
 # Launch delivery tariff. Fees are based on estimated straight-line distance
@@ -39,6 +43,45 @@ def haversine_km(lat1, lon1, lat2, lon2):
         earth_radius_km
         * Decimal(str(2 * asin(min(1.0, sqrt(a)))))
     ).quantize(Decimal("0.01"))
+
+
+def _routes_api_distance_km(origin_lat, origin_lng, destination_lat, destination_lng):
+    """Return Google road distance in km when a server-side Routes API key is configured."""
+    api_key = (
+        os.environ.get("GOOGLE_ROUTES_API_KEY", "").strip()
+        or os.environ.get("GOOGLE_MAPS_SERVER_API_KEY", "").strip()
+        or os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
+    )
+    if not api_key:
+        return None
+    payload = {
+        "origin": {"location": {"latLng": {"latitude": float(origin_lat), "longitude": float(origin_lng)}}},
+        "destination": {"location": {"latLng": {"latitude": float(destination_lat), "longitude": float(destination_lng)}}},
+        "travelMode": "DRIVE",
+        "routingPreference": "TRAFFIC_AWARE",
+        "computeAlternativeRoutes": False,
+        "languageCode": "en-US",
+        "units": "METRIC",
+    }
+    req = urllib.request.Request(
+        "https://routes.googleapis.com/directions/v2:computeRoutes",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": api_key,
+            "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=6) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        routes = data.get("routes") or []
+        if not routes or routes[0].get("distanceMeters") is None:
+            return None
+        return (Decimal(str(routes[0]["distanceMeters"])) / Decimal("1000")).quantize(Decimal("0.01"))
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, KeyError, json.JSONDecodeError):
+        return None
 
 
 def delivery_fee_for_distance(distance_km):
@@ -109,7 +152,13 @@ def calculate_order_quote(items, customer_latitude, customer_longitude):
     distances = []
 
     for leg in seller_legs.values():
-        distance = haversine_km(
+        road_distance = _routes_api_distance_km(
+            leg["latitude"],
+            leg["longitude"],
+            destination_lat,
+            destination_lng,
+        )
+        distance = road_distance if road_distance is not None else haversine_km(
             leg["latitude"],
             leg["longitude"],
             destination_lat,
