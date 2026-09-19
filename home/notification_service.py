@@ -73,3 +73,52 @@ def notify_user(user, notification_type, title, message, link="", email="", phon
             _send_whatsapp(_delivery(notification, "whatsapp")[0], phone, message)
     transaction.on_commit(dispatch)
     return notification
+
+
+def notify_wishlist_product_change(product, old_price, old_discount, old_stock, actor_label="Shopiva"):
+    """Create in-app alerts for customers who saved a product before a useful change."""
+    from decimal import Decimal
+    from .models import WishlistItem
+
+    old_price = Decimal(str(old_price or "0"))
+    new_price = Decimal(str(product.price or "0"))
+    old_discount = Decimal(str(old_discount or "0"))
+    new_discount = Decimal(str(product.discount_percent or "0"))
+    old_effective = old_price * (Decimal("100") - old_discount) / Decimal("100")
+    new_effective = new_price * (Decimal("100") - new_discount) / Decimal("100")
+
+    alerts = []
+    if new_effective < old_effective:
+        alerts.append(
+            (
+                "price_drop",
+                f"Price drop on {product.name}",
+                f"{product.name} is now KSh {new_effective:,.2f}, down from KSh {old_effective:,.2f}.",
+            )
+        )
+    elif old_stock <= 0 and product.stock_quantity > 0:
+        alerts.append(
+            (
+                "restock",
+                f"{product.name} is back in stock",
+                f"{product.name} is available again on Shopiva. Stock: {product.stock_quantity}.",
+            )
+        )
+
+    if not alerts:
+        return 0
+
+    users = WishlistItem.objects.filter(product=product).select_related("user").values_list("user", flat=True)
+    user_ids = list(users)
+    created = 0
+    for user_id in user_ids:
+        for kind, title, message in alerts:
+            Notification.objects.create(
+                user_id=user_id,
+                notification_type="system",
+                title=title[:160],
+                message=f"{message} ({actor_label})",
+                link=f"/product/{product.id}/",
+            )
+            created += 1
+    return created
