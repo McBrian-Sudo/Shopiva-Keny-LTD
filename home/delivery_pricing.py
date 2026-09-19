@@ -150,6 +150,7 @@ def calculate_order_quote(items, customer_latitude, customer_longitude):
 
     delivery_fee = Decimal("0.00")
     distances = []
+    distance_sources = []
 
     for leg in seller_legs.values():
         road_distance = _routes_api_distance_km(
@@ -158,12 +159,17 @@ def calculate_order_quote(items, customer_latitude, customer_longitude):
             destination_lat,
             destination_lng,
         )
-        distance = road_distance if road_distance is not None else haversine_km(
-            leg["latitude"],
-            leg["longitude"],
-            destination_lat,
-            destination_lng,
-        )
+        if road_distance is not None:
+            distance = road_distance
+            distance_sources.append("google_roads")
+        else:
+            distance = haversine_km(
+                leg["latitude"],
+                leg["longitude"],
+                destination_lat,
+                destination_lng,
+            )
+            distance_sources.append("estimated")
         fee = delivery_fee_for_distance(distance)
         distances.append(distance)
         delivery_fee += fee
@@ -179,6 +185,7 @@ def calculate_order_quote(items, customer_latitude, customer_longitude):
         "distance_km": sum(distances, Decimal("0.00")).quantize(Decimal("0.01")),
         "seller_count": len(seller_legs),
         "distances": distances,
+        "distance_source": "google_roads" if distance_sources and all(source == "google_roads" for source in distance_sources) else "estimated",
     }
 
 
