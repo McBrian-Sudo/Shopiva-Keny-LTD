@@ -392,6 +392,17 @@ class ProductAdmin(admin.ModelAdmin):
     ordering = ("-id",)
     list_per_page = 25
 
+    def save_model(self, request, obj, form, change):
+        previous = Product.objects.get(pk=obj.pk) if change and obj.pk else None
+        old_price = previous.price if previous else obj.price
+        old_discount = previous.discount_percent if previous else obj.discount_percent
+        old_stock = previous.stock_quantity if previous else 0
+        super().save_model(request, obj, form, change)
+        if previous is not None:
+            notify_wishlist_product_change(
+                obj, old_price, old_discount, old_stock, actor_label="Shopiva admin"
+            )
+
 
 @admin.register(Order, site=shopiva_admin_site)
 class OrderAdmin(admin.ModelAdmin):
