@@ -29,6 +29,7 @@ from home.seo import robots_txt, sitemap_xml
 from home.indexnow import indexnow_key
 from home.legal import privacy_policy, terms_of_service, account_deletion
 from home.merchant_feed import merchant_feed_xml
+from home.shipping_policy import shipping_policy
 from support.views import support_admin_center, support_center
 
 urlpatterns = [
@@ -40,6 +41,7 @@ urlpatterns = [
     path("merchant-feed.xml", merchant_feed_xml, name="merchant_feed_xml"),
     path("privacy/", privacy_policy, name="privacy_policy"),
     path("terms/", terms_of_service, name="terms_of_service"),
+    path("shipping/", shipping_policy, name="shipping_policy"),
     path("account/delete/", account_deletion, name="account_deletion"),
     path("favicon.ico", favicon, name="favicon"),
     path("products/", products, name="products"),
