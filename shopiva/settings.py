@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "axes",
     "cloudinary",
     "home",
     "support",
@@ -34,6 +35,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "axes.middleware.AxesMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -75,6 +77,18 @@ DATABASES = {
 # Neon/Postgres connections can be rotated or dropped while Render workers stay alive.
 # Health checks prevent Django from reusing a stale connection.
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"], "ip_address"]
+AXES_ENABLE_ACCESS_FAILURE_LOG = True
+AXES_RESET_ON_SUCCESS = True
+AXES_ENABLE_ADMIN = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
