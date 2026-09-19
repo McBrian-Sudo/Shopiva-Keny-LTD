@@ -408,7 +408,11 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ("customer_name", "email", "phone", "address", "tracking_code", "payment_reference")
     ordering = ("-created_at",)
     list_per_page = 25
-    readonly_fields = ("tracking_code", "packed_at", "paid_at", "assigned_at")
+    readonly_fields = (
+        "tracking_code", "packed_at", "paid_at", "assigned_at",
+        "delivery_confirmation_code", "delivery_verification_attempts",
+        "delivery_verification_locked_at", "delivered_at",
+    )
 
     def save_model(self, request, obj, form, change):
         previous = None
@@ -425,6 +429,10 @@ class OrderAdmin(admin.ModelAdmin):
             obj.paid_at = now
         if obj.delivery_agent_id and not obj.assigned_at:
             obj.assigned_at = now
+        if obj.delivery_agent_id:
+            obj.ensure_delivery_confirmation_code()
+        if obj.status == "delivered" and not obj.delivered_at:
+            obj.delivered_at = now
 
         super().save_model(request, obj, form, change)
 
