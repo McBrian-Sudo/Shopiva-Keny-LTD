@@ -168,6 +168,7 @@ class Order(models.Model):
     platform_commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     delivery_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     delivery_distance_km = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    delivery_distance_source = models.CharField(max_length=30, default="estimated")
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="pending")
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="unpaid")
     payment_reference = models.CharField(max_length=120, blank=True)
