@@ -2,6 +2,7 @@ from decimal import Decimal, InvalidOperation
 import re
 
 from django.contrib import messages
+from django.http import JsonResponse
 from django.shortcuts import render
 
 from .models import Order
