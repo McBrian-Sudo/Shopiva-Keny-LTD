@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from unittest.mock import patch
 
 from .commission import get_platform_commission_percent, split_sale_amount
 from .forms import CustomerRegistrationForm, SellerRegistrationForm
@@ -399,16 +400,17 @@ class DeliveryGpsCertificationTests(TestCase):
 
     def test_delivery_ping_is_rate_limited(self):
         self.client.force_login(self.user)
-        DeliveryLocationPing.objects.create(
-            agent=self.agent,
-            latitude=Decimal("-1.292100"),
-            longitude=Decimal("36.821900"),
-            recorded_at=timezone.now(),
-        )
-        second = self.client.post(
-            reverse("delivery_ping_location"),
-            {"latitude": "-1.292101", "longitude": "36.821901"},
-        )
+        fixed_now = timezone.now()
+        with patch("home.delivery_app.timezone.now", return_value=fixed_now):
+            DeliveryLocationPing.objects.create(
+                agent=self.agent,
+                latitude=Decimal("-1.292100"),
+                longitude=Decimal("36.821900"),
+            )
+            second = self.client.post(
+                reverse("delivery_ping_location"),
+                {"latitude": "-1.292101", "longitude": "36.821901"},
+            )
         self.assertEqual(second.status_code, 429)
         self.assertFalse(second.json()["ok"])
         self.assertEqual(DeliveryLocationPing.objects.filter(agent=self.agent).count(), 1)
