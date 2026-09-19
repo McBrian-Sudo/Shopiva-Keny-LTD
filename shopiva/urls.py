@@ -20,11 +20,11 @@ from home.payments import (
 from home.seller_auth import seller_login, seller_logout, seller_login_required
 from home.voice_ai import realtime_action, realtime_call, speak_text, transcribe_voice
 from shopiva.health import health
-from home.delivery_app import delivery_login, delivery_logout, delivery_action, delivery_status, delivery_update_location, delivery_ping_location
+from home.delivery_app import delivery_login, delivery_logout, delivery_action, delivery_status, delivery_history, delivery_update_location, delivery_ping_location
 from home.delivery_platform import delivery_manifest, delivery_service_worker
 from home.admin_delivery_feed import admin_live_delivery_feed
 from home.notifications_center import customer_notification_center, seller_notification_center, admin_notification_center
-from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, seller_dashboard, seller_product_toggle, seller_product_delete, seller_product_stock_update, seller_order_update, product_review, seller_register, seller_request_payout, delivery_portal, home, order_success, product_detail, products
+from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, reorder_order, seller_dashboard, seller_product_toggle, seller_product_delete, seller_product_stock_update, seller_order_update, product_review, seller_register, seller_request_payout, delivery_portal, home, order_success, product_detail, products
 from home.seo import robots_txt, sitemap_xml
 from home.indexnow import indexnow_key
 from home.legal import privacy_policy, terms_of_service, account_deletion
@@ -92,6 +92,7 @@ urlpatterns = [
     path("account/", customer_dashboard, name="customer_dashboard"),
     path("account/orders/", customer_orders, name="customer_orders"),
     path("account/orders/<int:order_id>/", customer_order_tracking, name="customer_order_tracking"),
+    path("account/orders/<int:order_id>/reorder/", reorder_order, name="reorder_order"),
     path("account/profile/", customer_profile, name="customer_profile"),
     path("account/addresses/", customer_addresses_map, name="customer_addresses"),
     path("account/wishlist/", customer_wishlist, name="customer_wishlist"),
@@ -102,6 +103,7 @@ urlpatterns = [
     path("delivery/login/", delivery_login, name="delivery_login"),
     path("delivery/logout/", delivery_logout, name="delivery_logout"),
     path("delivery/", delivery_portal, name="delivery_portal"),
+    path("delivery/history/", delivery_history, name="delivery_history"),
     path("delivery/manifest.webmanifest", delivery_manifest, name="delivery_manifest"),
     path("delivery/service-worker.js", delivery_service_worker, name="delivery_service_worker"),
     path("delivery/order/<int:order_id>/action/", delivery_action, name="delivery_action"),
