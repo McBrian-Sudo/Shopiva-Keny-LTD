@@ -1,5 +1,7 @@
 from django.conf import settings
 from decimal import Decimal
+import secrets
+import string
 import uuid
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -180,7 +182,17 @@ class Order(models.Model):
     packed_at = models.DateTimeField(null=True, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
     assigned_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    delivery_confirmation_code = models.CharField(max_length=6, blank=True, editable=False)
+    delivery_verification_attempts = models.PositiveSmallIntegerField(default=0, editable=False)
+    delivery_verification_locked_at = models.DateTimeField(null=True, blank=True, editable=False)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+
+    def ensure_delivery_confirmation_code(self):
+        if not self.delivery_confirmation_code:
+            self.delivery_confirmation_code = "".join(secrets.choice(string.digits) for _ in range(6))
+            self.delivery_verification_attempts = 0
+            self.delivery_verification_locked_at = None
+        return self.delivery_confirmation_code
 
     class Meta:
         constraints = [
