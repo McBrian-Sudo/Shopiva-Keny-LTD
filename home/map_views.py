@@ -109,21 +109,25 @@ def seller_product_edit_map(request, product_id):
         if location_error:
             messages.error(request, location_error)
         elif form.is_valid():
-            updated_product = form.save(commit=False)
             try:
-                with transaction.atomic():
-                    seller.business_address = business_address
-                    seller.business_latitude = latitude
-                    seller.business_longitude = longitude
-                    seller.save(update_fields=["business_address", "business_latitude", "business_longitude"])
-                    updated_product.save()
-            except Exception as exc:
-                logger.exception("Seller product update failed", exc_info=exc)
-                messages.error(request, "The product update could not be completed. Please try again.")
+                updated_product = form.save(commit=False)
+            except ValidationError as exc:
+                form.add_error("image", exc)
             else:
-                messages.success(request, f"{updated_product.name} has been updated.")
-                _notify_product_indexnow(updated_product)
-                return redirect("seller_dashboard")
+                try:
+                    with transaction.atomic():
+                        seller.business_address = business_address
+                        seller.business_latitude = latitude
+                        seller.business_longitude = longitude
+                        seller.save(update_fields=["business_address", "business_latitude", "business_longitude"])
+                        updated_product.save()
+                except Exception as exc:
+                    logger.exception("Seller product update failed", exc_info=exc)
+                    messages.error(request, "The product update could not be completed. Please try again.")
+                else:
+                    messages.success(request, f"{updated_product.name} has been updated.")
+                    _notify_product_indexnow(updated_product)
+                    return redirect("seller_dashboard")
     else:
         form = SellerProductForm(instance=product)
 
