@@ -19,6 +19,7 @@ from django.utils import timezone
 from .voice_ai import speak_text, transcribe_voice
 from .payments import _create_seller_settlements
 from .notifications import notify_user
+from .notification_service import notify_wishlist_product_change
 from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery
 
 
