@@ -23,10 +23,12 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:#f
       subtotalEl.textContent='KSh '+Number(data.subtotal).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
       commissionEl.textContent='KSh '+Number(data.commission).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
       deliveryEl.textContent='KSh '+Number(data.delivery_fee).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
-      distanceEl.textContent=data.distance_km+' km';
+      distanceEl.textContent=data.distance_km+' km'+(data.distance_source==='google_roads'?' · road':' · estimated');
       totalEl.textContent='KSh '+Number(data.total).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
       messageEl.className='status ok';
-      messageEl.textContent='✓ Delivery fee calculated from the seller pickup location to your pinned location.';
+      messageEl.textContent=data.distance_source==='google_roads'
+        ? '✓ Delivery fee calculated from Google road distance to your pinned location.'
+        : '✓ Delivery fee calculated from the map distance. Road-distance routing activates when the Shopiva Google Routes key is configured.';
     }catch(e){
       commissionEl.textContent='Calculated at checkout';
       deliveryEl.textContent='Unavailable';
