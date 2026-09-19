@@ -16,7 +16,7 @@
     <p><strong>Items subtotal:</strong> KSh {{ order.items_subtotal|floatformat:2 }}</p>
     <p><strong>Shopiva service fee:</strong> KSh {{ order.platform_commission_amount|floatformat:2 }}</p>
     <p><strong>Delivery:</strong> KSh {{ order.delivery_fee|floatformat:2 }}</p>
-    <p><strong>Estimated delivery distance:</strong> {{ order.delivery_distance_km|floatformat:2 }} km</p>
+    <p><strong>Delivery distance:</strong> {{ order.delivery_distance_km|floatformat:2 }} km{% if order.delivery_distance_source == "google_roads" %} (road route){% else %} (estimated){% endif %}</p>
     <p><strong>Total customer payment:</strong> KSh {{ order.total_amount|floatformat:2 }}</p>
     <p><strong>Phone:</strong> {{ order.phone }}</p>
     <p><strong>Delivery Address:</strong> {{ order.address }}</p>
