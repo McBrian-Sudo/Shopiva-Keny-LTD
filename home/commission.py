@@ -25,9 +25,14 @@ def get_platform_commission_percent(price):
 
 
 def split_sale_amount(gross_amount):
-    """Return (commission_rate, commission_amount, seller_amount) for a sale."""
+    """Return (commission_rate, commission_amount, seller_amount) for a sale.
+
+    Shopiva's checkout model charges the platform commission to the customer
+    on top of the seller's product price, so the seller amount remains the
+    full product sale amount.
+    """
     gross = Decimal(str(gross_amount or "0.00"))
     rate = get_platform_commission_percent(gross)
     commission = (gross * rate / Decimal("100")).quantize(Decimal("0.01"))
-    seller_amount = gross - commission
+    seller_amount = gross
     return rate, commission, seller_amount
