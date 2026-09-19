@@ -1,10 +1,11 @@
-from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from decimal import Decimal, InvalidOperation
+
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from .models import DeliveryAgent, DeliveryLocationPing, Order, OrderEvent
@@ -64,7 +65,6 @@ def delivery_action(request, order_id):
         return JsonResponse({"ok": False, "error": "POST required."}, status=405)
 
     action = request.POST.get("action", "").strip().lower()
-
     transitions = {
         "start": ("out_for_delivery", "out_for_delivery", "Delivery partner started the delivery."),
         "delivered": ("delivered", "delivered", "Delivery partner marked the order delivered."),
@@ -78,8 +78,6 @@ def delivery_action(request, order_id):
         "out_for_delivery": {"packed", "processing", "shipped", "confirmed", "paid"},
         "delivered": {"out_for_delivery"},
     }
-    if order.status not in allowed[action]:
-        return JsonResponse({"ok": False, "error": f"Order cannot be marked {target_status.replace('_', ' ')} from its current status."}, status=409)
 
     with transaction.atomic():
         try:
@@ -88,17 +86,34 @@ def delivery_action(request, order_id):
             return JsonResponse({"ok": False, "error": "Delivery order not found or not assigned to you."}, status=404)
 
         if order.status not in allowed[action]:
-            return JsonResponse({"ok": False, "error": f"Order cannot be marked {target_status.replace('_', ' ')} from its current status."}, status=409)
+            return JsonResponse({
+                "ok": False,
+                "error": f"Order cannot be marked {target_status.replace('_', ' ')} from its current status.",
+            }, status=409)
 
         order.status = target_status
         if target_status == "out_for_delivery":
             order.assigned_at = order.assigned_at or timezone.now()
-        order.save(update_fields=["status", "assigned_at"] if target_status == "out_for_delivery" else ["status"])
-        OrderEvent.objects.create(order=order, event_type=event_type, note=note, actor=request.user, delivery_agent=agent)
+        order.save(
+            update_fields=["status", "assigned_at"]
+            if target_status == "out_for_delivery"
+            else ["status"]
+        )
+        OrderEvent.objects.create(
+            order=order,
+            event_type=event_type,
+            note=note,
+            actor=request.user,
+            delivery_agent=agent,
+        )
         agent.status = "available" if target_status == "delivered" else "on_delivery"
         agent.save(update_fields=["status"])
 
-    return JsonResponse({"ok": True, "status": order.get_status_display(), "order_id": order.id})
+    return JsonResponse({
+        "ok": True,
+        "status": order.get_status_display(),
+        "order_id": order.id,
+    })
 
 
 @login_required(login_url="delivery_login")
@@ -107,7 +122,12 @@ def delivery_status(request):
     if not agent:
         return JsonResponse({"ok": False, "error": "Delivery access is not active."}, status=403)
 
-    orders = agent.orders.exclude(status__in=["delivered", "cancelled"]).select_related("delivery_agent").order_by("-created_at")
+    orders = (
+        agent.orders
+        .exclude(status__in=["delivered", "cancelled"])
+        .select_related("delivery_agent")
+        .order_by("-created_at")
+    )
     return JsonResponse({
         "ok": True,
         "agent": {
@@ -131,8 +151,102 @@ def delivery_status(request):
             "raw_status": order.status,
             "total": str(order.total_amount),
         } for order in orders],
-    })    latest_ping = agent.location_history.order_by("-recorded_at").first()
+    })
+
+
+@login_required(login_url="delivery_login")
+def delivery_update_location(request):
+    if request.method != "POST":
+        return redirect("delivery_portal")
+    agent = _agent(request)
+    if not agent:
+        return redirect("/admin/")
+
+    try:
+        latitude = Decimal(request.POST.get("latitude", ""))
+        longitude = Decimal(request.POST.get("longitude", ""))
+    except (InvalidOperation, TypeError):
+        return redirect("delivery_portal")
+
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        return redirect("delivery_portal")
+
+    now = timezone.now()
+    agent.current_latitude = latitude.quantize(Decimal("0.000001"))
+    agent.current_longitude = longitude.quantize(Decimal("0.000001"))
+    agent.last_location_at = now
+    agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
+    agent.save(update_fields=["current_latitude", "current_longitude", "last_location_at", "status"])
+    DeliveryLocationPing.objects.create(
+        agent=agent,
+        latitude=agent.current_latitude,
+        longitude=agent.current_longitude,
+    )
+    return redirect("delivery_portal")
+
+
+@login_required(login_url="delivery_login")
+def delivery_ping_location(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+    agent = _agent(request)
+    if not agent:
+        return JsonResponse({"ok": False, "error": "Delivery partner access is not active."}, status=403)
+
+    try:
+        latitude = Decimal(str(request.POST.get("latitude", "")))
+        longitude = Decimal(str(request.POST.get("longitude", "")))
+    except (InvalidOperation, TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "Invalid coordinates."}, status=400)
+
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        return JsonResponse({"ok": False, "error": "Coordinates are out of range."}, status=400)
+
+    latest_ping = agent.location_history.order_by("-recorded_at").first()
     if latest_ping and (timezone.now() - latest_ping.recorded_at).total_seconds() < 3:
         return JsonResponse({"ok": False, "error": "Location update rate limited. Please wait a moment."}, status=429)
 
+    def optional_decimal(field_name, minimum=None, maximum=None):
+        raw = request.POST.get(field_name, "").strip()
+        if not raw:
+            return None
+        try:
+            value = Decimal(raw)
+        except (InvalidOperation, TypeError, ValueError):
+            return None
+        if minimum is not None and value < minimum:
+            return None
+        if maximum is not None and value > maximum:
+            return None
+        return value
 
+    accuracy = optional_decimal("accuracy", minimum=Decimal("0"), maximum=Decimal("100000"))
+    speed = optional_decimal("speed", minimum=Decimal("0"), maximum=Decimal("100"))
+    heading = optional_decimal("heading", minimum=Decimal("0"), maximum=Decimal("360"))
+
+    now = timezone.now()
+    latitude = latitude.quantize(Decimal("0.000001"))
+    longitude = longitude.quantize(Decimal("0.000001"))
+    agent.current_latitude = latitude
+    agent.current_longitude = longitude
+    agent.last_location_at = now
+    agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
+    agent.save(update_fields=["current_latitude", "current_longitude", "last_location_at", "status"])
+
+    DeliveryLocationPing.objects.create(
+        agent=agent,
+        latitude=latitude,
+        longitude=longitude,
+        accuracy_meters=accuracy.quantize(Decimal("0.01")) if accuracy is not None else None,
+        speed_mps=speed.quantize(Decimal("0.01")) if speed is not None else None,
+        heading_degrees=heading.quantize(Decimal("0.01")) if heading is not None else None,
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "updated_at": now.isoformat(),
+        "latitude": float(latitude),
+        "longitude": float(longitude),
+        "status": agent.get_status_display(),
+    })
