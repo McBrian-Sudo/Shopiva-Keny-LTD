@@ -13,7 +13,11 @@
     <h2>Order #{{ order.id }}</h2>
 
     <p><strong>Status:</strong> {{ order.get_status_display }}</p>
-    <p><strong>Total:</strong> KES {{ order.total_amount }}</p>
+    <p><strong>Items subtotal:</strong> KSh {{ order.items_subtotal|floatformat:2 }}</p>
+    <p><strong>Shopiva service fee:</strong> KSh {{ order.platform_commission_amount|floatformat:2 }}</p>
+    <p><strong>Delivery:</strong> KSh {{ order.delivery_fee|floatformat:2 }}</p>
+    <p><strong>Estimated delivery distance:</strong> {{ order.delivery_distance_km|floatformat:2 }} km</p>
+    <p><strong>Total customer payment:</strong> KSh {{ order.total_amount|floatformat:2 }}</p>
     <p><strong>Phone:</strong> {{ order.phone }}</p>
     <p><strong>Delivery Address:</strong> {{ order.address }}</p>
 
