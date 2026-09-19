@@ -51,9 +51,10 @@ def merchant_feed_xml(request):
     for product in products:
         image_url = _image_url(product)
         if not image_url:
-            # Merchant listings should use a real representative product image.
-            continue
-
+            # Keep the product in the feed so Merchant Center reports the exact
+            # missing required image instead of silently showing zero products.
+            # Do not substitute generic or invented imagery.
+            image_url = ""
         item = SubElement(channel, "item")
         price = product.discounted_price.quantize(Decimal("0.01"))
         description = strip_tags(product.description or "").strip()
@@ -69,11 +70,29 @@ def merchant_feed_xml(request):
             "price": f"{price:.2f} KES",
             "availability": "in_stock" if product.stock_quantity > 0 else "out_of_stock",
             "condition": "new",
-            "identifier_exists": "false",
             "product_type": product.category or "General",
         }
 
+        if product.brand:
+            SubElement(item, f"{{{GOOGLE_NS}}}brand").text = product.brand
+        if product.gtin:
+            SubElement(item, f"{{{GOOGLE_NS}}}gtin").text = product.gtin
+        if product.mpn:
+            SubElement(item, f"{{{GOOGLE_NS}}}mpn").text = product.mpn
+        has_identifier = bool(product.gtin or (product.brand and product.mpn))
+        SubElement(item, f"{{{GOOGLE_NS}}}identifier_exists").text = "yes" if has_identifier else "no"
+
+        for media in product.media.order_by("position")[:10]:
+            try:
+                extra_url = media.image.url
+            except Exception:
+                extra_url = ""
+            if extra_url:
+                SubElement(item, f"{{{GOOGLE_NS}}}additional_image_link").text = extra_url
+
         for tag, value in values.items():
+            # image_link is required; when missing, leave it empty so Merchant
+            # Center reports the missing image instead of accepting fake imagery.
             SubElement(item, f"{{{GOOGLE_NS}}}{tag}").text = value
 
     body = tostring(rss, encoding="utf-8", xml_declaration=True)
