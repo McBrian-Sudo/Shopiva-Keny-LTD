@@ -79,8 +79,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "9.5.1"
-      - name: Build admin Android debug, release and AAB
+      - name: Build admin Android internal release artifacts
         run: gradle -p delivery-android :app:assembleDebug :app:assembleRelease :app:bundleRelease
+      - name: Verify admin Android internal artifact
+        run: |
+          test -s delivery-android/app/build/outputs/apk/debug/app-debug.apk
+          test -s delivery-android/app/build/outputs/apk/release/app-release-unsigned.apk
+          test -s delivery-android/app/build/outputs/bundle/release/app-release.aab
+      - name: Upload admin Android internal artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shopiva-admin-android-internal
+          path: |
+            delivery-android/app/build/outputs/apk/debug/app-debug.apk
+            delivery-android/app/build/outputs/apk/release/app-release-unsigned.apk
+            delivery-android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
 
   delivery_android:
     name: Delivery Android release checks
@@ -100,11 +114,14 @@ jobs:
         run: |
           test -s delivery-driver-android/app/build/outputs/apk/release/app-release-unsigned.apk
           test -s delivery-driver-android/app/build/outputs/bundle/release/app-release.aab
-      - name: Upload delivery Android release artifacts
+      - name: Verify delivery Android internal debug artifact
+        run: test -s delivery-driver-android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload delivery Android internal artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: shopiva-delivery-android-release-1.0.1
+          name: shopiva-delivery-android-internal-1.0.1
           path: |
+            delivery-driver-android/app/build/outputs/apk/debug/app-debug.apk
             delivery-driver-android/app/build/outputs/bundle/release/app-release.aab
             delivery-driver-android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 30
