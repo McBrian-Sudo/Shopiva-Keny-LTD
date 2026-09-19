@@ -10,7 +10,7 @@ from home.ai import shop_assistant
 from home.customer_tracking import customer_order_tracking
 from home.checkout_map import checkout_mpesa_map
 from home.google_admin_map import google_admin_delivery_map
-from home.map_views import customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
+from home.map_views import checkout_quote, customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
 from home.platform import app_install, app_manifest, service_worker, favicon
 from home.payments import (
     mpesa_callback, mpesa_payment_status, mpesa_waiting,
@@ -52,6 +52,7 @@ urlpatterns = [
     path("cart/add/<int:product_id>/", add_to_cart, name="add_to_cart"),
 
     path("checkout/", checkout_mpesa_map, name="checkout"),
+    path("checkout/quote/", checkout_quote, name="checkout_quote"),
     path("payments/mpesa/callback/", mpesa_callback, name="mpesa_callback"),
     path("payments/mpesa/status/<int:order_id>/", mpesa_payment_status, name="mpesa_payment_status"),
     path("payments/mpesa/waiting/<int:order_id>/", mpesa_waiting, name="mpesa_waiting"),
