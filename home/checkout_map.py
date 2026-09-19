@@ -56,6 +56,7 @@ def checkout_quote(request):
         "delivery_fee": f"{quote['delivery_fee']:.2f}",
         "total": f"{quote['total']:.2f}",
         "distance_km": f"{quote['distance_km']:.2f}",
+        "distance_source": quote["distance_source"],
         "seller_count": quote["seller_count"],
         "tariff": tariff_text(),
     })
