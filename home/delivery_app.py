@@ -48,6 +48,9 @@ def delivery_login(request):
 
 @login_required(login_url="delivery_login")
 def delivery_logout(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
     agent = _agent(request)
     if agent:
         agent.status = "offline"
@@ -203,10 +206,6 @@ def delivery_ping_location(request):
     if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
         return JsonResponse({"ok": False, "error": "Coordinates are out of range."}, status=400)
 
-    latest_ping = agent.location_history.order_by("-recorded_at").first()
-    if latest_ping and (timezone.now() - latest_ping.recorded_at).total_seconds() < 3:
-        return JsonResponse({"ok": False, "error": "Location update rate limited. Please wait a moment."}, status=429)
-
     def optional_decimal(field_name, minimum=None, maximum=None):
         raw = request.POST.get(field_name, "").strip()
         if not raw:
@@ -225,28 +224,39 @@ def delivery_ping_location(request):
     speed = optional_decimal("speed", minimum=Decimal("0"), maximum=Decimal("100"))
     heading = optional_decimal("heading", minimum=Decimal("0"), maximum=Decimal("360"))
 
-    now = timezone.now()
     latitude = latitude.quantize(Decimal("0.000001"))
     longitude = longitude.quantize(Decimal("0.000001"))
-    agent.current_latitude = latitude
-    agent.current_longitude = longitude
-    agent.last_location_at = now
-    agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
-    agent.save(update_fields=["current_latitude", "current_longitude", "last_location_at", "status"])
 
-    DeliveryLocationPing.objects.create(
-        agent=agent,
-        latitude=latitude,
-        longitude=longitude,
-        accuracy_meters=accuracy.quantize(Decimal("0.01")) if accuracy is not None else None,
-        speed_mps=speed.quantize(Decimal("0.01")) if speed is not None else None,
-        heading_degrees=heading.quantize(Decimal("0.01")) if heading is not None else None,
-    )
+    with transaction.atomic():
+        try:
+            locked_agent = DeliveryAgent.objects.select_for_update().get(pk=agent.pk, is_active=True)
+        except DeliveryAgent.DoesNotExist:
+            return JsonResponse({"ok": False, "error": "Delivery partner access is not active."}, status=403)
+
+        latest_ping = locked_agent.location_history.order_by("-recorded_at").first()
+        if latest_ping and (timezone.now() - latest_ping.recorded_at).total_seconds() < 3:
+            return JsonResponse({"ok": False, "error": "Location update rate limited. Please wait a moment."}, status=429)
+
+        now = timezone.now()
+        locked_agent.current_latitude = latitude
+        locked_agent.current_longitude = longitude
+        locked_agent.last_location_at = now
+        locked_agent.status = "on_delivery" if locked_agent.orders.filter(status="out_for_delivery").exists() else "available"
+        locked_agent.save(update_fields=["current_latitude", "current_longitude", "last_location_at", "status"])
+
+        DeliveryLocationPing.objects.create(
+            agent=locked_agent,
+            latitude=latitude,
+            longitude=longitude,
+            accuracy_meters=accuracy.quantize(Decimal("0.01")) if accuracy is not None else None,
+            speed_mps=speed.quantize(Decimal("0.01")) if speed is not None else None,
+            heading_degrees=heading.quantize(Decimal("0.01")) if heading is not None else None,
+        )
 
     return JsonResponse({
         "ok": True,
         "updated_at": now.isoformat(),
         "latitude": float(latitude),
         "longitude": float(longitude),
-        "status": agent.get_status_display(),
+        "status": locked_agent.get_status_display(),
     })
