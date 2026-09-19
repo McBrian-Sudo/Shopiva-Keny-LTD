@@ -418,6 +418,7 @@ def checkout_mpesa(request):
             platform_commission_amount=quote["commission"],
             delivery_fee=quote["delivery_fee"],
             delivery_distance_km=quote["distance_km"],
+            delivery_distance_source=quote["distance_source"],
             status="pending",
             payment_status="unpaid",
             tracking_code=f"SPV-{__import__('uuid').uuid4().hex[:10].upper()}",
