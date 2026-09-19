@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from .commission import get_platform_commission_percent
+from .delivery_pricing import calculate_order_quote
 from .models import Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerSettlement, SellerWallet
 from .notifications import notify_user
 
@@ -376,9 +377,27 @@ def checkout_mpesa(request):
     if payment_method in {"pesapal", "card"} and not pesapal_ready():
         return render(request, "checkout.html", {"items": items, "total": total, "error": "Online card/M-PESA checkout through the payment gateway is not configured yet. Please use Cash on Delivery until the payment provider is activated."})
 
+    try:
+        customer_latitude = Decimal(str(request.POST.get("delivery_latitude", "")).strip())
+        customer_longitude = Decimal(str(request.POST.get("delivery_longitude", "")).strip())
+    except (InvalidOperation, TypeError, ValueError):
+        return render(request, "checkout.html", {"items": items, "total": total, "error": "Please pin your exact delivery location before continuing."})
+
+    if not (-90 <= customer_latitude <= 90 and -180 <= customer_longitude <= 180):
+        return render(request, "checkout.html", {"items": items, "total": total, "error": "Your delivery map location is invalid. Please pin it again."})
+
+    try:
+        quote = calculate_order_quote(
+            [(item["product"], item["quantity"]) for item in items],
+            customer_latitude,
+            customer_longitude,
+        )
+    except ValueError as exc:
+        return render(request, "checkout.html", {"items": items, "total": total, "error": str(exc)})
+
     with transaction.atomic():
         locked_items = []
-        final_total = Decimal("0.00")
+        final_total = quote["total"]
         for item in items:
             product = Product.objects.select_for_update().get(id=item["product"].id)
             quantity = item["quantity"]
@@ -395,6 +414,10 @@ def checkout_mpesa(request):
             phone=phone,
             address=address,
             total_amount=final_total,
+            items_subtotal=quote["subtotal"],
+            platform_commission_amount=quote["commission"],
+            delivery_fee=quote["delivery_fee"],
+            delivery_distance_km=quote["distance_km"],
             status="pending",
             payment_status="unpaid",
             tracking_code=f"SPV-{__import__('uuid').uuid4().hex[:10].upper()}",
@@ -415,7 +438,7 @@ def checkout_mpesa(request):
             gross = unit_price * quantity
             commission_percent = get_platform_commission_percent(unit_price)
             commission = (gross * commission_percent / Decimal("100")).quantize(Decimal("0.01")) if seller else Decimal("0.00")
-            seller_net = gross - commission
+            seller_net = gross
             OrderItem.objects.create(order=order, product=product, quantity=quantity, price=unit_price, seller=seller, seller_gross=gross, platform_commission=commission, seller_net=seller_net)
             product.stock_quantity -= quantity
             product.save(update_fields=["stock_quantity"])
