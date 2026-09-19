@@ -103,7 +103,7 @@ jobs:
       - name: Upload delivery Android release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: shopiva-delivery-android-release-1.0.0
+          name: shopiva-delivery-android-release-1.0.1
           path: |
             delivery-driver-android/app/build/outputs/bundle/release/app-release.aab
             delivery-driver-android/app/build/outputs/apk/release/app-release-unsigned.apk
