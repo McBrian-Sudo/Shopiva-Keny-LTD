@@ -148,6 +148,48 @@ def customer_orders(request):
 
 
 @login_required(login_url="customer_login")
+def reorder_order(request, order_id):
+    if not _customer_only(request):
+        return _customer_boundary_redirect(request)
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__product"),
+        id=order_id,
+        customer=request.user,
+        status="delivered",
+    )
+    cart_data = request.session.get("cart", {})
+    added = 0
+    skipped = []
+
+    for item in order.items.select_related("product"):
+        product = item.product
+        if not product.is_active or product.stock_quantity <= 0:
+            skipped.append(product.name)
+            continue
+        try:
+            current = max(0, int(cart_data.get(str(product.id), 0)))
+        except (TypeError, ValueError):
+            current = 0
+        quantity = min(item.quantity, max(0, product.stock_quantity - current))
+        if quantity <= 0:
+            skipped.append(product.name)
+            continue
+        cart_data[str(product.id)] = current + quantity
+        added += quantity
+
+    request.session["cart"] = cart_data
+    request.session.modified = True
+    if added:
+        messages.success(request, f"{added} item(s) from Order #{order.id} were added to your cart for a quick repeat purchase.")
+    if skipped:
+        messages.warning(request, "Some items were skipped because they are currently unavailable or out of stock.")
+    return redirect("cart")
+
+
+@login_required(login_url="customer_login")
 def customer_delivery_location(request):
     if not _customer_only(request):
         return JsonResponse({"ok": False, "error": "Admin accounts use the admin delivery map."}, status=403)
@@ -736,8 +778,14 @@ def seller_order_update(request, order_id):
         if next_status == "out_for_delivery" and order.status != "shipped":
             messages.error(request, "Mark the order shipped before sending it out for delivery.")
             return redirect("seller_dashboard")
+        if next_status == "out_for_delivery" and not order.delivery_agent_id:
+            messages.error(request, "Assign a Shopiva delivery partner before sending this order out for delivery.")
+            return redirect("seller_dashboard")
         order.status = next_status
         update_fields = ["status"]
+        if next_status == "out_for_delivery":
+            order.ensure_delivery_confirmation_code()
+            update_fields.extend(["delivery_confirmation_code", "delivery_verification_attempts", "delivery_verification_locked_at"])
         if next_status == "packed":
             order.packed_at = timezone.now()
             update_fields.append("packed_at")
