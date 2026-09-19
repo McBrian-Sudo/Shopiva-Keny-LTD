@@ -38,7 +38,7 @@ def delivery_login(request):
                 form.add_error(None, "Your delivery partner account is inactive.")
             else:
                 login(request, user)
-                agent.status = "available"
+                agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
                 agent.save(update_fields=["status"])
                 return redirect("delivery_portal")
 
@@ -63,7 +63,6 @@ def delivery_action(request, order_id):
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST required."}, status=405)
 
-    order = get_object_or_404(Order, id=order_id, delivery_agent=agent)
     action = request.POST.get("action", "").strip().lower()
 
     transitions = {
@@ -83,15 +82,20 @@ def delivery_action(request, order_id):
         return JsonResponse({"ok": False, "error": f"Order cannot be marked {target_status.replace('_', ' ')} from its current status."}, status=409)
 
     with transaction.atomic():
+        try:
+            order = Order.objects.select_for_update().get(id=order_id, delivery_agent=agent)
+        except Order.DoesNotExist:
+            return JsonResponse({"ok": False, "error": "Delivery order not found or not assigned to you."}, status=404)
+
+        if order.status not in allowed[action]:
+            return JsonResponse({"ok": False, "error": f"Order cannot be marked {target_status.replace('_', ' ')} from its current status."}, status=409)
+
         order.status = target_status
         if target_status == "out_for_delivery":
             order.assigned_at = order.assigned_at or timezone.now()
         order.save(update_fields=["status", "assigned_at"] if target_status == "out_for_delivery" else ["status"])
         OrderEvent.objects.create(order=order, event_type=event_type, note=note, actor=request.user, delivery_agent=agent)
-        if target_status == "delivered":
-            agent.status = "available"
-        else:
-            agent.status = "on_delivery"
+        agent.status = "available" if target_status == "delivered" else "on_delivery"
         agent.save(update_fields=["status"])
 
     return JsonResponse({"ok": True, "status": order.get_status_display(), "order_id": order.id})
@@ -127,4 +131,8 @@ def delivery_status(request):
             "raw_status": order.status,
             "total": str(order.total_amount),
         } for order in orders],
-    })
+    })    latest_ping = agent.location_history.order_by("-recorded_at").first()
+    if latest_ping and (timezone.now() - latest_ping.recorded_at).total_seconds() < 3:
+        return JsonResponse({"ok": False, "error": "Location update rate limited. Please wait a moment."}, status=429)
+
+
