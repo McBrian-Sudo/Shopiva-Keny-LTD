@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 import uuid
 
 from .models import Product, ProductReview
-from .media_pipeline import enhance_product_image, upload_product_image
+from .media_pipeline import enhance_product_image
 from .shopiva_seller_catalog import (
     catalog_search_choices as base_catalog_search_choices,
     resolve_catalog_item as base_resolve_catalog_item,
@@ -259,6 +259,9 @@ class SellerProductForm(forms.ModelForm):
             "name",
             "description",
             "category",
+            "brand",
+            "gtin",
+            "mpn",
             "price",
             "stock_quantity",
             "discount_percent",
@@ -272,6 +275,9 @@ class SellerProductForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"placeholder": "Catalogue selection will fill this, or enter a custom product"}),
             "description": forms.Textarea(attrs={"rows": 5}),
             "category": forms.TextInput(attrs={"placeholder": "Electronics, Fashion, Groceries, Vehicle Parts..."}),
+            "brand": forms.TextInput(attrs={"placeholder": "Manufacturer/brand, if printed on the product"}),
+            "gtin": forms.TextInput(attrs={"placeholder": "GTIN/barcode (leave blank if none)"}),
+            "mpn": forms.TextInput(attrs={"placeholder": "Manufacturer part number (leave blank if none)"}),
             "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
 
@@ -292,6 +298,8 @@ class SellerProductForm(forms.ModelForm):
         if item:
             cleaned["name"] = item["name"]
             cleaned["category"] = item["category"]
+            if not cleaned.get("brand") and item.get("brand") and str(item.get("brand")).strip().casefold() not in {"universal", "general"}:
+                cleaned["brand"] = item["brand"]
         elif not cleaned.get("name"):
             self.add_error("name", "Choose a catalogue product or enter a custom product name.")
         return cleaned
@@ -302,16 +310,14 @@ class SellerProductForm(forms.ModelForm):
         if item:
             product.name = item["name"]
             product.category = item["category"]
+            if not product.brand and item.get("brand") and str(item.get("brand")).strip().casefold() not in {"universal", "general"}:
+                product.brand = item["brand"]
 
         uploaded_main = self.files.get("image")
         if uploaded_main:
             enhanced = enhance_product_image(uploaded_main, product.name)
-            try:
-                product.image = upload_product_image(enhanced, product.name)
-            except Exception:
-                # Never block a valid marketplace listing because image storage is unavailable.
-                # The public product page has a deterministic category/product fallback image.
-                product.image = None
+            # CloudinaryField performs the cloud upload when product.save() runs.
+            product.image = enhanced
 
         if not product.sku:
             prefix = slugify(product.name or "product").replace("-", "").upper()[:24] or "PRODUCT"
