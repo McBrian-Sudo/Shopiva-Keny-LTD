@@ -139,8 +139,94 @@ jobs:
         run: |
           set -euo pipefail
           current="shopiva-delivery-android-internal-1.0.2"
-          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.name | startswith("shopiva-delivery-android-internal-")) | select(.name != "'$current'") | .id' | while read -r artifact_id; do
-            echo "Deleting superseded Delivery artifact ${artifact_id}"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.name | startswith("shopiva-delivery-android-internal-")) | [.id,.name] | @tsv' | while IFS=
+
+  ios:
+    name: Customer iOS release checks
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - name: Validate customer iOS release metadata
+        run: |
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" ios/ShopivaCustomer/Info.plist | grep -Fx "ke.co.shopiva.customer"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" ios/ShopivaCustomer/Info.plist | grep -Fx "1.1.0"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ios/ShopivaCustomer/Info.plist | grep -Fx "2"
+      - name: Build customer iOS release without distribution signing
+        run: |
+          xcodebuild \
+            -project ios/ShopivaCustomer.xcodeproj \
+            -scheme ShopivaCustomer \
+            -sdk iphoneos \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+  security:
+    name: Security and dependency checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: "pip"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Dependency vulnerability audit
+        run: |
+          python -m pip install --disable-pip-version-check pip-audit
+          pip-audit -r requirements.txt
+      - name: Compile Python sources
+        run: python -m compileall -q home shopiva support
+
+  production_smoke:
+    name: Production health smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check live Render health endpoint
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-connrefused \
+            --max-time 30 \
+            https://shopivakenya.top/health/
+
+  gate:
+    name: Release gate summary
+    if: ${{ always() }}
+    needs: [backend, security, customer_android, admin_android, delivery_android, ios, production_smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every release check passed
+        env:
+          BACKEND: ${{ needs.backend.result }}
+          SECURITY: ${{ needs.security.result }}
+          CUSTOMER_ANDROID: ${{ needs.customer_android.result }}
+          ADMIN_ANDROID: ${{ needs.admin_android.result }}
+          DELIVERY_ANDROID: ${{ needs.delivery_android.result }}
+          IOS: ${{ needs.ios.result }}
+          PRODUCTION_SMOKE: ${{ needs.production_smoke.result }}
+        run: |
+          echo "Backend: $BACKEND"
+          echo "Security: $SECURITY"
+          echo "Customer Android: $CUSTOMER_ANDROID"
+          echo "Admin Android: $ADMIN_ANDROID"
+          echo "Delivery Android: $DELIVERY_ANDROID"
+          echo "iOS: $IOS"
+          echo "Production smoke: $PRODUCTION_SMOKE"
+          test "$BACKEND" = success
+          test "$SECURITY" = success
+          test "$CUSTOMER_ANDROID" = success
+          test "$ADMIN_ANDROID" = success
+          test "$DELIVERY_ANDROID" = success
+          test "$IOS" = success
+          test "$PRODUCTION_SMOKE" = success
+\\t' read -r artifact_id artifact_name; do
+            if [ "$artifact_name" = "$current" ]; then
+              continue
+            fi
+            echo "Deleting superseded Delivery artifact ${artifact_id} (${artifact_name})"
             gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
           done
 
