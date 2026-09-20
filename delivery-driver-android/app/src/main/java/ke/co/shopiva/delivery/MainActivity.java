@@ -1,7 +1,6 @@
 package ke.co.shopiva.delivery;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -21,6 +20,7 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
+import androidx.fragment.app.FragmentActivity;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
@@ -32,7 +32,7 @@ import java.security.Signature;
 import java.security.spec.ECGenParameterSpec;
 import java.util.concurrent.Executor;
 
-public class MainActivity extends Activity {
+public class MainActivity extends FragmentActivity {
     private static final int LOCATION_REQUEST = 1001;
     private static final String BASE_URL = "https://shopivakenya.top";
     private static final String PRIMARY_HOST = "shopivakenya.top";
