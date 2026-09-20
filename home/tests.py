@@ -9,7 +9,7 @@ from django.utils import timezone
 from unittest.mock import patch
 
 from .commission import get_platform_commission_percent, split_sale_amount
-from .forms import CustomerRegistrationForm, SellerRegistrationForm
+from .forms import CustomerRegistrationForm, SellerRegistrationForm, DeliveryRegistrationForm
 from .models import (
     CustomerAddress,
     DeliveryAgent,
@@ -339,6 +339,94 @@ class MpesaCallbackSafetyTests(TestCase):
         self.assertEqual(payment.status, "pending")
         self.assertEqual(order.payment_status, "pending")
 
+
+
+
+class DeliveryRegistrationTests(TestCase):
+    def test_delivery_signup_creates_pending_agent_and_credentials(self):
+        response = self.client.post(
+            reverse("delivery_signup"),
+            {
+                "username": "new_rider",
+                "email": "new-rider@example.com",
+                "first_name": "New",
+                "last_name": "Rider",
+                "phone": "0712345678",
+                "vehicle_type": "Motorbike",
+                "vehicle_number": "KDA123A",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "delivery/signup_success.html")
+        user = User.objects.get(username="new_rider")
+        agent = DeliveryAgent.objects.get(user=user)
+        self.assertTrue(user.check_password("StrongPass123!"))
+        self.assertTrue(user.is_active)
+        self.assertFalse(agent.is_active)
+        self.assertEqual(agent.phone, "254712345678")
+        self.assertEqual(agent.vehicle_type, "Motorbike")
+        self.assertEqual(agent.vehicle_number, "KDA123A")
+
+    def test_delivery_signup_rejects_duplicate_email(self):
+        User.objects.create_user(
+            username="existing_rider",
+            email="existing@example.com",
+            password="StrongPass123!",
+        )
+        form = DeliveryRegistrationForm(
+            data={
+                "username": "another_rider",
+                "email": "EXISTING@example.com",
+                "first_name": "Another",
+                "last_name": "Rider",
+                "phone": "0723456789",
+                "vehicle_type": "Bicycle",
+                "vehicle_number": "",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("already registered", str(form.errors["email"]))
+
+    def test_delivery_signup_normalizes_and_rejects_duplicate_phone(self):
+        User.objects.create_user(
+            username="phone_rider",
+            email="phone-rider@example.com",
+            password="StrongPass123!",
+        )
+        DeliveryAgent.objects.create(user=User.objects.get(username="phone_rider"), phone="254700000123")
+        form = DeliveryRegistrationForm(
+            data={
+                "username": "phone_rider_two",
+                "email": "phone-rider-two@example.com",
+                "first_name": "Phone",
+                "last_name": "Rider",
+                "phone": "+254700000123",
+                "vehicle_type": "Car",
+                "vehicle_number": "KDB000A",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("already linked", str(form.errors["phone"]))
+
+    def test_pending_delivery_login_is_not_authorized(self):
+        user = User.objects.create_user(
+            username="pending_rider",
+            email="pending-rider@example.com",
+            password="StrongPass123!",
+        )
+        DeliveryAgent.objects.create(user=user, phone="254711111111", is_active=False)
+        self.client.post(
+            reverse("delivery_login"),
+            {"username": "pending_rider", "password": "StrongPass123!"},
+        )
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertContains(self.client.get(reverse("delivery_login")), "Your delivery partner account is inactive.")
 
 class DeliveryGpsCertificationTests(TestCase):
     def setUp(self):
