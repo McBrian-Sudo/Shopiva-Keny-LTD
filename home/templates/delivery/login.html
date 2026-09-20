@@ -8,8 +8,8 @@
 .logo{width:72px;height:72px;border-radius:22px;background:linear-gradient(145deg,#20c96b,#0b7a42);display:grid;place-items:center;font-size:36px;font-weight:950;box-shadow:0 12px 30px rgba(32,201,107,.3)}
 h1{margin:18px 0 6px;font-size:32px;letter-spacing:-.05em}.sub{color:#b8d7c6;margin-bottom:24px}
 label{display:block;font-size:12px;font-weight:800;margin:14px 0 7px}input{width:100%;padding:14px 15px;border-radius:14px;border:1px solid #355c49;background:#06170f;color:#fff;font-size:15px}button{width:100%;margin-top:18px;padding:14px;border:0;border-radius:14px;background:#21c66b;color:#052e1b;font-weight:950;font-size:15px;cursor:pointer}.errors{background:#4c1515;border:1px solid #8c3838;border-radius:12px;padding:11px;color:#ffd2d2;font-size:12px}
-small{display:block;margin-top:18px;color:#8db3a0;text-align:center;line-height:1.5}
+.signup{display:block;margin-top:14px;text-align:center;color:#7ff0b3;font-weight:800;text-decoration:none;font-size:13px}.signup:hover{text-decoration:underline}small{display:block;margin-top:18px;color:#8db3a0;text-align:center;line-height:1.5}
 </style></head><body><main class="card"><div class="logo">S</div><h1>Shopiva Delivery</h1><div class="sub">Secure delivery partner workspace</div>
 {% if form.non_field_errors %}<div class="errors">{{ form.non_field_errors }}</div>{% endif %}
-<form method="post">{% csrf_token %}<label>Username</label>{{ form.username }}<label>Password</label>{{ form.password }}<button>Sign in to Delivery</button></form>
+<form method="post">{% csrf_token %}<label>Username</label>{{ form.username }}<label>Password</label>{{ form.password }}<button>Sign in to Delivery</button></form><a class="signup" href="{% url "delivery_signup" %}">New delivery partner? Apply / Create account</a>
 <small>Location sharing is only activated after you sign in and grant GPS permission.</small></main></body></html>
