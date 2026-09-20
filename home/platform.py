@@ -35,9 +35,9 @@ def app_manifest(request):
         "description": "Shopiva Kenya LTD — smart shopping, secure checkout and delivery tracking.",
         "icons": [
             {
-                "src": "/static/shopiva/shopiva-shopping-logo.svg",
-                "sizes": "any",
-                "type": "image/svg+xml",
+                "src": "/static/shopiva/shopiva-customer-icon.webp",
+                "sizes": "256x256",
+                "type": "image/webp",
                 "purpose": "any maskable",
             }
         ],
@@ -57,11 +57,14 @@ def favicon(request):
 
 def service_worker(request):
     """Return a safe service worker that never hijacks page navigation."""
-    script = r'''const CACHE = 'shopiva-static-v6';
+    script = r'''const CACHE = 'shopiva-static-v7';
 const STATIC_PREFIX = '/static/';
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.add('/static/shopiva/shopiva-shopping-logo.svg').catch(() => {})).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE).then(cache => Promise.all([
+    cache.add('/static/shopiva/shopiva-shopping-logo.svg').catch(() => {}),
+    cache.add('/static/shopiva/shopiva-customer-icon.webp').catch(() => {})
+  ])).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
