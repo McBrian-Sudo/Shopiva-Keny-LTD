@@ -523,6 +523,7 @@ class DeliveryAgentAdmin(admin.ModelAdmin):
         "phone",
         "vehicle_type",
         "vehicle_number",
+        "approval_state",
         "status",
         "is_active",
         "last_location_at",
@@ -532,6 +533,16 @@ class DeliveryAgentAdmin(admin.ModelAdmin):
     list_editable = ("status", "is_active")
     readonly_fields = ("current_latitude", "current_longitude", "last_location_at")
     list_per_page = 25
+
+    @admin.display(description="Access state", boolean=False)
+    def approval_state(self, obj):
+        return "Approved / active" if obj.is_active else "Pending Shopiva approval"
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if obj.user_id:
+            obj.user.is_active = bool(obj.is_active)
+            obj.user.save(update_fields=("is_active",))
 
 
 @admin.register(CustomerAddress, site=shopiva_admin_site)
