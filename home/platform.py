@@ -35,9 +35,15 @@ def app_manifest(request):
         "description": "Shopiva Kenya LTD — smart shopping, secure checkout and delivery tracking.",
         "icons": [
             {
-                "src": "/app-icon.svg",
-                "sizes": "any",
-                "type": "image/svg+xml",
+                "src": "/static/shopiva/shopiva-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable",
+            },
+            {
+                "src": "/static/shopiva/shopiva-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
                 "purpose": "any maskable",
             }
         ],
