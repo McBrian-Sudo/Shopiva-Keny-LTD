@@ -20,7 +20,7 @@ from home.payments import (
 from home.seller_auth import seller_login, seller_logout, seller_login_required
 from home.voice_ai import realtime_action, realtime_call, speak_text, transcribe_voice
 from shopiva.health import health
-from home.delivery_app import delivery_login, delivery_logout, delivery_action, delivery_status, delivery_history, delivery_update_location, delivery_ping_location
+from home.delivery_app import delivery_login, delivery_signup, delivery_logout, delivery_action, delivery_status, delivery_history, delivery_update_location, delivery_ping_location
 from home.delivery_platform import delivery_manifest, delivery_service_worker
 from home.admin_delivery_feed import admin_live_delivery_feed
 from home.notifications_center import customer_notification_center, seller_notification_center, admin_notification_center
@@ -102,6 +102,7 @@ urlpatterns = [
     path("account/delivery-location/", customer_delivery_location_map, name="customer_delivery_location"),
 
     path("delivery/login/", delivery_login, name="delivery_login"),
+    path("delivery/signup/", delivery_signup, name="delivery_signup"),
     path("delivery/logout/", delivery_logout, name="delivery_logout"),
     path("delivery/", delivery_portal, name="delivery_portal"),
     path("delivery/history/", delivery_history, name="delivery_history"),
