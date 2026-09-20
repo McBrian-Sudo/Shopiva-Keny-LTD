@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#052e1b"><link rel="manifest" href="{% url 'delivery_manifest' %}">
+<title>Shopiva Delivery — Apply</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Inter,system-ui,sans-serif;background:radial-gradient(circle at 20% 10%,#0b5b35,#03170e 55%,#020b07);color:#fff;padding:24px}
+.wrap{width:min(760px,100%);margin:0 auto}.card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(18px);border-radius:28px;padding:30px;box-shadow:0 25px 80px rgba(0,0,0,.35)}
+.brand{display:flex;gap:14px;align-items:center}.logo{width:74px;height:74px;border-radius:22px;background:#0b7a42;display:grid;place-items:center;font-size:32px;font-weight:950}.eyebrow{color:#7ff0b3;font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}h1{margin:10px 0 7px;font-size:33px;letter-spacing:-.04em}.sub{color:#b8d7c6;line-height:1.55;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}label{display:block;font-size:12px;font-weight:900;margin:2px 0 7px}input{width:100%;padding:14px;border-radius:13px;border:1px solid #355c49;background:#06170f;color:#fff;font-size:15px;outline:none}input:focus{border-color:#41dd91;box-shadow:0 0 0 3px rgba(65,221,145,.12)}.full{grid-column:1/-1}
+button{width:100%;margin-top:20px;padding:15px;border:0;border-radius:14px;background:#21c66b;color:#052e1b;font-weight:950;font-size:15px;cursor:pointer}.back{display:block;text-align:center;color:#9ecbb4;text-decoration:none;margin-top:14px;font-size:13px}.errors{background:#4c1515;border:1px solid #8c3838;border-radius:12px;padding:11px;color:#ffd2d2;font-size:12px;margin-bottom:16px}.field-error{color:#ffbaba;font-size:12px;margin-top:6px}.help{font-size:11px;color:#86aa98;margin-top:6px;line-height:1.4}.security{margin-top:18px;padding:14px;border-radius:14px;background:rgba(33,198,107,.08);border:1px solid rgba(33,198,107,.2);color:#ccebdd;font-size:12px;line-height:1.55}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body><div class="wrap"><main class="card">
+<div class="brand"><div class="logo">🚚</div><div><div class="eyebrow">Shopiva Delivery</div><h1>Delivery partner registration</h1></div></div>
+<div class="sub">Create your delivery-partner application with your contact and vehicle details. Your account will remain <strong>inactive for deliveries</strong> until Shopiva staff approves it.</div>
+{% if form.non_field_errors %}<div class="errors">{{ form.non_field_errors }}</div>{% endif %}
+<form method="post" autocomplete="on">{% csrf_token %}
+<div class="grid">
+<div><label for="{{ form.first_name.id_for_label }}">First name</label>{{ form.first_name }}{% for e in form.first_name.errors %}<div class="field-error">{{ e }}</div>{% endfor %}</div>
+<div><label for="{{ form.last_name.id_for_label }}">Last name</label>{{ form.last_name }}{% for e in form.last_name.errors %}<div class="field-error">{{ e }}</div>{% endfor %}</div>
+<div><label for="{{ form.username.id_for_label }}">Shopiva username</label>{{ form.username }}{% for e in form.username.errors %}<div class="field-error">{{ e }}</div>{% endfor %}</div>
+<div><label for="{{ form.email.id_for_label }}">Email address</label>{{ form.email }}{% for e in form.email.errors %}<div class="field-error">{{ e }}</div>{% endfor %}</div>
+<div><label for="{{ form.phone.id_for_label }}">Kenyan mobile number</label>{{ form.phone }}{% for e in form.phone.errors %}<div class="field-error">{{ e }}</div>{% endfor %}<div class="help">Accepted format: 0712345678 or +254712345678.</div></div>
+<div><label for="{{ form.vehicle_type.id_for_label }}">Vehicle type</label>{{ form.vehicle_type }}{% for e in form.vehicle_type.errors %}<div class="field-error">{{ e }}</div>{% endfor %}</div>
+<div><label for="{{ form.vehicle_number.id_for_label }}">Vehicle / plate number</label>{{ form.vehicle_number }}{% for e in form.vehicle_number.errors %}<div class="field-error">{{ e }}</div>{% endfor %}<div class="help">Optional for bicycle or walking delivery.</div></div>
+<div class="full"><label for="{{ form.password1.id_for_label }}">Password</label>{{ form.password1 }}{% for e in form.password1.errors %}<div class="field-error">{{ e }}</div>{% endfor %}</div>
+<div class="full"><label for="{{ form.password2.id_for_label }}">Confirm password</label>{{ form.password2 }}{% for e in form.password2.errors %}<div class="field-error">{{ e }}</div>{% endfor %}</div>
+</div>
+<button type="submit">Create Delivery Partner Account</button>
+</form>
+<div class="security"><strong>Security:</strong> Creating an account does not authorize access to customer orders. Shopiva staff must activate the delivery profile first. After approval, the private Android Delivery app can use the device's strong biometric system for app sign-in; Shopiva does not need to store a face image or biometric template.</div>
+<a class="back" href="{% url 'delivery_login' %}">Already have an approved account? Sign in</a>
+</main></div></body></html>
