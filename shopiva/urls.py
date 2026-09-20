@@ -11,7 +11,7 @@ from home.customer_tracking import customer_order_tracking
 from home.checkout_map import checkout_mpesa_map, checkout_quote
 from home.google_admin_map import google_admin_delivery_map
 from home.map_views import customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
-from home.platform import app_install, app_manifest, service_worker, favicon
+from home.platform import app_install, app_manifest, service_worker, favicon, shopiva_app_icon
 from home.payments import (
     mpesa_callback, mpesa_payment_status, mpesa_waiting,
     pesapal_callback, pesapal_ipn, pesapal_cancel,
@@ -46,6 +46,7 @@ urlpatterns = [
     path("returns/", returns_policy, name="returns_policy"),
     path("account/delete/", account_deletion, name="account_deletion"),
     path("favicon.ico", favicon, name="favicon"),
+    path("app-icon.svg", shopiva_app_icon, name="shopiva_app_icon"),
     path("products/", products, name="products"),
     path("categories/", categories, name="categories"),
     path("product/<int:product_id>/", product_detail, name="product_detail"),
