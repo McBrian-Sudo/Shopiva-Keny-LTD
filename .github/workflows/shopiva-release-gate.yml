@@ -61,7 +61,7 @@ jobs:
       - name: Upload customer Android store artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: shopiva-customer-android-release-1.1.0
+          name: shopiva-customer-android-release-1.1.2
           path: |
             customer-android/app/build/outputs/bundle/release/app-release.aab
             customer-android/app/build/outputs/apk/release/app-release-unsigned.apk
