@@ -7,7 +7,10 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:supportsRtl="true"
-        android:label="Shopiva Delivery">
+        android:label="Shopiva Delivery"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:theme="@style/Theme.ShopivaDelivery">
         <activity
             android:name=".MainActivity"
             android:exported="true"
