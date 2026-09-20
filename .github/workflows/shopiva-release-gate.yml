@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  actions: write
 
 jobs:
   backend:
@@ -125,21 +124,7 @@ jobs:
             delivery-driver-android/app/build/outputs/apk/debug/app-debug.apk
             delivery-driver-android/app/build/outputs/bundle/release/app-release.aab
             delivery-driver-android/app/build/outputs/apk/release/app-release-unsigned.apk
-          retention-days: 30
-
-  cleanup_old_internal_artifacts:
-    name: Cleanup superseded internal Delivery artifacts
-    if: ${{ needs.delivery_android.result == 'success' }}
-    needs: [delivery_android]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Delete superseded Delivery Android artifacts
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          current="shopiva-delivery-android-internal-1.0.3"
-          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.name | startswith("shopiva-delivery-android-internal-")) | [.id,.name] | @tsv' | while IFS=
+          retention-days: 7
 
   ios:
     name: Customer iOS release checks
