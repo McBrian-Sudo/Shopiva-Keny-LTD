@@ -5,6 +5,7 @@ from django.utils.text import slugify
 from django.utils.html import conditional_escape, mark_safe
 from django.core.exceptions import ValidationError
 import uuid
+import re
 
 from .models import Product, ProductReview
 from .media_pipeline import enhance_product_image, upload_product_image
@@ -131,6 +132,95 @@ class CustomerRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
         user.email = self.cleaned_data["email"].strip().lower()
         if commit:
             user.save()
+        return user
+
+
+class DeliveryRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
+    """Create a delivery-partner application; access remains disabled until Shopiva approves it."""
+
+    username_error_message = "Username exists. Please choose another username."
+
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={"autocomplete": "email", "placeholder": "you@example.com"}),
+    )
+    first_name = forms.CharField(
+        max_length=150,
+        required=True,
+        widget=forms.TextInput(attrs={"autocomplete": "given-name", "placeholder": "First name"}),
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        required=True,
+        widget=forms.TextInput(attrs={"autocomplete": "family-name", "placeholder": "Last name"}),
+    )
+    phone = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={"autocomplete": "tel", "placeholder": "07XX XXX XXX"}),
+        help_text="Kenyan mobile number used by Shopiva operations.",
+    )
+    vehicle_type = forms.CharField(
+        max_length=80,
+        required=True,
+        widget=forms.TextInput(attrs={"placeholder": "Motorbike, car, bicycle, walking, etc."}),
+    )
+    vehicle_number = forms.CharField(
+        max_length=40,
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Optional plate / registration number"}),
+    )
+
+    class Meta:
+        model = User
+        fields = ("username", "email", "first_name", "last_name", "password1", "password2")
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email", "").strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("This email is already registered.")
+        return email
+
+    def clean_phone(self):
+        raw = self.cleaned_data.get("phone", "").strip()
+        digits = re.sub(r"\D", "", raw)
+        if digits.startswith("00"):
+            digits = digits[2:]
+        if digits.startswith("0") and len(digits) == 10:
+            digits = "254" + digits[1:]
+        elif digits.startswith("7") and len(digits) == 9:
+            digits = "254" + digits
+        if not re.fullmatch(r"254(7|1)\d{8}", digits):
+            raise forms.ValidationError("Enter a valid Kenyan mobile number, e.g. 0712345678.")
+        from .models import DeliveryAgent
+        if DeliveryAgent.objects.filter(phone=digits).exists():
+            raise forms.ValidationError("This phone number is already linked to a Shopiva delivery account.")
+        return digits
+
+    def clean_vehicle_number(self):
+        return self.cleaned_data.get("vehicle_number", "").strip().upper()
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"].strip().lower()
+        user.first_name = self.cleaned_data["first_name"].strip()
+        user.last_name = self.cleaned_data["last_name"].strip()
+        user.is_staff = False
+        user.is_superuser = False
+        # Keep credentials usable for the application workflow, but DeliveryAgent access
+        # remains disabled until Shopiva staff explicitly activates the agent.
+        user.is_active = True
+        if commit:
+            user.save()
+            from .models import DeliveryAgent
+            DeliveryAgent.objects.create(
+                user=user,
+                phone=self.cleaned_data["phone"],
+                vehicle_type=self.cleaned_data["vehicle_type"].strip(),
+                vehicle_number=self.cleaned_data["vehicle_number"],
+                status="offline",
+                is_active=False,
+            )
         return user
 
 
