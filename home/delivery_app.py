@@ -83,7 +83,7 @@ def delivery_login(request):
             form.add_error(None, "This account is not registered as a Shopiva delivery partner.")
         else:
             if not agent.is_active:
-                form.add_error(None, "Your delivery partner account is inactive.")
+                form.add_error(None, "Your delivery partner account is awaiting Shopiva approval or has been deactivated.")
             else:
                 login(request, user)
                 agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
