@@ -47,6 +47,7 @@
     .delivery-link { margin-top:12px; display:block; text-decoration:none !important; }
     @media(max-width:1200px){ .stats{grid-template-columns:repeat(3,1fr)} .layout{grid-template-columns:1fr} }
     @media(max-width:650px){ #content{padding:0 12px 30px}.shopiva-hero{padding:20px;align-items:flex-start;flex-direction:column}.stats{grid-template-columns:repeat(2,1fr)}.quick-grid{grid-template-columns:1fr}.ai-form{flex-direction:column} }
+.live-delivery-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:11px}.live-delivery-stats>div{padding:11px;border:1px solid var(--shopiva-border);border-radius:12px;background:#f8fafc}.live-delivery-stats small{display:block;color:var(--shopiva-muted);font-size:10px;text-transform:uppercase;font-weight:800}.live-delivery-stats strong{display:block;margin-top:3px;font-size:21px}.live-delivery-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.live-rider{padding:10px;border:1px solid var(--shopiva-border);border-radius:12px;background:#fff}.live-rider-head{display:flex;justify-content:space-between;gap:8px}.live-rider strong{font-size:12px}.live-rider small{display:block;color:var(--shopiva-muted);font-size:10px;line-height:1.45;margin-top:4px}.live-badge{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:900}.live-badge.on{background:#e8f8ef;color:#087448}.live-badge.off{background:#fff1f1;color:#b4232f}@media(max-width:900px){.live-delivery-stats{grid-template-columns:repeat(2,1fr)}.live-delivery-list{grid-template-columns:1fr}}@media(max-width:650px){.live-delivery-stats{grid-template-columns:1fr 1fr}}
 </style>
 {% endblock %}
 
@@ -82,6 +83,17 @@
                     <a class="quick" href="{% url 'shopiva_admin:auth_group_changelist' %}"><strong>🔐 Permissions</strong><span>Organize admin access with groups.</span></a>
                     <a class="quick delivery-link" href="{% url 'shopiva_admin:delivery_map' %}"><strong>🧭 Delivery Command Map</strong><span>View Shopiva's Kenya delivery network.</span></a>
                 </div>
+            </section>
+
+            <section class="panel live-delivery-panel">
+                <div class="panel-head"><div><h2>📡 Live Delivery Network</h2><div class="panel-sub">Protected rider telemetry from the Delivery app · refreshes every 5 seconds.</div></div><a href="{% url 'shopiva_admin:delivery_map' %}">Open command center →</a></div>
+                <div class="live-delivery-stats">
+                    <div><small>Active riders</small><strong id="live-riders">—</strong></div>
+                    <div><small>On delivery</small><strong id="live-deliveries">—</strong></div>
+                    <div><small>Live GPS</small><strong id="live-gps">—</strong></div>
+                    <div><small>Stale GPS</small><strong id="live-stale">—</strong></div>
+                </div>
+                <div id="live-delivery-list" class="live-delivery-list"><div class="notice">Connecting to the protected delivery feed…</div></div>
             </section>
 
             <section class="panel">
