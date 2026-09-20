@@ -76,7 +76,16 @@ def checkout_mpesa_map(request):
                 subtotal = product.discounted_price * quantity
                 total += subtotal
                 items.append({"product": product, "quantity": quantity, "subtotal": subtotal})
-        return render(request, "customer_checkout_map.html", {"items": items, "total": total})
+        saved_addresses = []
+        user = request.user
+        if user.is_authenticated and not user.is_staff and not user.is_superuser:
+            from .models import CustomerAddress
+            saved_addresses = CustomerAddress.objects.filter(user=user).order_by("-is_default", "-created_at")[:8]
+        return render(
+            request,
+            "customer_checkout_map.html",
+            {"items": items, "total": total, "saved_addresses": saved_addresses},
+        )
 
     latitude = _coord(request.POST.get("delivery_latitude"), Decimal("-90"), Decimal("90"))
     longitude = _coord(request.POST.get("delivery_longitude"), Decimal("-180"), Decimal("180"))
