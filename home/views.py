@@ -411,7 +411,22 @@ def categories(request):
 
 def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
-    return render(request, "product_detail.html", {"product": product})
+    related_products = list(
+        Product.objects.filter(is_active=True, category__iexact=product.category)
+        .exclude(id=product.id)
+        .select_related("seller")
+        .order_by("-is_featured", "-id")[:6]
+    )
+    if len(related_products) < 6:
+        extra = Product.objects.filter(is_active=True).exclude(
+            id__in=[product.id, *(p.id for p in related_products)]
+        ).select_related("seller").order_by("-is_featured", "-id")[: 6 - len(related_products)]
+        related_products.extend(extra)
+    return render(
+        request,
+        "product_detail.html",
+        {"product": product, "related_products": related_products},
+    )
 
 
 def add_to_cart(request, product_id):
