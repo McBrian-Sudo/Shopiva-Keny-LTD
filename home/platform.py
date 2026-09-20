@@ -48,7 +48,9 @@ def app_manifest(request):
             }
         ],
     }
-    return JsonResponse(manifest)
+    response = JsonResponse(manifest)
+    response["Content-Type"] = "application/manifest+json"
+    return response
 
 
 def favicon(request):
