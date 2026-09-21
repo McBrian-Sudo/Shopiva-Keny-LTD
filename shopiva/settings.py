@@ -199,6 +199,15 @@ MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE", "")
 MPESA_TILL_NUMBER = os.getenv("MPESA_TILL_NUMBER", "")
 MPESA_PASSKEY = os.getenv("MPESA_PASSKEY", "")
 MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL", "https://shopivakenya.top/payments/mpesa/callback/")
+
+# Co-operative Bank Co-op Connect SIT. Credentials stay in the deployment secret store.
+COOP_CONNECT_SIT_BASE_URL = os.getenv("COOP_CONNECT_SIT_BASE_URL", "https://openapi-sit.co-opbank.co.ke").strip().rstrip("/")
+COOP_CONNECT_SIT_CLIENT_ID = os.getenv("COOP_CONNECT_SIT_CLIENT_ID", "").strip()
+COOP_CONNECT_SIT_CLIENT_SECRET = os.getenv("COOP_CONNECT_SIT_CLIENT_SECRET", "").strip()
+COOP_CONNECT_SIT_USER_ID = os.getenv("COOP_CONNECT_SIT_USER_ID", "").strip()
+COOP_CONNECT_SIT_OPERATOR_CODE = os.getenv("COOP_CONNECT_SIT_OPERATOR_CODE", "").strip()
+COOP_CONNECT_SIT_CALLBACK_URL = os.getenv("COOP_CONNECT_SIT_CALLBACK_URL", "").strip()
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
 OPENAI_REALTIME_MODEL = os.getenv("OPENAI_REALTIME_MODEL", "gpt-realtime-2.1")
