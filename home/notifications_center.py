@@ -61,10 +61,7 @@ def notification_center(request):
 def customer_notification_center(request):
     if request.user.is_staff or request.user.is_superuser or getattr(request.user, "seller_profile", None):
         return redirect("notification_center")
-    notifications = request.user.shopiva_notifications.all().order_by("-created_at")[:50]
-    unread_count = request.user.shopiva_notifications.filter(is_read=False).count()
-    total_count = request.user.shopiva_notifications.count()
-    return render(request, "admin/notification_center.html", {"notifications": notifications, "unread_count": unread_count, "total_count": total_count, "role": "admin"})
+    return notification_center(request)
 
 
 @login_required(login_url="seller_login")
@@ -79,4 +76,23 @@ def seller_notification_center(request):
 def admin_notification_center(request):
     if not (request.user.is_staff or request.user.is_superuser):
         return redirect("admin_login")
-    return notification_center(request)
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+        if action == "read_all":
+            request.user.shopiva_notifications.filter(is_read=False).update(is_read=True)
+            messages.success(request, "All notifications marked as read.")
+        elif action == "read":
+            notification_id = request.POST.get("notification_id")
+            if notification_id:
+                Notification.objects.filter(id=notification_id, user=request.user, is_read=False).update(is_read=True)
+        return redirect(request.path)
+
+    notifications = request.user.shopiva_notifications.all().order_by("-created_at")[:50]
+    unread_count = request.user.shopiva_notifications.filter(is_read=False).count()
+    total_count = request.user.shopiva_notifications.count()
+    return render(
+        request,
+        "admin/notification_center.html",
+        {"notifications": notifications, "unread_count": unread_count, "total_count": total_count, "role": "admin"},
+    )
