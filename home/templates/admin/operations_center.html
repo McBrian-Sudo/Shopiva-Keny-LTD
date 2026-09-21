@@ -91,7 +91,7 @@ body{background:linear-gradient(180deg,#f4f8f5,#edf4f0)!important}.ops{font-fami
         <div class="panel-head"><div><h2>⚡ Quick report views</h2><p>Jump into the existing detailed reports.</p></div></div>
         <div class="links">
           <a class="link" href="{% url 'shopiva_admin:home_order_changelist' %}"><strong>Orders report</strong><span>Full order record and status history.</span></a>
-          <a class="link" href="{% url 'shopiva_admin:home_paymenttransaction_changelist' %}"><strong>Payment report</strong><span>Provider transactions and statuses.</span></a>
+          <a class="link" href="{% url 'shopiva_admin:home_order_changelist' %}?payment_status__exact=failed"><strong>Payment report</strong><span>Use order records and payment status for reconciliation.</span></a>
           <a class="link" href="{% url 'shopiva_admin:home_deliveryagent_changelist' %}"><strong>Delivery partners</strong><span>Approve, deactivate and inspect riders.</span></a>
           <a class="link" href="{% url 'shopiva_admin:home_notification_changelist' %}"><strong>Notification records</strong><span>Review stored Shopiva notifications.</span></a>
         </div>
