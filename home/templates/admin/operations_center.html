@@ -1,0 +1,102 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Operations Center | Shopiva{% endblock %}
+{% block extrastyle %}
+{{ block.super }}
+<style>
+:root{--ink:#10251b;--muted:#6d7f76;--line:#dce9e1;--green:#16c784;--dark:#052e1b;--red:#c83f4d;--amber:#b47b08}
+body{background:linear-gradient(180deg,#f4f8f5,#edf4f0)!important}.ops{font-family:Inter,system-ui,sans-serif;max-width:1400px;margin:0 auto;padding:8px 0 36px;color:var(--ink)}.head{display:flex;justify-content:space-between;gap:15px;align-items:flex-end;margin-bottom:15px}.head h1{margin:8px 0 4px;font-size:32px;letter-spacing:-.055em}.head p{margin:0;color:var(--muted);font-size:11px}.eyebrow{display:inline-block;padding:6px 9px;border-radius:999px;background:#e8f8f0;border:1px solid #ccebd9;color:#08764d;font-size:8px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.head a{padding:9px 12px;border-radius:10px;background:var(--dark);color:#fff;text-decoration:none;font-size:9px;font-weight:900}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}.stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;box-shadow:0 8px 22px rgba(5,46,27,.045)}.stat small{display:block;color:#7b8c84;text-transform:uppercase;font-size:8px;font-weight:900;letter-spacing:.06em}.stat strong{display:block;margin-top:3px;font-size:21px}.layout{display:grid;grid-template-columns:1.15fr 1fr;gap:12px}.panel{background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px;box-shadow:0 9px 25px rgba(5,46,27,.05);margin-bottom:12px}.panel h2{margin:0;font-size:13px}.panel-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}.panel-head p{margin:3px 0 0;color:var(--muted);font-size:9px}.links{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.link{padding:11px;border:1px solid #e4ece8;border-radius:11px;text-decoration:none;color:var(--ink);background:#fbfdfc}.link:hover{border-color:#b8dfca;background:#f7fcf9}.link strong{display:block;font-size:10px}.link span{display:block;margin-top:3px;font-size:8px;color:#74857d}.badge{display:inline-flex;padding:4px 6px;border-radius:999px;background:#e8f8ef;color:#087448;font-size:8px;font-weight:900}.badge.warn{background:#fff6de;color:#8b6508}.badge.red{background:#fff0f1;color:#b53240}.list{display:grid;gap:7px}.row{border:1px solid #e8efeb;border-radius:10px;padding:9px;background:#fff}.rowhead{display:flex;justify-content:space-between;gap:8px;align-items:center}.row b{font-size:9px}.meta{margin-top:3px;color:#74847c;font-size:8px;line-height:1.45}.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.actions button,.actions a{border:0;border-radius:8px;padding:7px 9px;font-size:8px;font-weight:900;text-decoration:none;cursor:pointer}.approve{background:#e6faef;color:#087448}.deactivate{background:#fff0f1;color:#b53240}.empty{padding:18px 8px;text-align:center;color:#7b8a83;font-size:9px;border:1px dashed #d8e4dd;border-radius:10px}.notice{padding:9px 10px;border-radius:10px;background:#f4f8f6;color:#5f7268;font-size:8px;line-height:1.5}.section-label{font-size:8px;font-weight:950;color:#7a8b83;text-transform:uppercase;letter-spacing:.08em;margin:11px 0 7px}.cols{display:grid;grid-template-columns:1fr 1fr;gap:9px}.danger{border-left:3px solid var(--red)}.amber{border-left:3px solid var(--amber)}.green{border-left:3px solid var(--green)}@media(max-width:950px){.layout{grid-template-columns:1fr}.summary{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.summary{grid-template-columns:1fr 1fr}.links{grid-template-columns:1fr}.cols{grid-template-columns:1fr}.head{flex-direction:column;align-items:flex-start}.head h1{font-size:27px}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="ops">
+  <div class="head">
+    <div><span class="eyebrow">Shopiva Kenya LTD · Admin operations</span><h1>Operations & Approval Center</h1><p>One workspace for Delivery approvals, notifications, customer issues, system-raised issues and operational reports.</p></div>
+    <a href="{% url 'shopiva_admin:index' %}">← Control Center</a>
+  </div>
+
+  <div class="summary">
+    <div class="stat"><small>Pending delivery approvals</small><strong>{{ counts.pending_delivery }}</strong></div>
+    <div class="stat"><small>Unread notifications</small><strong>{{ counts.unread_notifications }}</strong></div>
+    <div class="stat"><small>User-raised issues</small><strong>{{ counts.user_issues }}</strong></div>
+    <div class="stat"><small>System-raised issues</small><strong>{{ counts.system_issues }}</strong></div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head"><div><h2>Admin centers</h2><p>Direct access to the operational workspaces you asked to see.</p></div></div>
+    <div class="links">
+      <a class="link" href="{% url 'shopiva_admin:operations_center' %}"><strong>✅ Approval Center</strong><span>Review and activate new delivery partners.</span></a>
+      <a class="link" href="{% url 'admin_notifications' %}"><strong>🔔 Notification Center</strong><span>Read and manage staff notifications.</span></a>
+      <a class="link" href="{% url 'support_admin_center' %}"><strong>🛟 Raised Issues</strong><span>Customer and seller support cases.</span></a>
+      <a class="link" href="{% url 'support_admin_center' %}?source=system"><strong>⚙️ System-Raised Issues</strong><span>Automatic payment/order assistance cases.</span></a>
+      <a class="link" href="{% url 'shopiva_admin:delivery_map' %}"><strong>📡 Live Delivery Command</strong><span>Rider GPS and delivery monitoring.</span></a>
+      <a class="link" href="{% url 'business_intelligence' %}"><strong>📊 Business Reports</strong><span>Orders, revenue, catalog and operational intelligence.</span></a>
+    </div>
+  </section>
+
+  <div class="layout">
+    <div>
+      <section class="panel">
+        <div class="panel-head"><div><h2>🚚 Delivery approval queue</h2><p>New applicants stay inactive until Shopiva approves them.</p></div><span class="badge">{{ counts.pending_delivery }} pending</span></div>
+        <div class="list">
+        {% for agent in pending_delivery %}
+          <div class="row">
+            <div class="rowhead"><b>{{ agent.display_name }}</b><span class="badge warn">Pending approval</span></div>
+            <div class="meta">{{ agent.user.email|default:"No email" }} · {{ agent.phone }} · {{ agent.vehicle_type|default:"Vehicle not specified" }}{% if agent.vehicle_number %} · {{ agent.vehicle_number }}{% endif %}<br>Applied {{ agent.created_at|date:"d M Y, H:i" }}</div>
+            <div class="actions"><form method="post">{% csrf_token %}<input type="hidden" name="agent_id" value="{{ agent.id }}"><button class="approve" name="action" value="approve_delivery" type="submit">✓ Approve rider</button></form><form method="post">{% csrf_token %}<input type="hidden" name="agent_id" value="{{ agent.id }}"><button class="deactivate" name="action" value="deactivate_delivery" type="submit">Keep inactive</button></form></div>
+          </div>
+        {% empty %}<div class="empty">No delivery partner applications are waiting for approval.</div>{% endfor %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><div><h2>🛟 Raised issues</h2><p>Open customer/seller cases requiring operational attention.</p></div><span class="badge">{{ counts.user_issues }}</span></div>
+        <div class="list">
+        {% for ticket in user_issues|slice:":8" %}
+          <div class="row"><div class="rowhead"><b>{{ ticket.subject }}</b><span class="badge {% if ticket.priority == 'urgent' %}red{% elif ticket.priority == 'high' %}warn{% endif %}">{{ ticket.get_priority_display }}</span></div><div class="meta">{{ ticket.get_role_display }} · {{ ticket.user.username }} · {{ ticket.get_status_display }} · {{ ticket.updated_at|date:"d M Y, H:i" }}</div><div class="actions"><a class="approve" href="{% url 'support_admin_center' %}?ticket={{ ticket.id }}">Open case →</a></div></div>
+        {% empty %}<div class="empty">No open user-raised issues.</div>{% endfor %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><div><h2>⚙️ System-raised issues</h2><p>Automatic support cases generated by payment/order workflows.</p></div><span class="badge">{{ counts.system_issues }}</span></div>
+        <div class="list">
+        {% for ticket in system_issues|slice:":8" %}
+          <div class="row"><div class="rowhead"><b>{{ ticket.subject }}</b><span class="badge">SYSTEM</span></div><div class="meta">{{ ticket.user.username }} · {{ ticket.get_status_display }} · {{ ticket.updated_at|date:"d M Y, H:i" }}</div><div class="actions"><a class="approve" href="{% url 'support_admin_center' %}?ticket={{ ticket.id }}">Open system case →</a></div></div>
+        {% empty %}<div class="empty">No open system-raised issues.</div>{% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <div>
+      <section class="panel">
+        <div class="panel-head"><div><h2>🔔 Recent admin notifications</h2><p>Latest staff notifications from Shopiva.</p></div><a class="badge" href="{% url 'admin_notifications' %}">Open center</a></div>
+        <div class="list">
+        {% for n in notifications|slice:":8" %}
+          <div class="row"><div class="rowhead"><b>{{ n.title }}</b>{% if not n.is_read %}<span class="badge">NEW</span>{% else %}<span class="badge" style="background:#eef2f2;color:#68777e">READ</span>{% endif %}</div><div class="meta">{{ n.message|truncatechars:180 }}<br>{{ n.created_at|date:"d M Y, H:i" }}</div></div>
+        {% empty %}<div class="empty">No admin notifications recorded.</div>{% endfor %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><div><h2>📋 Operational reports & warnings</h2><p>These are live database conditions—not invented incident reports.</p></div></div>
+        <div class="cols">
+          <div class="row {% if counts.failed_payments %}danger{% endif %}"><div class="rowhead"><b>Failed / cancelled / refunded payments</b><span class="badge red">{{ counts.failed_payments }}</span></div><div class="meta">Review payment transactions before customer support or reconciliation.</div></div>
+          <div class="row {% if counts.unassigned_orders %}amber{% endif %}"><div class="rowhead"><b>Orders awaiting delivery assignment</b><span class="badge warn">{{ counts.unassigned_orders }}</span></div><div class="meta">Confirmed/paid/packed orders without an assigned rider.</div></div>
+          <div class="row {% if counts.low_stock %}amber{% endif %}"><div class="rowhead"><b>Low-stock products</b><span class="badge warn">{{ counts.low_stock }}</span></div><div class="meta">Active products with 5 or fewer units.</div></div>
+          <div class="row {% if counts.stale_riders %}danger{% endif %}"><div class="rowhead"><b>Stale / unreported rider GPS</b><span class="badge red">{{ counts.stale_riders }}</span></div><div class="meta">Riders marked active but missing fresh location telemetry.</div></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><div><h2>⚡ Quick report views</h2><p>Jump into the existing detailed reports.</p></div></div>
+        <div class="links">
+          <a class="link" href="{% url 'shopiva_admin:home_order_changelist' %}"><strong>Orders report</strong><span>Full order record and status history.</span></a>
+          <a class="link" href="{% url 'shopiva_admin:home_paymenttransaction_changelist' %}"><strong>Payment report</strong><span>Provider transactions and statuses.</span></a>
+          <a class="link" href="{% url 'shopiva_admin:home_deliveryagent_changelist' %}"><strong>Delivery partners</strong><span>Approve, deactivate and inspect riders.</span></a>
+          <a class="link" href="{% url 'shopiva_admin:home_notification_changelist' %}"><strong>Notification records</strong><span>Review stored Shopiva notifications.</span></a>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}
