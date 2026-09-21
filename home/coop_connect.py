@@ -165,7 +165,6 @@ class CoopConnectSITClient:
 
 def coop_connect_sit_ready():
     return all(_env(name) for name in (
-        "COOP_CONNECT_SIT_BASE_URL",
         "COOP_CONNECT_SIT_CLIENT_ID",
         "COOP_CONNECT_SIT_CLIENT_SECRET",
         "COOP_CONNECT_SIT_USER_ID",
