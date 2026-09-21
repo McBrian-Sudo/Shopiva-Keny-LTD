@@ -25,6 +25,7 @@ from home.delivery_platform import delivery_manifest, delivery_service_worker
 from home.admin_delivery_feed import admin_live_delivery_feed
 from home.admin_operations import admin_operations_center
 from home.admin_statistics import statistics_center
+from home.coop_connect_views import coop_connect_sit_console
 from home.notifications_center import customer_notification_center, seller_notification_center, admin_notification_center
 from home.views import add_to_cart, cart, categories, customer_dashboard, customer_login, customer_logout, customer_orders, customer_profile, customer_register, customer_wishlist, reorder_order, seller_dashboard, seller_product_toggle, seller_product_delete, seller_product_stock_update, seller_order_update, product_review, seller_register, seller_request_payout, delivery_portal, home, order_success, product_detail, products
 from home.seo import robots_txt, sitemap_xml
@@ -121,6 +122,7 @@ urlpatterns = [
     path("admin/notifications/", admin_notification_center, name="admin_notifications"),
     path("admin/operations-center/", admin_operations_center, name="admin_operations_center"),
     path("admin/statistics/", statistics_center, name="statistics_center"),
+    path("admin/coop-connect/sit/", coop_connect_sit_console, name="coop_connect_sit_console"),
     path("ai/shop-assistant/", shop_assistant, name="shop_assistant"),
     path("ai/voice/transcribe/", transcribe_voice, name="voice_transcribe"),
     path("ai/realtime/call/", realtime_call, name="realtime_call"),
