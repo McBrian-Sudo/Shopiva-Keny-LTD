@@ -50,5 +50,19 @@ input:focus,select:focus,textarea:focus{border-color:#19d978!important;box-shado
 {% endblock %}
 {% block nav-global %}
 {{ block.super }}
+<style>
+.shopiva-global-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:7px 24px;background:#fff;border-bottom:1px solid var(--shopiva-line);box-shadow:0 4px 12px rgba(7,24,46,.035)}
+.shopiva-global-nav a{display:inline-flex;align-items:center;padding:7px 9px;border-radius:9px;background:#f4f8f6;border:1px solid #dce9e1;color:#24463a!important;text-decoration:none!important;font-size:10px;font-weight:850}
+.shopiva-global-nav a:hover{background:#eafff2;border-color:#b9e6ca;color:#087448!important}
+@media(max-width:800px){.shopiva-global-nav{padding:7px 12px;gap:5px}.shopiva-global-nav a{font-size:9px;padding:6px 8px}}
+</style>
+<nav class="shopiva-global-nav" aria-label="Shopiva Admin operations navigation">
+<a href="{% url 'admin_operations_center' %}">🛡️ Approvals & Operations</a>
+<a href="{% url 'admin_notifications' %}">🔔 Notifications</a>
+<a href="{% url 'support_admin_center' %}">🛟 Raised Issues</a>
+<a href="{% url 'support_admin_center' %}?source=system">⚙️ System Issues</a>
+<a href="{% url 'shopiva_admin:delivery_map' %}">📡 Delivery Command</a>
+<a href="{% url 'business_intelligence' %}">📊 Reports</a>
+</nav>
 <script>(function(){const STATUS_URL="{% url 'admin_session_status' %}",LOGIN_URL="{% url 'shopiva_admin:login' %}";let checking=false;async function verify(){if(checking)return;checking=true;try{const r=await fetch(STATUS_URL,{credentials:'same-origin',cache:'no-store',headers:{'X-Requested-With':'XMLHttpRequest'}});if(!r.ok)throw new Error();const s=await r.json();if(!s.authenticated)window.location.replace(LOGIN_URL)}catch(e){window.location.replace(LOGIN_URL)}finally{checking=false}}window.addEventListener('pageshow',verify);window.addEventListener('popstate',verify);setTimeout(verify,150)})();</script>
 {% endblock %}
