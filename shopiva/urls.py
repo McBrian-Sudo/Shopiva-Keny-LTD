@@ -13,7 +13,7 @@ from home.google_admin_map import google_admin_delivery_map
 from home.map_views import customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
 from home.platform import app_install, app_manifest, service_worker, favicon, shopiva_app_icon
 from home.payments import (
-    mpesa_callback, mpesa_payment_status, mpesa_waiting,
+    mpesa_callback, mpesa_payment_status, mpesa_payment_verify, mpesa_waiting,
     pesapal_callback, pesapal_ipn, pesapal_cancel,
     card_payment_success, card_payment_cancel, stripe_webhook,
 )
@@ -63,6 +63,7 @@ urlpatterns = [
     path("checkout/quote/", checkout_quote, name="checkout_quote"),
     path("payments/mpesa/callback/", mpesa_callback, name="mpesa_callback"),
     path("payments/mpesa/status/<int:order_id>/", mpesa_payment_status, name="mpesa_payment_status"),
+    path("payments/mpesa/verify/<int:order_id>/", mpesa_payment_verify, name="mpesa_payment_verify"),
     path("payments/mpesa/waiting/<int:order_id>/", mpesa_waiting, name="mpesa_waiting"),
     path("payments/pesapal/callback/", pesapal_callback, name="pesapal_callback"),
     path("payments/pesapal/ipn/", pesapal_ipn, name="pesapal_ipn"),
