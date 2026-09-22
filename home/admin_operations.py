@@ -1,5 +1,8 @@
 from django.contrib import messages
+from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -20,30 +23,66 @@ def admin_operations_center(request):
     if request.method == "POST":
         action = request.POST.get("action", "").strip()
         agent_id = request.POST.get("agent_id", "").strip()
+        verification_confirmed = request.POST.get("verification_confirmed") == "1"
+
         if action in {"approve_delivery", "deactivate_delivery"} and agent_id.isdigit():
-            agent = DeliveryAgent.objects.select_related("user").filter(id=int(agent_id)).first()
-            if agent:
+            agent = (
+                DeliveryAgent.objects.select_related("user")
+                .filter(id=int(agent_id))
+                .first()
+            )
+            if not agent:
+                messages.error(request, "Delivery partner was not found.")
+                return redirect("shopiva_admin:operations_center")
+
+            if action == "approve_delivery" and not verification_confirmed:
+                messages.error(
+                    request,
+                    "Verification is required before approving a new staff member. "
+                    "Confirm that the applicant's identity and submitted vehicle details have been checked.",
+                )
+                return redirect("shopiva_admin:operations_center")
+
+            with transaction.atomic():
                 enabled = action == "approve_delivery"
                 agent.is_active = enabled
                 if not enabled:
                     agent.status = "offline"
                 agent.save(update_fields=["is_active", "status"])
+
                 agent.user.is_active = enabled
                 agent.user.save(update_fields=["is_active"])
-                messages.success(
-                    request,
-                    f"{agent.display_name} is now {'approved for delivery operations' if enabled else 'deactivated from delivery operations'}.",
+
+                LogEntry.objects.log_action(
+                    user_id=request.user.pk,
+                    content_type_id=ContentType.objects.get_for_model(agent).pk,
+                    object_id=agent.pk,
+                    object_repr=str(agent),
+                    action_flag=CHANGE,
+                    change_message=(
+                        "Staff application verified and approved by admin."
+                        if enabled
+                        else "Staff application kept inactive/deactivated by admin."
+                    ),
                 )
-            else:
-                messages.error(request, "Delivery partner was not found.")
+
+                if enabled:
+                    messages.success(
+                        request,
+                        f"{agent.display_name} has been verified and approved for delivery operations.",
+                    )
+                else:
+                    messages.info(
+                        request,
+                        f"{agent.display_name} remains inactive and cannot access delivery operations.",
+                    )
+
         return redirect("shopiva_admin:operations_center")
 
     active_statuses = ("open", "in_progress", "waiting_for_customer")
-    pending_delivery = (
-        DeliveryAgent.objects.filter(is_active=False)
-        .select_related("user")
-        .order_by("-created_at")[:50]
-    )
+    pending_delivery_qs = DeliveryAgent.objects.filter(is_active=False).select_related("user").order_by("-created_at")
+    pending_delivery = pending_delivery_qs[:50]
+    approved_delivery_count = DeliveryAgent.objects.filter(is_active=True).count()
     user_issues = SupportTicket.objects.exclude(SYSTEM_TICKET_Q).filter(
         status__in=active_statuses
     ).select_related("user").order_by("-updated_at")[:50]
@@ -86,7 +125,8 @@ def admin_operations_center(request):
             "low_stock": low_stock,
             "stale_riders": stale_riders[:25],
             "counts": {
-                "pending_delivery": pending_delivery.count(),
+                "pending_delivery": pending_delivery_qs.count(),
+                "approved_delivery": approved_delivery_count,
                 "user_issues": SupportTicket.objects.exclude(SYSTEM_TICKET_Q).filter(status__in=active_statuses).count(),
                 "system_issues": SupportTicket.objects.filter(SYSTEM_TICKET_Q, status__in=active_statuses).count(),
                 "unread_notifications": Notification.objects.filter(is_read=False).count(),
