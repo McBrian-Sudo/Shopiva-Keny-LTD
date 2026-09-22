@@ -30,11 +30,13 @@ def mpesa_production_ready():
     required = (
         "MPESA_CONSUMER_KEY",
         "MPESA_CONSUMER_SECRET",
-        "MPESA_SHORTCODE",
         "MPESA_PASSKEY",
         "MPESA_CALLBACK_URL",
     )
     if not all(_env(name) for name in required):
+        return False
+
+    if not (_env("MPESA_TILL_NUMBER") or _env("MPESA_SHORTCODE")):
         return False
 
     callback = _env("MPESA_CALLBACK_URL").lower()
@@ -52,7 +54,9 @@ def _base_url():
 
 
 def _shortcode():
-    return _env("MPESA_SHORTCODE") or (_env("MPESA_TILL_NUMBER") if _env("MPESA_ENV", "sandbox").lower() == "production" else "174379")
+    if _env("MPESA_ENV", "sandbox").lower() == "production":
+        return _env("MPESA_TILL_NUMBER") or _env("MPESA_SHORTCODE")
+    return _env("MPESA_SHORTCODE") or "174379"
 
 
 def _passkey():
