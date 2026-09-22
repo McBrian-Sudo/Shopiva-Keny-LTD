@@ -894,7 +894,26 @@ def mpesa_payment_status(request, order_id):
     if not allowed:
         return JsonResponse({"ok": False, "error": "You are not authorized to view this payment."}, status=403)
     payment = order.payments.filter(method="mpesa").order_by("-created_at").first()
-    return JsonResponse({"ok": True, "order_id": order.id, "payment_status": order.payment_status, "order_status": order.status, "reference": order.payment_reference, "transaction_status": payment.status if payment else None})
+    message = "Waiting for M-PESA confirmation."
+    if payment:
+        raw = payment.raw_response or {}
+        callback = raw.get("Body", {}).get("stkCallback", {}) if isinstance(raw, dict) else {}
+        result_code = str(callback.get("ResultCode", "")).strip()
+        if payment.status == "failed" and result_code == "2002":
+            message = "Safaricom rejected the merchant configuration. No M-PESA prompt was sent. The approved production Till/Store number and Daraja merchant profile must be reconciled before another payment attempt."
+        elif payment.status == "failed":
+            message = str(callback.get("ResultDesc") or raw.get("error") or "M-PESA payment was not completed.")
+        elif payment.status == "paid":
+            message = "Payment confirmed."
+    return JsonResponse({
+        "ok": True,
+        "order_id": order.id,
+        "payment_status": order.payment_status,
+        "order_status": order.status,
+        "reference": order.payment_reference,
+        "transaction_status": payment.status if payment else None,
+        "message": message,
+    })
 
 
 def mpesa_waiting(request, order_id):
