@@ -64,7 +64,7 @@ def _passkey():
 
 
 def _callback_url():
-    return _env("MPESA_CALLBACK_URL", "https://shopiva-keny-ltd.onrender.com/payments/mpesa/callback/")
+    return _env("MPESA_CALLBACK_URL", "https://shopivakenya.top/payments/mpesa/callback/")
 
 
 def normalize_phone(phone):
@@ -75,6 +75,8 @@ def normalize_phone(phone):
         return value
     if value.startswith("0") and len(value) == 10:
         return "254" + value[1:]
+    if len(value) == 9 and value[0] in {"1", "7"}:
+        return "254" + value
     return value
 
 
@@ -129,7 +131,10 @@ def initiate_mpesa_stk(order, payment, phone):
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     password = base64.b64encode(f"{shortcode}{passkey}{timestamp}".encode()).decode()
-    amount = max(1, int(Decimal(order.total_amount).quantize(Decimal("1"))))
+    amount_decimal = Decimal(order.total_amount).quantize(Decimal("0.01"))
+    if amount_decimal != amount_decimal.quantize(Decimal("1")):
+        raise RuntimeError("M-PESA payments must use a whole-KES amount.")
+    amount = max(1, int(amount_decimal))
     payload = {
         "BusinessShortCode": shortcode,
         "Password": password,
