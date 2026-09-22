@@ -23,17 +23,22 @@ def _env(name, default=""):
 
 
 def mpesa_production_ready():
-    """Real M-PESA is available only after Safaricom production credentials are verified."""
-    return _env("MPESA_ENV", "sandbox").lower() == "production" and all(
-        _env(name)
-        for name in (
-            "MPESA_CONSUMER_KEY",
-            "MPESA_CONSUMER_SECRET",
-            "MPESA_SHORTCODE",
-            "MPESA_PASSKEY",
-            "MPESA_CALLBACK_URL",
-        )
+    """Return True only when the required production credentials and Shopiva callback are configured."""
+    if _env("MPESA_ENV", "sandbox").lower() != "production":
+        return False
+
+    required = (
+        "MPESA_CONSUMER_KEY",
+        "MPESA_CONSUMER_SECRET",
+        "MPESA_SHORTCODE",
+        "MPESA_PASSKEY",
+        "MPESA_CALLBACK_URL",
     )
+    if not all(_env(name) for name in required):
+        return False
+
+    callback = _env("MPESA_CALLBACK_URL").lower()
+    return callback.startswith("https://shopivakenya.top/") or callback.startswith("https://www.shopivakenya.top/")
 
 
 def pesapal_ready():
@@ -125,7 +130,7 @@ def initiate_mpesa_stk(order, payment, phone):
         "BusinessShortCode": shortcode,
         "Password": password,
         "Timestamp": timestamp,
-        # Shopiva is configured for a Safaricom Till / Buy Goods merchant.\n        # PayBill uses CustomerPayBillOnline; Till uses CustomerBuyGoodsOnline.\n        "TransactionType": "CustomerBuyGoodsOnline",
+        # Shopiva uses a Safaricom Till / Buy Goods merchant.\n        "TransactionType": "CustomerBuyGoodsOnline",
         "Amount": amount,
         "PartyA": phone,
         "PartyB": shortcode,
