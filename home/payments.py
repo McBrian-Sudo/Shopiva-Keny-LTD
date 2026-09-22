@@ -162,6 +162,35 @@ def initiate_mpesa_stk(order, payment, phone):
 
 
 
+def query_mpesa_stk(payment):
+    """Ask Daraja for the current STK request state when a callback has not arrived."""
+    checkout_request_id = str(payment.checkout_request_id or "").strip()
+    if not checkout_request_id:
+        raise RuntimeError("No M-PESA CheckoutRequestID is available for this payment.")
+
+    shortcode = _shortcode()
+    passkey = _passkey()
+    if not shortcode or not passkey:
+        raise RuntimeError("M-PESA shortcode/passkey is not configured.")
+
+    token = daraja_access_token()
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    password = base64.b64encode(f"{shortcode}{passkey}{timestamp}".encode()).decode()
+    status, response = _request_json(
+        f"{_base_url()}/mpesa/stkpushquery/v1/query",
+        data={
+            "BusinessShortCode": shortcode,
+            "Password": password,
+            "Timestamp": timestamp,
+            "CheckoutRequestID": checkout_request_id,
+        },
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    )
+    if status not in (200, 201):
+        raise RuntimeError(response.get("errorMessage") or response.get("ResponseDescription") or str(response))
+    return response
+
+
 def _pesapal_base_url():
     return "https://cybqa.pesapal.com/pesapalv3" if _env("PESAPAL_ENV", "sandbox").lower() == "sandbox" else "https://pay.pesapal.com/v3"
 
@@ -719,6 +748,73 @@ def stripe_webhook(request):
             except (PaymentTransaction.DoesNotExist, Order.DoesNotExist, ValueError):
                 return JsonResponse({"ok": False, "error": "Payment transaction not found."}, status=404)
     return JsonResponse({"received": True})
+
+
+def mpesa_payment_verify(request, order_id):
+    """Manual STK Query fallback. A successful query still waits for callback receipt validation."""
+    order = get_object_or_404(Order, id=order_id)
+    allowed = bool(
+        request.session.get("payment_order_id") == order.id
+        or (request.user.is_authenticated and (request.user.is_staff or order.email.lower() == request.user.email.lower()))
+    )
+    if not allowed:
+        return JsonResponse({"ok": False, "error": "You are not authorized to verify this payment."}, status=403)
+
+    payment = order.payments.filter(method="mpesa").order_by("-created_at").first()
+    if not payment:
+        return JsonResponse({"ok": False, "error": "No M-PESA payment was found for this order."}, status=404)
+    if payment.status == "paid" or order.payment_status == "paid":
+        return JsonResponse({"ok": True, "payment_status": "paid", "transaction_status": "paid", "message": "Payment is already confirmed."})
+
+    try:
+        provider = query_mpesa_stk(payment)
+    except Exception as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=502)
+
+    with transaction.atomic():
+        payment = PaymentTransaction.objects.select_for_update().get(pk=payment.pk)
+        order = Order.objects.select_for_update().get(pk=order.pk)
+        payment.raw_response = {**(payment.raw_response or {}), "last_stk_query": provider}
+        result_code = str(provider.get("ResultCode", "")).strip()
+
+        # ResultCode 0 means Daraja processed the request, but the callback is
+        # still required before Shopiva marks the order paid because only the
+        # callback carries the receipt/amount/phone metadata we validate.
+        if result_code == "0":
+            payment.status = "pending"
+            payment.save(update_fields=["status", "raw_response", "updated_at"])
+            return JsonResponse({
+                "ok": True,
+                "payment_status": order.payment_status,
+                "transaction_status": "provider_success_callback_pending",
+                "message": "Safaricom reports the STK request succeeded. Shopiva is waiting for the callback so the receipt, amount and phone can be verified.",
+            })
+
+        terminal_codes = {"1", "17", "1001", "1019", "1025", "1032", "1037", "2001", "2028", "2029"}
+        if result_code in terminal_codes:
+            payment.status = "failed"
+            if not payment.inventory_released:
+                _release_reserved_inventory(order)
+                payment.inventory_released = True
+            order.payment_status = "failed"
+            order.save(update_fields=["payment_status"])
+            OrderEvent.objects.create(order=order, event_type="cancelled", note=f"M-PESA verification failed: {provider.get('ResultDesc') or result_code}")
+            payment.save(update_fields=["status", "raw_response", "inventory_released", "updated_at"])
+            return JsonResponse({
+                "ok": True,
+                "payment_status": "failed",
+                "transaction_status": "failed",
+                "message": provider.get("ResultDesc") or "M-PESA payment was not completed.",
+            })
+
+        payment.status = "pending"
+        payment.save(update_fields=["status", "raw_response", "updated_at"])
+        return JsonResponse({
+            "ok": True,
+            "payment_status": order.payment_status,
+            "transaction_status": "pending",
+            "message": provider.get("ResultDesc") or "M-PESA is still processing the request.",
+        })
 
 
 def mpesa_payment_status(request, order_id):
