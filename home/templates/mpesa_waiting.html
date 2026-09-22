@@ -11,10 +11,36 @@
     <p>We sent an M-PESA payment prompt to your phone.</p>
     <p><strong>Check your phone and enter your M-PESA PIN on the official M-PESA prompt.</strong></p>
     <p id="status">Waiting for payment confirmation…</p>
+    <button id="verify" type="button">Check M-PESA status</button>
     <p><a href="{% url 'order_success' order.id %}">View order</a></p>
 
     <script>
         const statusBox = document.getElementById("status");
+        const verifyButton = document.getElementById("verify");
+
+        async function verifyPayment() {
+            verifyButton.disabled = true;
+            statusBox.textContent = "Checking Safaricom payment status…";
+            try {
+                const response = await fetch("{% url 'mpesa_payment_verify' order.id %}", {cache: "no-store"});
+                const data = await response.json();
+                statusBox.textContent = data.message || data.error || "Payment status checked.";
+                if (data.payment_status === "paid") {
+                    setTimeout(() => window.location.href = "{% url 'order_success' order.id %}", 800);
+                    return;
+                }
+                if (data.payment_status === "failed") {
+                    verifyButton.disabled = false;
+                    return;
+                }
+            } catch (error) {
+                statusBox.textContent = "Could not query Safaricom right now. Please try again.";
+            }
+            verifyButton.disabled = false;
+        }
+
+        verifyButton.addEventListener("click", verifyPayment);
+
         async function checkPayment() {
             try {
                 const response = await fetch("{% url 'mpesa_payment_status' order.id %}", {cache: "no-store"});
