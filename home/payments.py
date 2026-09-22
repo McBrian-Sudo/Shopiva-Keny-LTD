@@ -4,7 +4,7 @@ import os
 import urllib.error
 import urllib.request
 from datetime import datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_UP
 
 from django.db import transaction
 from django.http import JsonResponse
@@ -451,6 +451,21 @@ def checkout_mpesa(request):
 
         final_total = quote["total"]
 
+        # Daraja STK requests use whole Kenyan shillings. Never truncate a
+        # fractional total because that would undercharge the order and make
+        # callback amount validation fail. For M-PESA, round upward by the
+        # smallest amount necessary and keep that adjustment inside Shopiva's
+        # service-fee accounting so the order remains balanced.
+        mpesa_rounding_adjustment = Decimal("0.00")
+        if payment_method == "mpesa":
+            mpesa_total = final_total.quantize(Decimal("1"), rounding=ROUND_UP)
+            mpesa_rounding_adjustment = mpesa_total - final_total
+            if mpesa_rounding_adjustment > 0:
+                quote["commission"] = (
+                    quote["commission"] + mpesa_rounding_adjustment
+                ).quantize(Decimal("0.01"))
+                final_total = mpesa_total
+
         order = Order.objects.create(
             customer_name=customer_name,
             customer=request.user if request.user.is_authenticated and not request.user.is_staff and not hasattr(request.user, "seller_profile") and not hasattr(request.user, "delivery_agent_profile") else None,
@@ -507,7 +522,10 @@ def checkout_mpesa(request):
             payment = PaymentTransaction.objects.create(order=order, method="mpesa", status="initiated", provider="daraja", amount=final_total, phone=normalize_phone(phone), idempotency_key=f"MPESA-{order.id}")
         order.payment_status = "pending"
         order.save(update_fields=["payment_status"])
-        OrderEvent.objects.create(order=order, event_type="payment_pending", note="Waiting for M-PESA STK payment.")
+        payment_note = "Waiting for M-PESA STK payment."
+        if mpesa_rounding_adjustment > 0:
+            payment_note += f" Whole-KSh payment adjustment: KSh {mpesa_rounding_adjustment:.2f}."
+        OrderEvent.objects.create(order=order, event_type="payment_pending", note=payment_note)
 
     if payment_method in {"pesapal", "card"}:
         try:
@@ -544,7 +562,15 @@ def checkout_mpesa(request):
             payment.save(update_fields=["status", "raw_response", "inventory_released", "updated_at"])
             order.payment_status = "failed"
             order.save(update_fields=["payment_status"])
-        return render(request, "checkout.html", {"items": items, "total": total, "error": f"M-PESA could not be started: {exc}"})
+        return render(
+            request,
+            "checkout.html",
+            {
+                "items": items,
+                "total": final_total,
+                "error": f"M-PESA could not be started: {exc}",
+            },
+        )
 
     request.session["cart"] = {}
     request.session["payment_order_id"] = order.id
