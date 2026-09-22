@@ -207,19 +207,36 @@ class DeliveryRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
         user.last_name = self.cleaned_data["last_name"].strip()
         user.is_staff = False
         user.is_superuser = False
-        # Keep credentials usable for the application workflow, but DeliveryAgent access
-        # remains disabled until Shopiva staff explicitly activates the agent.
-        user.is_active = True
+        # A delivery applicant must remain completely inactive until an administrator
+        # verifies the application and explicitly approves the DeliveryAgent.
+        user.is_active = False
         if commit:
+            from .models import DeliveryAgent, Notification
             user.save()
-            from .models import DeliveryAgent
-            DeliveryAgent.objects.create(
+            agent = DeliveryAgent.objects.create(
                 user=user,
                 phone=self.cleaned_data["phone"],
                 vehicle_type=self.cleaned_data["vehicle_type"].strip(),
                 vehicle_number=self.cleaned_data["vehicle_number"],
                 status="offline",
                 is_active=False,
+            )
+            # Surface the application in every active admin's notification center.
+            admins = User.objects.filter(is_staff=True, is_active=True).only("id")
+            Notification.objects.bulk_create(
+                [
+                    Notification(
+                        user_id=admin.id,
+                        notification_type="system",
+                        title="New staff approval required",
+                        message=(
+                            f"{user.get_full_name() or user.username} submitted a delivery staff application. "
+                            "Verify the applicant's details before approving access."
+                        ),
+                        link="/admin/operations-center/",
+                    )
+                    for admin in admins
+                ]
             )
         return user
 
