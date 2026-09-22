@@ -89,9 +89,11 @@ def admin_operations_center(request):
     system_issues = SupportTicket.objects.filter(
         SYSTEM_TICKET_Q, status__in=active_statuses
     ).select_related("user").order_by("-updated_at")[:50]
-    notifications = Notification.objects.select_related("user").order_by(
-        "-created_at"
-    )[:50]
+    notifications = (
+        Notification.objects.filter(user__is_staff=True)
+        .select_related("user")
+        .order_by("-created_at")[:50]
+    )
 
     failed_payments = PaymentTransaction.objects.filter(
         status__in=("failed", "cancelled", "refunded")
@@ -129,7 +131,7 @@ def admin_operations_center(request):
                 "approved_delivery": approved_delivery_count,
                 "user_issues": SupportTicket.objects.exclude(SYSTEM_TICKET_Q).filter(status__in=active_statuses).count(),
                 "system_issues": SupportTicket.objects.filter(SYSTEM_TICKET_Q, status__in=active_statuses).count(),
-                "unread_notifications": Notification.objects.filter(is_read=False).count(),
+                "unread_notifications": Notification.objects.filter(user__is_staff=True, is_read=False).count(),
                 "failed_payments": PaymentTransaction.objects.filter(status__in=("failed", "cancelled", "refunded")).count(),
                 "unassigned_orders": Order.objects.filter(delivery_agent__isnull=True, status__in=("confirmed", "paid", "packed", "processing", "shipped")).count(),
                 "low_stock": Product.objects.filter(is_active=True, stock_quantity__lte=5).count(),
