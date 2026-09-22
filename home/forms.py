@@ -207,9 +207,10 @@ class DeliveryRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
         user.last_name = self.cleaned_data["last_name"].strip()
         user.is_staff = False
         user.is_superuser = False
-        # A delivery applicant must remain completely inactive until an administrator
-        # verifies the application and explicitly approves the DeliveryAgent.
-        user.is_active = False
+        # Keep the Django login account usable while the DeliveryAgent profile remains
+        # pending. Delivery access itself is still blocked until admin approval,
+        # or the no-active-admin fallback in delivery_login() is triggered.
+        user.is_active = True
         if commit:
             from .models import DeliveryAgent, Notification
             user.save()
