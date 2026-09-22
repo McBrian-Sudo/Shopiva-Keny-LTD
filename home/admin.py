@@ -17,6 +17,7 @@ from django.urls import path
 from django.utils import timezone
 
 from .voice_ai import speak_text, transcribe_voice
+from .admin_operations import admin_operations_center
 from .payments import _create_seller_settlements
 from .notifications import notify_user
 from .notification_service import notify_wishlist_product_change
@@ -99,6 +100,7 @@ class ShopivaAdminSite(admin.AdminSite):
             path("ai-voice/transcribe/", self.admin_view(transcribe_voice), name="ai_voice_transcribe"),
             path("delivery-map/", self.admin_view(self.delivery_map), name="delivery_map"),
             path("delivery-locations/", self.admin_view(self.delivery_locations), name="delivery_locations"),
+            path("operations-center/", self.admin_view(admin_operations_center), name="operations_center"),
         ]
         return custom_urls + urls
 
