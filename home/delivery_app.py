@@ -90,8 +90,6 @@ def delivery_login(request):
                 # This prevents the platform from becoming permanently blocked
                 # when the admin accounts are all inactive.
                 from django.contrib.auth.models import User
-                from django.contrib.admin.models import LogEntry, ADDITION
-                from django.contrib.contenttypes.models import ContentType
                 from .models import Notification
 
                 active_admin_exists = User.objects.filter(
@@ -130,14 +128,6 @@ def delivery_login(request):
                                 ),
                                 link="/delivery/",
                             )
-
-                            # Keep an auditable Django admin record without
-                            # pretending that an administrator performed the approval.
-                            if User.objects.filter(
-                                is_staff=True,
-                                is_active=True,
-                            ).exists():
-                                pass
 
                     login(request, agent.user)
                     return redirect("delivery_portal")
