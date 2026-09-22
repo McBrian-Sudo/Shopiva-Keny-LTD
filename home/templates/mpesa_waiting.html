@@ -8,15 +8,17 @@
 <body>
     <h1>M-PESA Payment</h1>
     <p>Order <strong>#{{ order.id }}</strong></p>
-    <p>We sent an M-PESA payment prompt to your phone.</p>
-    <p><strong>Check your phone and enter your M-PESA PIN on the official M-PESA prompt.</strong></p>
-    <p id="status">Waiting for payment confirmation…</p>
+    <p id="intro">Shopiva submitted the M-PESA payment request.</p>
+    <p id="instruction"><strong>If Safaricom accepts the request, an official M-PESA prompt will appear on your phone.</strong></p>
+    <p id="status">Waiting for M-PESA confirmation…</p>
     <button id="verify" type="button">Check M-PESA status</button>
     <p><a href="{% url 'order_success' order.id %}">View order</a></p>
 
     <script>
         const statusBox = document.getElementById("status");
         const verifyButton = document.getElementById("verify");
+        const introBox = document.getElementById("intro");
+        const instructionBox = document.getElementById("instruction");
 
         async function verifyPayment() {
             verifyButton.disabled = true;
@@ -26,10 +28,14 @@
                 const data = await response.json();
                 statusBox.textContent = data.message || data.error || "Payment status checked.";
                 if (data.payment_status === "paid") {
+                    introBox.textContent = "M-PESA payment confirmed.";
+                    instructionBox.textContent = "Your order is now paid.";
                     setTimeout(() => window.location.href = "{% url 'order_success' order.id %}", 800);
                     return;
                 }
                 if (data.payment_status === "failed") {
+                    introBox.textContent = "M-PESA payment request failed.";
+                    instructionBox.textContent = "No payment prompt was sent because Safaricom rejected the request.";
                     verifyButton.disabled = false;
                     return;
                 }
@@ -46,15 +52,20 @@
                 const response = await fetch("{% url 'mpesa_payment_status' order.id %}", {cache: "no-store"});
                 const data = await response.json();
                 if (data.payment_status === "paid") {
-                    statusBox.textContent = "Payment confirmed. Your order is now paid.";
+                    statusBox.textContent = data.message || "Payment confirmed. Your order is now paid.";
+                    introBox.textContent = "M-PESA payment confirmed.";
+                    instructionBox.textContent = "Your order is now paid.";
                     setTimeout(() => window.location.href = "{% url 'order_success' order.id %}", 1200);
                     return;
                 }
                 if (data.payment_status === "failed") {
-                    statusBox.textContent = "Payment was not completed. You can return to checkout and try again.";
+                    statusBox.textContent = data.message || "M-PESA payment was not completed.";
+                    introBox.textContent = "M-PESA payment request failed.";
+                    instructionBox.textContent = "No payment prompt was sent because Safaricom rejected the request.";
+                    verifyButton.disabled = false;
                     return;
                 }
-                statusBox.textContent = "Still waiting for M-PESA confirmation…";
+                statusBox.textContent = data.message || "Still waiting for M-PESA confirmation…";
             } catch (error) {
                 statusBox.textContent = "Still waiting for confirmation…";
             }
