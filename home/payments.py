@@ -36,7 +36,11 @@ def mpesa_production_ready():
     if not all(_env(name) for name in required):
         return False
 
-    if not (_env("MPESA_TILL_NUMBER") or _env("MPESA_SHORTCODE")):
+    # Production must use the Safaricom-approved Till/Store number explicitly.
+    # Do not fall back to MPESA_SHORTCODE: mixing a shortcode from another
+    # merchant profile with the production credentials can trigger a provider
+    # merchant-validation rejection before any customer prompt is sent.
+    if not _env("MPESA_TILL_NUMBER"):
         return False
 
     callback = _env("MPESA_CALLBACK_URL").lower()
@@ -55,7 +59,10 @@ def _base_url():
 
 def _shortcode():
     if _env("MPESA_ENV", "sandbox").lower() == "production":
-        return _env("MPESA_TILL_NUMBER") or _env("MPESA_SHORTCODE")
+        till = _env("MPESA_TILL_NUMBER")
+        if not till:
+            raise RuntimeError("M-PESA production Till/Store number is not configured.")
+        return till
     return _env("MPESA_SHORTCODE") or "174379"
 
 
@@ -127,7 +134,7 @@ def initiate_mpesa_stk(order, payment, phone):
     shortcode = _shortcode()
     passkey = _passkey()
     if not shortcode or not passkey:
-        raise RuntimeError("M-PESA shortcode/passkey is not configured.")
+        raise RuntimeError("M-PESA production Till/Store number and passkey are not configured.")
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     password = base64.b64encode(f"{shortcode}{passkey}{timestamp}".encode()).decode()
@@ -158,7 +165,17 @@ def initiate_mpesa_stk(order, payment, phone):
     payment.updated_at = timezone.now()
     payment.save(update_fields=["raw_response", "updated_at"])
     if status not in (200, 201) or str(response.get("ResponseCode", "0")) != "0":
-        raise RuntimeError(response.get("errorMessage") or response.get("ResponseDescription") or str(response))
+        error_code = str(response.get("errorCode") or response.get("ResponseCode") or "").strip()
+        error_message = response.get("errorMessage") or response.get("ResponseDescription") or str(response)
+        if error_code == "2002" or "Agent number and Store number entered do not match" in str(error_message):
+            raise RuntimeError(
+                "Safaricom rejected the M-PESA merchant configuration (2002). "
+                "The production Till/Store number does not match the approved "
+                "Daraja production merchant profile. No customer STK prompt was sent. "
+                "Verify the approved Till/Store number, production app credentials, "
+                "and passkey with Safaricom before retrying."
+            )
+        raise RuntimeError(error_message)
     payment.merchant_request_id = response.get("MerchantRequestID", "")
     payment.checkout_request_id = response.get("CheckoutRequestID", "")
     payment.status = "pending"
@@ -821,7 +838,27 @@ def mpesa_payment_verify(request, order_id):
                 "message": "Safaricom reports the STK request succeeded. Shopiva is waiting for the callback so the receipt, amount and phone can be verified.",
             })
 
-        terminal_codes = {"1", "17", "1001", "1019", "1025", "1032", "1037", "2001", "2028", "2029"}
+        terminal_codes = {"1", "17", "1001", "1019", "1025", "1032", "1037", "2001", "2028", "2029", "2002"}
+        if result_code == "2002":
+            payment.status = "failed"
+            if not payment.inventory_released:
+                _release_reserved_inventory(order)
+                payment.inventory_released = True
+            order.payment_status = "failed"
+            order.save(update_fields=["payment_status"])
+            OrderEvent.objects.create(
+                order=order,
+                event_type="cancelled",
+                note="M-PESA merchant configuration rejected by Safaricom (2002): Agent/Store number mismatch.",
+            )
+            payment.save(update_fields=["status", "raw_response", "inventory_released", "updated_at"])
+            return JsonResponse({
+                "ok": True,
+                "payment_status": "failed",
+                "transaction_status": "failed",
+                "message": "Safaricom rejected the merchant configuration. No M-PESA prompt was sent. Please try again after the merchant configuration is corrected.",
+            })
+
         if result_code in terminal_codes:
             payment.status = "failed"
             if not payment.inventory_released:
