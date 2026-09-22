@@ -68,6 +68,7 @@ class ShopivaAdminSite(admin.AdminSite):
             "assigned_orders": orders.exclude(delivery_agent__isnull=True).exclude(status__in=["delivered", "cancelled"]).count(),
             "today_orders": orders.filter(created_at__date=today).count(),
             "revenue": orders.exclude(status="cancelled").aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00"),
+            "pending_staff_approvals": DeliveryAgent.objects.filter(is_active=False).count(),
         }
 
     def index(self, request, extra_context=None):
@@ -81,6 +82,7 @@ class ShopivaAdminSite(admin.AdminSite):
                 "low_stock_products": products.filter(stock_quantity__lte=5, is_active=True).order_by("stock_quantity", "name")[:8],
                 "recent_products": products.order_by("-id")[:6],
                 "active_delivery_agents": DeliveryAgent.objects.filter(is_active=True).select_related("user").order_by("user__username"),
+                "pending_staff_approvals": DeliveryAgent.objects.filter(is_active=False).select_related("user").order_by("-created_at")[:8],
             }
         )
         return super().index(request, extra_context=extra_context)
@@ -532,8 +534,8 @@ class DeliveryAgentAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "is_active", "vehicle_type")
     search_fields = ("user__username", "user__first_name", "user__last_name", "phone", "vehicle_number")
-    list_editable = ("status", "is_active")
-    readonly_fields = ("current_latitude", "current_longitude", "last_location_at")
+    list_editable = ("status",)
+    readonly_fields = ("current_latitude", "current_longitude", "last_location_at", "is_active")
     list_per_page = 25
 
     @admin.display(description="Access state", boolean=False)
