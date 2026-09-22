@@ -24,8 +24,9 @@ body{background:radial-gradient(circle at 95% 0%,rgba(22,199,132,.11),transparen
   </div>
 
   <div class="summary">
-    <div class="stat"><small>Pending delivery approvals</small><strong>{{ counts.pending_delivery }}</strong></div>
-    <div class="stat"><small>Unread notifications</small><strong>{{ counts.unread_notifications }}</strong></div>
+    <div class="stat"><small>Pending staff approvals</small><strong>{{ counts.pending_delivery }}</strong></div>
+    <div class="stat"><small>Approved delivery staff</small><strong>{{ counts.approved_delivery }}</strong></div>
+    <div class="stat"><small>Unread admin notifications</small><strong>{{ counts.unread_notifications }}</strong></div>
     <div class="stat"><small>User-raised issues</small><strong>{{ counts.user_issues }}</strong></div>
     <div class="stat"><small>System-raised issues</small><strong>{{ counts.system_issues }}</strong></div>
   </div>
@@ -33,7 +34,7 @@ body{background:radial-gradient(circle at 95% 0%,rgba(22,199,132,.11),transparen
   <section class="panel">
     <div class="panel-head"><div><h2>Admin centers</h2><p>Direct access to the operational workspaces you asked to see.</p></div></div>
     <div class="links">
-      <a class="link" href="{% url 'admin_operations_center' %}"><strong>✅ Approval Center</strong><span>Review and activate new delivery partners.</span></a>
+      <a class="link" href="{% url 'admin_operations_center' %}"><strong>🛡️ Staff Approval Center</strong><span>Verify and approve new delivery staff before they can access operations.</span></a>
       <a class="link" href="{% url 'admin_notifications' %}"><strong>🔔 Notification Center</strong><span>Read and manage staff notifications.</span></a>
       <a class="link" href="{% url 'support_admin_center' %}"><strong>🛟 Raised Issues</strong><span>Customer and seller support cases.</span></a>
       <a class="link" href="{% url 'support_admin_center' %}?source=system"><strong>⚙️ System-Raised Issues</strong><span>Automatic payment/order assistance cases.</span></a>
@@ -45,15 +46,18 @@ body{background:radial-gradient(circle at 95% 0%,rgba(22,199,132,.11),transparen
   <div class="layout">
     <div>
       <section class="panel">
-        <div class="panel-head"><div><h2>🚚 Delivery approval queue</h2><p>New applicants stay inactive until Shopiva approves them.</p></div><span class="badge">{{ counts.pending_delivery }} pending</span></div>
+        <div class="panel-head"><div><h2>🚚 New staff approval queue</h2><p>Every new delivery staff applicant stays inactive until an administrator verifies the submitted details and approves access.</p></div><span class="badge {% if counts.pending_delivery %}warn{% endif %}">{{ counts.pending_delivery }} pending</span></div>
         <div class="list">
         {% for agent in pending_delivery %}
           <div class="row">
             <div class="rowhead"><b>{{ agent.display_name }}</b><span class="badge warn">Pending approval</span></div>
             <div class="meta">{{ agent.user.email|default:"No email" }} · {{ agent.phone }} · {{ agent.vehicle_type|default:"Vehicle not specified" }}{% if agent.vehicle_number %} · {{ agent.vehicle_number }}{% endif %}<br>Applied {{ agent.created_at|date:"d M Y, H:i" }}</div>
-            <div class="actions"><form method="post">{% csrf_token %}<input type="hidden" name="agent_id" value="{{ agent.id }}"><button class="approve" name="action" value="approve_delivery" type="submit">✓ Approve rider</button></form><form method="post">{% csrf_token %}<input type="hidden" name="agent_id" value="{{ agent.id }}"><button class="deactivate" name="action" value="deactivate_delivery" type="submit">Keep inactive</button></form></div>
+            <div class="actions">
+              <form method="post">{% csrf_token %}<input type="hidden" name="agent_id" value="{{ agent.id }}"><input type="hidden" name="verification_confirmed" value="1"><button class="approve" name="action" value="approve_delivery" type="submit" onclick="return confirm('Confirm that you have verified this applicant\'s identity, phone and submitted vehicle details?');">✓ Verify & approve</button></form>
+              <form method="post">{% csrf_token %}<input type="hidden" name="agent_id" value="{{ agent.id }}"><button class="deactivate" name="action" value="deactivate_delivery" type="submit">Keep pending</button></form>
+            </div>
           </div>
-        {% empty %}<div class="empty">No delivery partner applications are waiting for approval.</div>{% endfor %}
+        {% empty %}<div class="empty">{% if counts.approved_delivery %}No new staff applications are waiting for approval. {{ counts.approved_delivery }} delivery staff member{{ counts.approved_delivery|pluralize }} currently approved.{% else %}No staff applications are waiting for approval yet.{% endif %}</div>{% endfor %}
         </div>
       </section>
 
