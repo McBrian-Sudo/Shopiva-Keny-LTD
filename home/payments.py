@@ -125,7 +125,7 @@ def initiate_mpesa_stk(order, payment, phone):
         "BusinessShortCode": shortcode,
         "Password": password,
         "Timestamp": timestamp,
-        "TransactionType": "CustomerPayBillOnline",
+        # Shopiva is configured for a Safaricom Till / Buy Goods merchant.\n        # PayBill uses CustomerPayBillOnline; Till uses CustomerBuyGoodsOnline.\n        "TransactionType": "CustomerBuyGoodsOnline",
         "Amount": amount,
         "PartyA": phone,
         "PartyB": shortcode,
