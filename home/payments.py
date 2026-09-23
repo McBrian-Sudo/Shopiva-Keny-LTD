@@ -149,7 +149,7 @@ def initiate_mpesa_stk(order, payment, phone):
         "TransactionType": "CustomerBuyGoodsOnline",
         "Amount": amount,
         "PartyA": phone,
-        "PartyB": shortcode,
+        "PartyB": _till_number(),
         "PhoneNumber": phone,
         "CallBackURL": _callback_url(),
         "AccountReference": f"SHOPIVA-{order.id}",
