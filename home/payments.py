@@ -58,13 +58,12 @@ def _base_url():
 
 
 def _shortcode():
-       if _env("MPESA_ENV", "sandbox").lower() == "production":
+    if _env("MPESA_ENV", "sandbox").lower() == "production":
         shortcode = _env("MPESA_SHORTCODE")
         if not shortcode:
             raise RuntimeError("M-PESA production Short Code is not configured.")
         return shortcode
-           return _env("MPESA_SHORTCODE") or "174379"
-
+    return _env("MPESA_SHORTCODE") or "174379"
 
 def _passkey():
     return _env("MPESA_PASSKEY")
