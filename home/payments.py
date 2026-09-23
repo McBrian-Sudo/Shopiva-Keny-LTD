@@ -1,6 +1,6 @@
 import base64
 import json
-import os
+import os       
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -63,7 +63,7 @@ def _shortcode():
         if not shortcode:
             raise RuntimeError("M-PESA production Short Code is not configured.")
         return shortcode
-    return _env("MPESA_SHORTCODE") or "174379"
+           return _env("MPESA_SHORTCODE") or "174379"
 
 
 def _passkey():
