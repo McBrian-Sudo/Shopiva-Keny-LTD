@@ -68,6 +68,12 @@ def _shortcode():
 def _passkey():
     return _env("MPESA_PASSKEY")
 
+def _till_number():
+    till = _env("MPESA_TILL_NUMBER")
+    if not till:
+        raise RuntimeError("M-PESA Till Number is not configured.")
+    return till
+
 
 def _callback_url():
     return _env("MPESA_CALLBACK_URL", "https://shopivakenya.top/payments/mpesa/callback/")
