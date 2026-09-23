@@ -58,11 +58,11 @@ def _base_url():
 
 
 def _shortcode():
-    if _env("MPESA_ENV", "sandbox").lower() == "production":
-        till = _env("MPESA_TILL_NUMBER")
-        if not till:
-            raise RuntimeError("M-PESA production Till/Store number is not configured.")
-        return till
+       if _env("MPESA_ENV", "sandbox").lower() == "production":
+        shortcode = _env("MPESA_SHORTCODE")
+        if not shortcode:
+            raise RuntimeError("M-PESA production Short Code is not configured.")
+        return shortcode
     return _env("MPESA_SHORTCODE") or "174379"
 
 
