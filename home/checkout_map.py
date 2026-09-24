@@ -81,10 +81,12 @@ def checkout_mpesa_map(request):
         if user.is_authenticated and not user.is_staff and not user.is_superuser:
             from .models import CustomerAddress
             saved_addresses = CustomerAddress.objects.filter(user=user).order_by("-is_default", "-created_at")[:8]
+        from .payments import _checkout_key
+        checkout_key = _checkout_key(request)
         return render(
             request,
             "customer_checkout_map.html",
-            {"items": items, "total": total, "saved_addresses": saved_addresses},
+            {"items": items, "total": total, "saved_addresses": saved_addresses, "checkout_key": checkout_key},
         )
 
     latitude = _coord(request.POST.get("delivery_latitude"), Decimal("-90"), Decimal("90"))
