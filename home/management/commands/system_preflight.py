@@ -6,6 +6,7 @@ from django.db import connection
 from django.db.models import Count, Q
 from django.db.models.functions import Lower
 
+from home.commission import get_platform_commission_percent
 from home.models import (
     CustomerAddress,
     DeliveryAgent,
@@ -98,7 +99,10 @@ class Command(BaseCommand):
         for settlement in SellerSettlement.objects.all().only(
             "gross_amount", "platform_commission", "seller_amount", "order_id"
         ).select_related("order"):
-            if settlement.gross_amount != settlement.platform_commission + settlement.seller_amount:
+            # Shopiva's commission is charged to the customer on top of the seller's
+            # item price. Therefore seller_amount equals seller gross; commission is
+            # tracked separately rather than deducted from seller_amount.
+            if settlement.seller_amount != settlement.gross_amount:
                 inconsistent_settlements += 1
             if settlement.order.payment_status != "paid":
                 unpaid_settlements += 1
@@ -123,21 +127,48 @@ class Command(BaseCommand):
 
         inconsistent_items = 0
         for item in OrderItem.objects.all().only(
-            "quantity", "price", "seller_gross", "platform_commission", "seller_net"
+            "quantity", "price", "seller_gross", "platform_commission", "seller_net", "seller_id"
         ):
             line_total = item.price * item.quantity
-            if item.seller_gross != line_total or item.seller_gross != item.platform_commission + item.seller_net:
+            expected_commission = Decimal("0.00")
+            if item.seller_id:
+                expected_commission = (
+                    line_total * get_platform_commission_percent(item.price) / Decimal("100")
+                ).quantize(Decimal("0.01"))
+            if (
+                item.seller_gross != line_total
+                or item.seller_net != line_total
+                or item.platform_commission != expected_commission
+            ):
                 inconsistent_items += 1
         if inconsistent_items:
             failures.append(f"Order items with inconsistent financial arithmetic: {inconsistent_items}")
 
         inconsistent_order_totals = 0
-        for order in Order.objects.all().only("id", "total_amount"):
+        for order in Order.objects.all().only(
+            "id", "total_amount", "items_subtotal", "platform_commission_amount", "delivery_fee"
+        ):
             item_total = sum(
                 (item.price * item.quantity for item in order.items.all()),
                 Decimal("0.00"),
-            )
-            if order.total_amount != item_total:
+            ).quantize(Decimal("0.01"))
+            item_commission_total = sum(
+                (item.platform_commission for item in order.items.all()),
+                Decimal("0.00"),
+            ).quantize(Decimal("0.01"))
+            expected_total = (
+                item_total
+                + order.platform_commission_amount
+                + order.delivery_fee
+            ).quantize(Decimal("0.01"))
+            # For M-PESA orders, any whole-KSh rounding adjustment is kept in the
+            # order-level platform commission field. Order/item bookkeeping remains
+            # exact at the line level.
+            if (
+                order.items_subtotal != item_total
+                or order.platform_commission_amount < item_commission_total
+                or order.total_amount != expected_total
+            ):
                 inconsistent_order_totals += 1
         if inconsistent_order_totals:
             failures.append(f"Orders whose totals do not equal their line items: {inconsistent_order_totals}")
