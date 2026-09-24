@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from .voice_ai import speak_text, transcribe_voice
 from .admin_operations import admin_operations_center
-from .payments import _create_seller_settlements
+from .payments import _release_reserved_inventory
 from .notifications import notify_user
 from .notification_service import notify_wishlist_product_change
 from .payouts import transition_seller_payout
@@ -474,6 +474,23 @@ class OrderAdmin(admin.ModelAdmin):
                 actor=request.user,
             )
             return
+
+        if previous.status != obj.status and obj.status == "cancelled" and previous.payment_status != "paid":
+            with transaction.atomic():
+                locked_order = Order.objects.select_for_update().get(pk=obj.pk)
+                pending_payments = list(
+                    PaymentTransaction.objects.select_for_update().filter(
+                        order=locked_order,
+                        status__in={"initiated", "pending"},
+                    )
+                )
+                for payment in pending_payments:
+                    payment.status = "cancelled"
+                    payment.inventory_released = True
+                    payment.save(update_fields=("status", "inventory_released", "updated_at"))
+                _release_reserved_inventory(locked_order)
+                locked_order.payment_status = "failed"
+                locked_order.save(update_fields=("payment_status",))
 
         if previous.status != obj.status and obj.status == "delivered":
             with transaction.atomic():
