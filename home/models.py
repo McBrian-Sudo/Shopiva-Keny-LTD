@@ -164,6 +164,8 @@ class Order(models.Model):
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="shopiva_orders")
     email = models.EmailField()
     access_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    # One checkout intent per browser session; prevents duplicate orders from double-submit/retry.
+    checkout_key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     phone = models.CharField(max_length=30)
     address = models.TextField()
     delivery_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
