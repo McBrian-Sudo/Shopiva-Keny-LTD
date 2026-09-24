@@ -72,6 +72,35 @@ if(map){const p={lat,lng};if(window.google&&window.google.maps&&map.panTo){if(!m
 openGoogle.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(lat+','+lng);
 msg(confirmed?'Delivery point confirmed.':'Location found. Check the map, then tick the confirmation box and press Confirm pin.','ok');refreshQuote();
 }
+async function resolveCoordinates(lat,lng){
+try{
+  if(window.google&&window.google.maps&&window.google.maps.Geocoder){
+    const geocoder=new google.maps.Geocoder();
+    const result=await new Promise((resolve,reject)=>geocoder.geocode({location:{lat:Number(lat),lng:Number(lng)}},(results,status)=>status==='OK'&&results&&results[0]?resolve(results[0]):reject(status)));
+    let county='',town='';
+    (result.address_components||[]).forEach(comp=>{
+      const types=comp.types||[];
+      if(types.includes('administrative_area_level_1')) county=comp.long_name.replace(/\s+County$/i,'');
+      if(!town&&(types.includes('postal_town')||types.includes('locality')||types.includes('administrative_area_level_2')||types.includes('sublocality_level_1'))) town=comp.long_name;
+    });
+    if(county) countyEl.value=county;
+    if(town) townEl.value=town;
+    if(result.formatted_address) { addrEl.value=result.formatted_address; placeChip.textContent='Selected: '+result.formatted_address; placeChip.style.display='block'; }
+    lastKey=''; refreshQuote();
+    return true;
+  }
+  const response=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng)+'&zoom=18&addressdetails=1',{headers:{Accept:'application/json'}});
+  if(!response.ok) return false;
+  const data=await response.json(), a=data.address||{};
+  const county=(a.county||'').replace(/\s+County$/i,'');
+  const town=a.town||a.city||a.municipality||a.village||a.suburb||a.city_district||'';
+  if(county) countyEl.value=county;
+  if(town) townEl.value=town;
+  if(data.display_name){addrEl.value=data.display_name;placeChip.textContent='Selected: '+data.display_name;placeChip.style.display='block';}
+  lastKey=''; refreshQuote();
+  return true;
+}catch(e){return false}
+}
 function extractPlace(place){if(!place||!place.geometry||!place.geometry.location){msg('That result has no usable map location. Try another suggestion.','warn');return}
 let county='',town='';(place.address_components||[]).forEach(c=>{const types=c.types||[];if(types.includes('administrative_area_level_1'))county=c.long_name.replace(/\s+County$/i,'');if(!town&&types.includes('postal_town'))town=c.long_name;if(!town&&types.includes('locality'))town=c.long_name;if(!town&&types.includes('sublocality_level_1'))town=c.long_name});
 if(county)countyEl.value=county;if(town)townEl.value=town;
@@ -82,14 +111,14 @@ function initGoogle(){
 map=new google.maps.Map(document.getElementById('map'),{center:home,zoom:6,mapTypeControl:false,streetViewControl:false,fullscreenControl:true,mapId:'{{ google_maps_map_id|default:"DEMO_MAP_ID" }}'});
 const ac=new google.maps.places.Autocomplete(searchEl,{componentRestrictions:{country:'ke'},fields:['formatted_address','geometry','address_components','name','place_id']});
 ac.addListener('place_changed',()=>extractPlace(ac.getPlace()));
-map.addListener('click',e=>setPoint(e.latLng.lat(),e.latLng.lng(),addrEl.value||'Pinned delivery','manual',null));
+map.addListener('click',e=>{setPoint(e.latLng.lat(),e.latLng.lng(),addrEl.value||'Pinned delivery','manual',null);resolveCoordinates(e.latLng.lat(),e.latLng.lng())});
 }
 window.shopivaGoogleMapsReady=initGoogle;
 {% if not google_maps_api_key %}
 map=L.map('map',{scrollWheelZoom:false,zoomControl:true,minZoom:5,maxZoom:19}).setView([home.lat,home.lng],6);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
-map.on('click',e=>setPoint(e.latlng.lat,e.latlng.lng,addrEl.value||'Pinned delivery','manual',null));
+map.on('click',e=>{setPoint(e.latlng.lat,e.latlng.lng,addrEl.value||'Pinned delivery','manual',null);resolveCoordinates(e.latlng.lat,e.latlng.lng)});
 {% endif %}
-document.getElementById('gps').onclick=()=>{if(!navigator.geolocation){msg('Your browser does not support device location.','warn');return}msg('Requesting your device location…');navigator.geolocation.getCurrentPosition(p=>{const label=addrEl.value||'Current device location';if(map&&window.google&&map.panTo){map.panTo({lat:p.coords.latitude,lng:p.coords.longitude});if(map.getZoom()<16)map.setZoom(16);if(!userMarker)userMarker=new google.maps.Marker({map,position:{lat:p.coords.latitude,lng:p.coords.longitude},title:'Your device location',icon:'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'});else userMarker.setPosition({lat:p.coords.latitude,lng:p.coords.longitude})}setPoint(p.coords.latitude,p.coords.longitude,label,'gps',p.coords.accuracy)},()=>msg('Location permission was denied or your device could not determine your location. Search your address or move the map pin instead.','warn'),{enableHighAccuracy:true,timeout:15000,maximumAge:10000})};
+document.getElementById('gps').onclick=()=>{if(!navigator.geolocation){msg('Your browser does not support device location.','warn');return}msg('Requesting your device location…');navigator.geolocation.getCurrentPosition(p=>{const label=addrEl.value||'Current device location';if(map&&window.google&&map.panTo){map.panTo({lat:p.coords.latitude,lng:p.coords.longitude});if(map.getZoom()<16)map.setZoom(16);if(!userMarker)userMarker=new google.maps.Marker({map,position:{lat:p.coords.latitude,lng:p.coords.longitude},title:'Your device location',icon:'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'});else userMarker.setPosition({lat:p.coords.latitude,lng:p.coords.longitude})}setPoint(p.coords.latitude,p.coords.longitude,label,'gps',p.coords.accuracy);resolveCoordinates(p.coords.latitude,p.coords.longitude)},()=>msg('Location permission was denied or your device could not determine your location. Search your address or move the map pin instead.','warn'),{enableHighAccuracy:true,timeout:15000,maximumAge:10000})};
 document.getElementById('clear').onclick=()=>{latEl.value='';lngEl.value='';locationAccuracy=null;locationSource='';resetConfirmation();placeChip.style.display='none';accuracyEl.textContent='';msg('Location cleared. Search for your address or use GPS.');if(map){if(marker){if(marker.setMap)marker.setMap(null);else if(map.removeLayer)map.removeLayer(marker);marker=null}if(map.setCenter){map.setCenter(home);map.setZoom(6)}else if(map.setView){map.setView([home.lat,home.lng],6)}}openGoogle.href='https://www.google.com/maps/search/?api=1&query='+home.lat+','+home.lng;refreshQuote()};
 const saved=document.getElementById('saved-address');if(saved)saved.onchange=()=>{const o=saved.options[saved.selectedIndex];if(!o||!o.value)return;document.getElementById('name').value=o.dataset.name||document.getElementById('name').value;document.getElementById('phone').value=o.dataset.phone||document.getElementById('phone').value;countyEl.value=o.dataset.county||'';townEl.value=o.dataset.town||'';addrEl.value=o.dataset.address||'';if(o.dataset.lat&&o.dataset.lng)setPoint(o.dataset.lat,o.dataset.lng,o.dataset.address||'Saved address','saved',null);msg('Saved address loaded. Check the pin and confirm it before ordering.','ok');refreshQuote()};
 let lastKey='',timer=null,busy=false;
