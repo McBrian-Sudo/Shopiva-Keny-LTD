@@ -387,6 +387,7 @@ class Order(models.Model):
     delivery_package_class = models.CharField(max_length=20, default="small")
     delivery_route_class = models.CharField(max_length=20, default="national")
     delivery_rate_card = models.ForeignKey("DeliveryRateCard", on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
+    delivery_pickup_point = models.ForeignKey("DeliveryPickupPoint", on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="pending")
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="unpaid")
     payment_reference = models.CharField(max_length=120, blank=True)
