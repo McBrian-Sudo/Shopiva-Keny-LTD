@@ -174,7 +174,15 @@ class DeliveryPricingProfile(models.Model):
     )
 
     name = models.CharField(max_length=120)
-    delivery_mode = models.CharField(max_length=20, choices=DeliveryTariff.MODE_CHOICES, default=DeliveryTariff.MODE_STANDARD)
+    delivery_mode = models.CharField(
+        max_length=20,
+        choices=(
+            ("standard", "Standard Delivery"),
+            ("pickup", "Pickup Station"),
+            ("express", "Express Delivery"),
+        ),
+        default="standard",
+    )
     pricing_mode = models.CharField(max_length=30, choices=PRICING_MODE_CHOICES, default=MODE_DISTANCE)
     base_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     per_km_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
