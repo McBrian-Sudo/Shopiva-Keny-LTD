@@ -16,24 +16,41 @@ def _normalize_location(value):
     return " ".join(str(value or "").strip().casefold().replace("-", " ").replace("/", " ").split())
 
 def find_delivery_tariff(county, destination, mode=DeliveryTariff.MODE_STANDARD):
-    county_key = _normalize_location(county)
+    county_text = str(county or "").strip()
+    county_key = _normalize_location(county_text)
     destination_key = _normalize_location(destination)
     if mode not in {DeliveryTariff.MODE_STANDARD, DeliveryTariff.MODE_PICKUP, DeliveryTariff.MODE_EXPRESS}:
         raise ValueError("Invalid delivery option selected.")
     if not destination_key:
-        raise ValueError("Select or enter your delivery town/destination before continuing.")
+        raise ValueError("Select your delivery town or exact location before continuing.")
+
     qs = DeliveryTariff.objects.filter(is_active=True)
-    candidates = [
-        row for row in qs.filter(county__iexact=str(county).strip()) if _normalize_location(row.destination) == destination_key
-    ] if county_key else [
-        row for row in qs if _normalize_location(row.destination) == destination_key
-    ]
-    if not candidates:
-        raise ValueError(f"Shopiva does not yet have an active delivery tariff for '{destination}'. Choose a supported destination or contact Shopiva support.")
-    if len(candidates) > 1:
+    exact = []
+    if county_key:
+        exact = [
+            row for row in qs.filter(county__iexact=county_text, is_fallback=False)
+            if _normalize_location(row.destination) == destination_key
+        ]
+    if not exact and not county_key:
+        exact = [row for row in qs.filter(is_fallback=False) if _normalize_location(row.destination) == destination_key]
+    if len(exact) > 1:
         raise ValueError("More than one delivery tariff matches this destination. Select the correct county.")
-    tariff = candidates[0]
-    return tariff, tariff.fee_for_mode(mode)
+    if exact:
+        tariff = exact[0]
+        return tariff, tariff.fee_for_mode(mode)
+
+    if county_key:
+        fallback = list(qs.filter(is_fallback=True).filter(county__iexact=county_text))
+        if len(fallback) == 1:
+            tariff = fallback[0]
+            return tariff, tariff.fee_for_mode(mode)
+        if len(fallback) > 1:
+            raise ValueError("Shopiva has more than one county-wide delivery rule. Please contact support.")
+
+    raise ValueError(
+        f"Shopiva could not determine nationwide delivery coverage for '{county_text or destination}'. "
+        "Search and select your exact Kenyan location so Shopiva can identify the correct county."
+    )
 
 def haversine_km(lat1, lon1, lat2, lon2):
     lat1, lon1, lat2, lon2 = map(_decimal, (lat1, lon1, lat2, lon2))
@@ -112,7 +129,7 @@ def calculate_order_quote(items, customer_latitude, customer_longitude, destinat
         "distance_km": sum(distances, Decimal("0.00")).quantize(Decimal("0.01")) if distances else None,
         "seller_count": len(seller_legs), "distances": distances,
         "distance_source": ("google_roads" if distance_sources and all(x == "google_roads" for x in distance_sources) else "estimated") if distances else "not_pinned",
-        "county": tariff.county, "destination": tariff.destination,
+        "county": tariff.county, "destination": tariff.destination, "tariff_scope": "exact" if not tariff.is_fallback else "county_coverage",
         "delivery_mode": delivery_mode, "tariff_fee_per_seller": fee_per_seller,
     }
 
