@@ -21,7 +21,7 @@ from .admin_operations import admin_operations_center
 from .payments import _create_seller_settlements
 from .notifications import notify_user
 from .notification_service import notify_wishlist_product_change
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff, DeliveryHub, DeliveryPricingProfile, DeliveryPickupPoint, DeliveryRateCard
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff, DeliveryHub, DeliveryPricingProfile, DeliveryPickupPoint, DeliveryRateCard, ShopivaBranch, ShopivaOutlet
 
 
 class ProductForm(forms.ModelForm):
@@ -553,6 +553,37 @@ class DeliveryAgentAdmin(admin.ModelAdmin):
         if obj.user_id:
             obj.user.is_active = bool(obj.is_active)
             obj.user.save(update_fields=("is_active",))
+
+
+@admin.register(ShopivaBranch, site=shopiva_admin_site)
+class ShopivaBranchAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "county", "town", "phone", "is_headquarters", "is_active", "updated_at")
+    list_filter = ("county", "is_headquarters", "is_active")
+    search_fields = ("name", "code", "county", "town", "address", "phone", "email")
+    list_editable = ("is_headquarters", "is_active")
+    ordering = ("county", "town", "name")
+    fieldsets = (
+        ("Branch identity", {"fields": ("name", "code", "is_headquarters", "is_active")}),
+        ("Location", {"fields": ("county", "town", "address", "latitude", "longitude")}),
+        ("Contact", {"fields": ("phone", "email")}),
+        ("Operations", {"fields": ("opening_time", "closing_time", "services")}),
+    )
+
+
+@admin.register(ShopivaOutlet, site=shopiva_admin_site)
+class ShopivaOutletAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "branch", "county", "town", "phone", "pickup_available", "is_active", "updated_at")
+    list_filter = ("county", "pickup_available", "is_active")
+    search_fields = ("name", "code", "branch__name", "county", "town", "address", "phone", "email")
+    list_editable = ("pickup_available", "is_active")
+    ordering = ("county", "town", "name")
+    autocomplete_fields = ("branch",)
+    fieldsets = (
+        ("Outlet identity", {"fields": ("name", "code", "branch", "is_active")}),
+        ("Location", {"fields": ("county", "town", "address", "latitude", "longitude")}),
+        ("Contact", {"fields": ("phone", "email")}),
+        ("Operations", {"fields": ("opening_time", "closing_time", "services", "pickup_available")}),
+    )
 
 
 @admin.register(DeliveryHub, site=shopiva_admin_site)
