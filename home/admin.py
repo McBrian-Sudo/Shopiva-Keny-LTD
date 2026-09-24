@@ -21,7 +21,7 @@ from .admin_operations import admin_operations_center
 from .payments import _create_seller_settlements
 from .notifications import notify_user
 from .notification_service import notify_wishlist_product_change
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff, DeliveryHub, DeliveryPricingProfile
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff, DeliveryHub, DeliveryPricingProfile, DeliveryPickupPoint, DeliveryRateCard
 
 
 class ProductForm(forms.ModelForm):
@@ -40,6 +40,12 @@ class ProductForm(forms.ModelForm):
             "is_featured",
             "is_active",
             "seller",
+            "package_class",
+            "shipping_weight_kg",
+            "package_length_cm",
+            "package_width_cm",
+            "package_height_cm",
+            "fulfillment_ready",
         )
         widgets = {
             "description": forms.Textarea(attrs={"rows": 5}),
@@ -573,6 +579,33 @@ class DeliveryPricingProfileAdmin(admin.ModelAdmin):
     )
     ordering = ("delivery_mode", "name")
     list_per_page = 50
+
+
+@admin.register(DeliveryPickupPoint, site=shopiva_admin_site)
+class DeliveryPickupPointAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "county", "town", "partner_name", "max_holding_days", "is_active", "updated_at")
+    list_filter = ("county", "is_active")
+    search_fields = ("name", "code", "county", "town", "address", "partner_name")
+    list_editable = ("max_holding_days", "is_active")
+    ordering = ("county", "town", "name")
+    list_per_page = 100
+
+
+@admin.register(DeliveryRateCard, site=shopiva_admin_site)
+class DeliveryRateCardAdmin(admin.ModelAdmin):
+    list_display = (
+        "name", "fulfillment_model", "delivery_mode", "package_class", "route_class",
+        "base_fee", "per_km_fee", "per_extra_seller_fee", "minimum_fee",
+        "maximum_fee", "rounding_step", "is_active", "updated_at",
+    )
+    list_filter = ("fulfillment_model", "delivery_mode", "package_class", "route_class", "is_active")
+    search_fields = ("name", "notes")
+    list_editable = (
+        "base_fee", "per_km_fee", "per_extra_seller_fee", "minimum_fee",
+        "maximum_fee", "rounding_step", "is_active",
+    )
+    ordering = ("delivery_mode", "package_class", "route_class", "name")
+    list_per_page = 100
 
 
 @admin.register(DeliveryTariff, site=shopiva_admin_site)
