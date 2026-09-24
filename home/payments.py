@@ -836,13 +836,13 @@ def mpesa_callback(request):
             ]
         )
 
-    if notifications:
-        customer_id, seller_ids, tracking, order_id, receipt = notifications
-        transaction.on_commit(
-            lambda customer_id=customer_id, seller_ids=seller_ids, tracking=tracking, order_id=order_id, receipt=receipt: _send_payment_notifications(
-                customer_id, seller_ids, tracking, order_id, receipt
+        if notifications:
+            customer_id, seller_ids, tracking, order_id, receipt = notifications
+            transaction.on_commit(
+                lambda customer_id=customer_id, seller_ids=seller_ids, tracking=tracking, order_id=order_id, receipt=receipt: _send_payment_notifications(
+                    customer_id, seller_ids, tracking, order_id, receipt
+                )
             )
-        )
 
     return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
 
