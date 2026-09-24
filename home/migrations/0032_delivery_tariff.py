@@ -142,4 +142,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(seed_nationwide_tariffs, migrations.RunPython.noop),
+        migrations.AddField(model_name="order", name="delivery_county", field=models.CharField(blank=True, default="", max_length=100)),
+        migrations.AddField(model_name="order", name="delivery_town", field=models.CharField(blank=True, default="", max_length=120)),
+        migrations.AddField(model_name="order", name="delivery_mode", field=models.CharField(default="standard", max_length=20)),
     ]
