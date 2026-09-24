@@ -7,10 +7,11 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
-from django.test import Client, TestCase, override_settings
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
 
+from .admin import OrderAdmin, shopiva_admin_site
 from .models import (
     DeliveryAgent,
     Order,
@@ -273,7 +274,78 @@ class DeliverySecurityHardeningTests(TestCase):
         self.assertFalse(agent.is_active)
 
     def test_preflight_accepts_current_fee_bearing_order_accounting(self):
+        customer = User.objects.create_user(
+            "preflight-customer", "preflight-customer@example.com", "test-pass-7"
+        )
+        seller_user = User.objects.create_user(
+            "preflight-seller", "preflight-seller@example.com", "test-pass-8"
+        )
+        seller = SellerProfile.objects.create(
+            user=seller_user,
+            business_name="Preflight Seller",
+            business_latitude=Decimal("-1.300000"),
+            business_longitude=Decimal("36.800000"),
+            is_active=True,
+        )
+        SellerWallet.objects.create(seller=seller)
+        product = Product.objects.create(
+            name="Preflight Product",
+            price=Decimal("100.00"),
+            stock_quantity=5,
+            sku="PREFLIGHT-PRODUCT-1",
+            seller=seller,
+        )
+        order = Order.objects.create(
+            customer_name="Preflight Customer",
+            customer=customer,
+            email=customer.email,
+            phone="0712345678",
+            address="Test address",
+            total_amount=Decimal("255.00"),
+            items_subtotal=Decimal("100.00"),
+            platform_commission_amount=Decimal("5.00"),
+            delivery_fee=Decimal("150.00"),
+            payment_status="paid",
+            status="paid",
+            paid_at=__import__("django.utils.timezone", fromlist=["now"]).now(),
+            tracking_code="SPV-PREFLIGHT",
+        )
+        OrderItem.objects.create(
+            order=order, product=product, quantity=1, price=Decimal("100.00"),
+            seller=seller, seller_gross=Decimal("100.00"),
+            platform_commission=Decimal("5.00"), seller_net=Decimal("100.00"),
+        )
+        PaymentTransaction.objects.create(
+            order=order, method="mpesa", provider="daraja", amount=Decimal("255.00"),
+            phone="254712345678", status="paid",
+            provider_reference="PREFLIGHT-REF",
+            idempotency_key="PREFLIGHT-PAYMENT-1",
+            paid_at=order.paid_at,
+        )
         call_command("system_preflight")
+
+    def test_order_admin_rejects_manual_payment_transition(self):
+        admin_user = User.objects.create_superuser(
+            "preflight-admin", "preflight-admin@example.com", "test-pass-9"
+        )
+        order = Order.objects.create(
+            customer_name="Admin Test",
+            email="admin-test@example.com",
+            phone="0712345678",
+            address="Test address",
+            total_amount=Decimal("10.00"),
+            status="pending",
+            payment_status="unpaid",
+            tracking_code="SPV-ADMIN-HARDEN",
+        )
+        order.payment_status = "paid"
+        request = RequestFactory().post("/admin/")
+        request.user = admin_user
+        admin = OrderAdmin(Order, shopiva_admin_site)
+        with self.assertRaises(ValidationError):
+            admin.save_model(request, order, form=None, change=True)
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, "unpaid")
 
 
 class VoiceSecurityHardeningTests(TestCase):
