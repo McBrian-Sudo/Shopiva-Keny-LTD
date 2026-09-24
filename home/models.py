@@ -68,6 +68,24 @@ class Product(models.Model):
     promo_text = models.CharField(max_length=120, blank=True)
     is_featured = models.BooleanField(default=False)
     seller = models.ForeignKey(SellerProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name="products")
+    PACKAGE_MICRO = "micro"
+    PACKAGE_SMALL = "small"
+    PACKAGE_MEDIUM = "medium"
+    PACKAGE_BIG = "big"
+    PACKAGE_EXTRA_BIG = "extra_big"
+    PACKAGE_CHOICES = (
+        (PACKAGE_MICRO, "Micro"),
+        (PACKAGE_SMALL, "Small"),
+        (PACKAGE_MEDIUM, "Medium"),
+        (PACKAGE_BIG, "Big"),
+        (PACKAGE_EXTRA_BIG, "Extra Big"),
+    )
+    package_class = models.CharField(max_length=20, choices=PACKAGE_CHOICES, default=PACKAGE_SMALL)
+    shipping_weight_kg = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True)
+    package_length_cm = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    package_width_cm = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    package_height_cm = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    fulfillment_ready = models.BooleanField(default=True, help_text="Seller has supplied the shipping data required for platform fulfillment.")
 
     @property
     def discounted_price(self):
@@ -163,6 +181,62 @@ class DeliveryHub(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.town}, {self.county})"
+
+
+class DeliveryPickupPoint(models.Model):
+    name = models.CharField(max_length=150)
+    code = models.CharField(max_length=40, unique=True)
+    county = models.CharField(max_length=100)
+    town = models.CharField(max_length=120)
+    address = models.CharField(max_length=255)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    phone = models.CharField(max_length=30, blank=True)
+    partner_name = models.CharField(max_length=150, blank=True)
+    is_active = models.BooleanField(default=True)
+    max_holding_days = models.PositiveSmallIntegerField(default=7)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("county", "town", "name")
+
+    def __str__(self):
+        return f"{self.name} ({self.town}, {self.county})"
+
+
+class DeliveryRateCard(models.Model):
+    ROUTE_LOCAL = "local"
+    ROUTE_REGIONAL = "regional"
+    ROUTE_NATIONAL = "national"
+    ROUTE_REMOTE = "remote"
+    ROUTE_CHOICES = (
+        (ROUTE_LOCAL, "Local"),
+        (ROUTE_REGIONAL, "Regional"),
+        (ROUTE_NATIONAL, "National"),
+        (ROUTE_REMOTE, "Remote / Rural"),
+    )
+
+    name = models.CharField(max_length=150)
+    fulfillment_model = models.CharField(max_length=30, choices=DeliveryHub.FULFILLMENT_CHOICES, default=DeliveryHub.FULFILLMENT_MIXED)
+    delivery_mode = models.CharField(max_length=20, choices=DeliveryTariff.MODE_CHOICES, default=DeliveryTariff.MODE_STANDARD)
+    package_class = models.CharField(max_length=20, choices=Product.PACKAGE_CHOICES, default=Product.PACKAGE_SMALL)
+    route_class = models.CharField(max_length=20, choices=ROUTE_CHOICES, default=ROUTE_LOCAL)
+    base_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    per_km_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    per_extra_seller_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    minimum_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    maximum_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    rounding_step = models.DecimalField(max_digits=10, decimal_places=2, default=10)
+    is_active = models.BooleanField(default=False)
+    notes = models.TextField(blank=True, help_text="Document the approved courier/platform rate basis before activation.")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("delivery_mode", "package_class", "route_class", "name")
+
+    def __str__(self):
+        return f"{self.name} — {self.get_package_class_display()} / {self.get_route_class_display()}"
 
 
 class DeliveryPricingProfile(models.Model):
