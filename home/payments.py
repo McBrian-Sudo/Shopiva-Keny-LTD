@@ -667,12 +667,18 @@ def checkout_mpesa(request):
 def mpesa_callback(request):
     if request.method != "POST":
         return JsonResponse({"ResultCode": 1, "ResultDesc": "POST required."}, status=405)
+    if len(request.body) > 128 * 1024:
+        return JsonResponse({"ResultCode": 1, "ResultDesc": "Callback payload too large."}, status=413)
     try:
         payload = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
         return JsonResponse({"ResultCode": 1, "ResultDesc": "Invalid JSON."}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({"ResultCode": 1, "ResultDesc": "Invalid callback structure."}, status=400)
 
     callback = payload.get("Body", {}).get("stkCallback", {})
+    if not isinstance(callback, dict):
+        return JsonResponse({"ResultCode": 1, "ResultDesc": "Invalid callback structure."}, status=400)
     checkout_request_id = str(callback.get("CheckoutRequestID", "")).strip()
     result_code = callback.get("ResultCode")
     result_desc = str(callback.get("ResultDesc", "")).strip()
@@ -699,10 +705,10 @@ def mpesa_callback(request):
         except (TypeError, ValueError):
             query_result_code = None
         query_identifiers_match = (
-            (not query_checkout_id or query_checkout_id == payment.checkout_request_id)
+            bool(query_checkout_id)
+            and query_checkout_id == payment.checkout_request_id
             and (
                 not payment.merchant_request_id
-                or not query_merchant_id
                 or query_merchant_id == payment.merchant_request_id
             )
         )
