@@ -7,6 +7,8 @@ from django.core.exceptions import ValidationError
 import uuid
 import re
 
+from PIL import Image, UnidentifiedImageError
+
 from .models import Product, ProductReview
 from .media_pipeline import enhance_product_image, upload_product_image
 from .shopiva_seller_catalog import (
@@ -316,6 +318,45 @@ class CatalogSearchWidget(forms.TextInput):
         return mark_safe(rendered + datalist)
 
 
+PRODUCT_IMAGE_MAX_BYTES = 8 * 1024 * 1024
+PRODUCT_IMAGE_MAX_DIMENSION = 6000
+PRODUCT_IMAGE_MIN_DIMENSION = 200
+
+
+def _validate_product_image(uploaded, label="Product photo"):
+    if not uploaded:
+        return
+    if getattr(uploaded, "size", 0) > PRODUCT_IMAGE_MAX_BYTES:
+        raise forms.ValidationError(
+            f"{label} is too large. Keep each image under 8 MB."
+        )
+    content_type = str(getattr(uploaded, "content_type", "") or "").lower()
+    if content_type and not content_type.startswith("image/"):
+        raise forms.ValidationError(f"{label} must be an image file.")
+
+    try:
+        uploaded.seek(0)
+        with Image.open(uploaded) as image:
+            width, height = image.size
+            image.verify()
+        if (
+            width < PRODUCT_IMAGE_MIN_DIMENSION
+            or height < PRODUCT_IMAGE_MIN_DIMENSION
+            or width > PRODUCT_IMAGE_MAX_DIMENSION
+            or height > PRODUCT_IMAGE_MAX_DIMENSION
+        ):
+            raise forms.ValidationError(
+                f"{label} dimensions must be between 200×200 and 6000×6000 pixels."
+            )
+    except (UnidentifiedImageError, OSError, ValueError):
+        raise forms.ValidationError(f"{label} is not a valid readable image.")
+    finally:
+        try:
+            uploaded.seek(0)
+        except Exception:
+            pass
+
+
 class SellerProductForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         kwargs.pop("seller", None)
@@ -402,6 +443,22 @@ class SellerProductForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        uploaded_main = self.files.get("image")
+        if uploaded_main:
+            try:
+                _validate_product_image(uploaded_main, "Main product photo")
+            except forms.ValidationError as exc:
+                self.add_error("image", exc)
+
+        gallery_files = list(self.files.getlist("gallery_images"))
+        if len(gallery_files) > 8:
+            self.add_error("gallery_images", "Upload a maximum of 8 additional product photos.")
+        for index, uploaded in enumerate(gallery_files[:8], start=1):
+            try:
+                _validate_product_image(uploaded, f"Gallery photo {index}")
+            except forms.ValidationError as exc:
+                self.add_error("gallery_images", exc)
+
         item = resolve_catalog_item(cleaned.get("catalog_product"))
         if item:
             cleaned["name"] = item["name"]

@@ -2,6 +2,8 @@ import base64
 import os
 import uuid
 from datetime import datetime, timezone as dt_timezone
+from decimal import Decimal, InvalidOperation
+from urllib.parse import urlparse
 
 import requests
 from django.core.exceptions import ImproperlyConfigured
@@ -21,6 +23,25 @@ def _required(*names):
 
 def _base_url():
     return _env("COOP_CONNECT_SIT_BASE_URL", "https://openapi-sit.co-opbank.co.ke").rstrip("/")
+
+
+def _callback_url():
+    return _env(
+        "COOP_CONNECT_SIT_CALLBACK_URL",
+        "https://shopivakenya.top/payments/coop-connect/sit/callback/",
+    )
+
+
+def _validate_callback_url(callback_url):
+    parsed = urlparse(str(callback_url or "").strip())
+    allowed_hosts = {"shopivakenya.top", "www.shopivakenya.top"}
+    if parsed.scheme.lower() != "https" or parsed.hostname not in allowed_hosts:
+        raise ValueError(
+            "Co-op Connect callback URL must be HTTPS and use the Shopiva production domain."
+        )
+    if not parsed.path.startswith("/payments/coop-connect/"):
+        raise ValueError("Co-op Connect callback URL must use a Shopiva payment callback path.")
+    return str(callback_url).strip()
 
 
 def _safe_payload(value):
@@ -95,8 +116,7 @@ class CoopConnectSITClient:
             mobile_number = "254" + mobile_number
         if not mobile_number.startswith("254") or len(mobile_number) != 12:
             raise ValueError("Use a Kenyan mobile number such as 2547XXXXXXXX.")
-        if not callback_url or not callback_url.lower().startswith("https://"):
-            raise ValueError("Co-op Connect callback URL must use HTTPS.")
+        callback_url = _validate_callback_url(callback_url or _callback_url())
 
         user_id = user_id or _env("COOP_CONNECT_SIT_USER_ID")
         operator_code = operator_code or _env("COOP_CONNECT_SIT_OPERATOR_CODE")
@@ -104,11 +124,14 @@ class CoopConnectSITClient:
             raise ImproperlyConfigured("Set COOP_CONNECT_SIT_USER_ID and COOP_CONNECT_SIT_OPERATOR_CODE.")
 
         try:
-            amount_value = float(amount)
-        except (TypeError, ValueError) as exc:
+            amount_decimal = Decimal(str(amount)).quantize(Decimal("0.01"))
+        except (InvalidOperation, TypeError, ValueError) as exc:
             raise ValueError("Amount must be numeric.") from exc
-        if amount_value <= 0:
+        if amount_decimal <= 0:
             raise ValueError("Amount must be greater than zero.")
+        if amount_decimal.as_tuple().exponent < -2:
+            raise ValueError("Amount may contain at most two decimal places.")
+        amount_value = int(amount_decimal) if amount_decimal == amount_decimal.to_integral_value() else float(amount_decimal)
 
         message_reference = message_reference or (
             f"SHOPIVA-SIT-{datetime.now(dt_timezone.utc):%Y%m%d%H%M%S}-{uuid.uuid4().hex[:8].upper()}"

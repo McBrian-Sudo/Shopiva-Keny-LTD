@@ -1,7 +1,7 @@
 import SwiftUI
 import WebKit
 
-private let shopivaURL = URL(string: "https://shopiva-keny-ltd.onrender.com/")!
+private let shopivaURL = URL(string: "https://shopivakenya.top/")!
 
 struct ShopivaWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {

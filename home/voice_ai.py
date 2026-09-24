@@ -4,13 +4,56 @@ import tempfile
 import urllib.request
 import uuid
 
-from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.http import FileResponse, JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .ai import _catalog
 from .models import Order, Product, PaymentTransaction
+
+
+VOICE_RATE_LIMITS = {
+    "realtime": (8, 60),
+    "transcribe": (20, 60),
+    "speak": (20, 60),
+    "action": (60, 60),
+}
+
+
+def _voice_guard(request, action):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Please sign in to use Shopiva voice features."}, status=401)
+
+    origin = request.headers.get("Origin", "").strip()
+    if origin:
+        allowed = {
+            "https://shopivakenya.top",
+            "https://www.shopivakenya.top",
+            "https://shopiva-keny-ltd.onrender.com",
+        }
+        if origin.rstrip("/") not in allowed:
+            return JsonResponse({"ok": False, "error": "Voice request origin is not allowed."}, status=403)
+
+    limit, window = VOICE_RATE_LIMITS[action]
+    key = f"shopiva:voice:{action}:{request.user.id}"
+    try:
+        if cache.add(key, 1, timeout=window):
+            count = 1
+        else:
+            count = cache.incr(key)
+    except Exception:
+        # Voice should fail closed on the abuse-control path rather than
+        # silently becoming an unlimited provider-cost endpoint.
+        return JsonResponse({"ok": False, "error": "Voice service is temporarily unavailable."}, status=503)
+
+    if count > limit:
+        return JsonResponse(
+            {"ok": False, "error": "Voice request limit reached. Please wait a minute and try again."},
+            status=429,
+        )
+    return None
+
 
 
 def _openai_multipart_sdp(sdp, session):
@@ -152,6 +195,11 @@ Product catalogue:
 def realtime_call(request):
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+    guard = _voice_guard(request, "realtime")
+    if guard:
+        return guard
+    if len(request.body) > 256 * 1024:
+        return JsonResponse({"ok": False, "error": "Realtime voice request is too large."}, status=413)
 
     if not os.getenv("OPENAI_API_KEY", "").strip():
         return JsonResponse({"ok": False, "error": "Voice AI is not configured yet."}, status=503)
@@ -278,6 +326,10 @@ def realtime_call(request):
 
 @require_POST
 def realtime_action(request):
+    guard = _voice_guard(request, "action")
+    if guard:
+        return guard
+
     if not request.user.is_authenticated and request.POST.get("action") == "get_my_order_status":
         return JsonResponse({"ok": False, "error": "Please sign in to check your orders."}, status=401)
 
@@ -412,6 +464,9 @@ def realtime_action(request):
 def transcribe_voice(request):
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+    guard = _voice_guard(request, "transcribe")
+    if guard:
+        return guard
     if not os.getenv("OPENAI_API_KEY", "").strip():
         return JsonResponse({"ok": False, "error": "Voice AI is not configured yet."}, status=503)
     audio = request.FILES.get("audio")
@@ -442,6 +497,9 @@ def transcribe_voice(request):
 def speak_text(request):
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+    guard = _voice_guard(request, "speak")
+    if guard:
+        return guard
     if not os.getenv("OPENAI_API_KEY", "").strip():
         return JsonResponse({"ok": False, "error": "Voice AI is not configured yet."}, status=503)
     text = request.POST.get("text", "").strip()[:2500]

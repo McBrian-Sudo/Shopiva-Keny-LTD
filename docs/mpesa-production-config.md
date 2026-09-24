@@ -1,48 +1,50 @@
-# Shopiva M-PESA production configuration
+# M-PESA production configuration
 
-Shopiva uses Safaricom Daraja for M-PESA payment requests and payment verification.
+Shopiva uses Safaricom Daraja for customer M-PESA collection. Production merchant identifiers and credentials must come from Safaricom's approved merchant/Daraja configuration. Do not copy values from old notes, screenshots, test collections, or chat messages into production.
 
-## Merchant details supplied by Shopiva
+## Required Render variables
 
-- M-PESA Buy Goods Till Number: `1692454`
-- Safaricom/merchant Store Number: `1221718`
-- Current operator ID: `MN`
-- Desired business/operator display name: `Shopiva Kenya LTD`
+    MPESA_ENV=production
+    MPESA_SHORTCODE=<SAFARICOM-APPROVED-BUSINESS-SHORTCODE-OR-STORE-NUMBER>
+    MPESA_TILL_NUMBER=<SAFARICOM-APPROVED-TILL-NUMBER>
+    MPESA_CONSUMER_KEY=<SECRET>
+    MPESA_CONSUMER_SECRET=<SECRET>
+    MPESA_PASSKEY=<SECRET>
+    MPESA_CALLBACK_URL=https://shopivakenya.top/payments/mpesa/callback/
 
-## Important distinction
+The current application intentionally requires both MPESA_SHORTCODE and MPESA_TILL_NUMBER in production. The code maps the shortcode to Daraja BusinessShortCode and the till number to PartyB. This mapping must match the merchant profile approved by Safaricom for the selected Buy Goods/Daraja product.
 
-The Till Number and Store Number are merchant-side identifiers. The operator ID/display name is controlled by the Safaricom M-PESA business/Daraja account and should not be hard-coded into the Django application as a secret. Renaming the operator from `MN` to `Shopiva Kenya LTD` must be completed in the relevant Safaricom business account/admin tooling or by Safaricom support if the portal does not allow the change.
+Never invent, guess, swap, or combine merchant identifiers from different Safaricom profiles.
 
 ## Credentials that must stay secret
 
-Do **not** commit these values to GitHub and do not paste them into chat:
+Do not commit these values to GitHub, place them in frontend/mobile code, or paste them into chat:
 
 - Daraja Consumer Key
 - Daraja Consumer Secret
-- M-PESA Passkey (where required by the selected Daraja product)
+- M-PESA Passkey
 - Any production certificate or signing credential
 
-Set secrets as Render environment variables instead.
+Set secrets only in the production deployment secret store.
 
-Recommended variable names:
+## Callback
 
-```text
-MPESA_ENV=production
-MPESA_TILL_NUMBER=1692454
-MPESA_STORE_NUMBER=1221718
-MPESA_OPERATOR_ID=MN
-MPESA_OPERATOR_NAME=Shopiva Kenya LTD
-MPESA_CONSUMER_KEY=
-MPESA_CONSUMER_SECRET=
-MPESA_PASSKEY=
-MPESA_CALLBACK_URL=https://shopiva-keny-ltd.onrender.com/payments/mpesa/callback/
-```
+Use:
 
-The application must verify the Daraja callback before marking an order as paid. It must never treat the customer's browser redirect or a submitted form as proof of payment.
+https://shopivakenya.top/payments/mpesa/callback/
 
-## Daraja
+The callback is public because Safaricom must reach it. Shopiva does not trust the callback by itself: it performs an STK query using the stored CheckoutRequestID, validates the provider identifiers, and only marks the order paid when the callback receipt, amount and phone also match the payment record.
 
-Use the official Safaricom Daraja developer portal for the API application, sandbox testing, production credentials and go-live process:
-https://developer.safaricom.co.ke/
+## Go-live sequence
 
-The production callback URL must be public HTTPS and must point to the deployed Shopiva service.
+1. Obtain the approved production merchant identifiers and Daraja app credentials from Safaricom.
+2. Put the values in Render environment variables.
+3. Verify the canonical HTTPS callback above is registered with the Safaricom production app.
+4. Test a real low-value production transaction with an approved test phone/account.
+5. Confirm the STK callback reaches Render and that the provider query and callback metadata match.
+6. Reconcile the payment record, seller settlement and inventory before opening the checkout path to customers.
+
+Official Safaricom resources:
+
+- https://developer.safaricom.co.ke/
+- https://developer.safaricom.co.ke/apis/BusinessBuyGoods

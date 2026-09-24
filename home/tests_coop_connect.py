@@ -77,3 +77,20 @@ class CoopConnectSITClientTests(SimpleTestCase):
                 amount="1",
                 callback_url="http://example.invalid/callback",
             )
+
+
+    def test_external_callback_host_is_rejected(self):
+        with self.assertRaises(ValueError):
+            CoopConnectSITClient().stk_push(
+                mobile_number="0707919065",
+                amount="1",
+                callback_url="https://evil.example/payments/coop-connect/sit/callback/",
+            )
+
+    def test_more_than_two_decimal_places_is_rejected(self):
+        with self.assertRaises(ValueError):
+            CoopConnectSITClient().stk_push(
+                mobile_number="0707919065",
+                amount="1.001",
+                callback_url="https://shopivakenya.top/payments/coop-connect/sit/callback/",
+            )

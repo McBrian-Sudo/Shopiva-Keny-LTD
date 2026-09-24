@@ -11,6 +11,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.http import Http404, JsonResponse
+from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -22,6 +23,7 @@ from .indexnow import submit_urls
 from .notification_service import notify_user, notify_wishlist_product_change
 from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm, catalog_browser_choices, resolve_catalog_item
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
+from .payouts import request_seller_payout
 
 
 def _is_seller_user(user):
@@ -429,6 +431,7 @@ def product_detail(request, product_id):
     )
 
 
+@require_POST
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
     cart_data = request.session.get("cart", {})
@@ -786,6 +789,22 @@ def seller_order_update(request, order_id):
         if not current_items.exists():
             messages.error(request, "This order does not belong to your shop.")
             return redirect("seller_dashboard")
+
+        seller_ids = set(order.items.values_list("seller_id", flat=True))
+        if len(seller_ids) > 1:
+            messages.error(
+                request,
+                "This order contains items from multiple sellers. Seller-level fulfillment is intentionally locked until a shared shipment state is available.",
+            )
+            return redirect("seller_dashboard")
+
+        is_cod = order.payments.filter(method="cod").exists()
+        if order.payment_status != "paid" and not is_cod:
+            messages.error(
+                request,
+                "Online orders cannot enter fulfillment until payment is confirmed.",
+            )
+            return redirect("seller_dashboard")
         if order.status in {"delivered", "cancelled"}:
             messages.error(request, "Delivered or cancelled orders cannot be moved back into processing.")
             return redirect("seller_dashboard")
@@ -884,16 +903,22 @@ def seller_request_payout(request):
     seller = getattr(request.user, "seller_profile", None)
     if not seller:
         return redirect("seller_register")
-    wallet = get_object_or_404(SellerWallet, seller=seller)
     if request.method == "POST":
+        idempotency_key = request.POST.get("idempotency_key", "").strip() or request.session.get("seller_payout_key") or uuid.uuid4().hex
         try:
-            amount = Decimal(request.POST.get("amount", "0"))
-        except InvalidOperation:
-            amount = Decimal("0")
-        phone = request.POST.get("phone", "").strip()
-        if amount <= 0 or amount > wallet.available_balance or not phone:
-            messages.error(request, "Enter a valid payout amount, phone number and keep the request within your available balance.")
+            payout, created = request_seller_payout(
+                seller,
+                request.POST.get("amount", "0"),
+                request.POST.get("phone", "").strip(),
+                idempotency_key,
+            )
+        except Exception as exc:
+            messages.error(request, str(exc))
         else:
-            SellerPayoutRequest.objects.create(seller=seller, amount=amount, phone=phone, idempotency_key=uuid.uuid4().hex)
-            messages.success(request, "Payout request submitted for processing.")
+            if created:
+                request.session["seller_payout_key"] = uuid.uuid4().hex
+                request.session.modified = True
+                messages.success(request, "Payout request submitted for processing. Your available balance has been reserved.")
+            else:
+                messages.info(request, f"Payout request #{payout.id} is already on file.")
     return redirect("seller_dashboard")
