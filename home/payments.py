@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .commission import get_platform_commission_percent
 from .delivery_pricing import calculate_order_quote
-from .models import DeliveryTariff,  Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerSettlement, SellerWallet
+from .models import DeliveryTariff, DeliveryPickupPoint, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerSettlement, SellerWallet
 from .notifications import notify_user
 
 
@@ -435,6 +435,15 @@ def checkout_mpesa(request):
     delivery_county = request.POST.get("delivery_county", "").strip()
     delivery_town = request.POST.get("delivery_town", "").strip()
     delivery_mode = request.POST.get("delivery_mode", DeliveryTariff.MODE_STANDARD).strip().lower() or DeliveryTariff.MODE_STANDARD
+    pickup_point = None
+    if delivery_mode == DeliveryTariff.MODE_PICKUP:
+        pickup_point_id = request.POST.get("delivery_pickup_point", "").strip()
+        try:
+            pickup_point = DeliveryPickupPoint.objects.get(id=int(pickup_point_id), is_active=True)
+        except (DeliveryPickupPoint.DoesNotExist, TypeError, ValueError):
+            return render(request, "checkout.html", {"items": items, "total": total, "error": "Please select an active Shopiva pickup station."})
+        if pickup_point.county.casefold() != delivery_county.casefold():
+            return render(request, "checkout.html", {"items": items, "total": total, "error": "The selected pickup station does not match your county."})
     payment_method = request.POST.get("payment_method", "").strip().lower() or ("pesapal" if pesapal_ready() else "cod")
 
     if not all([customer_name, email, phone, address]) or not items:
@@ -518,6 +527,7 @@ def checkout_mpesa(request):
             delivery_package_class=quote["package_class"],
             delivery_route_class=quote["route_class"],
             delivery_rate_card=quote["rate_card"],
+            delivery_pickup_point=pickup_point,
             status="pending",
             payment_status="unpaid",
             tracking_code=f"SPV-{__import__('uuid').uuid4().hex[:10].upper()}",
