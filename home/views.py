@@ -22,6 +22,7 @@ from .indexnow import submit_urls
 from .notification_service import notify_user, notify_wishlist_product_change
 from .forms import CustomerRegistrationForm, SellerRegistrationForm, SellerProductForm, ProductReviewForm, catalog_browser_choices, resolve_catalog_item
 from .models import CustomerAddress, DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, OrderItem, Product, ProductReview, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem
+from .payouts import request_seller_payout
 
 
 def _is_seller_user(user):
@@ -884,16 +885,22 @@ def seller_request_payout(request):
     seller = getattr(request.user, "seller_profile", None)
     if not seller:
         return redirect("seller_register")
-    wallet = get_object_or_404(SellerWallet, seller=seller)
     if request.method == "POST":
+        idempotency_key = request.POST.get("idempotency_key", "").strip() or request.session.get("seller_payout_key") or uuid.uuid4().hex
         try:
-            amount = Decimal(request.POST.get("amount", "0"))
-        except InvalidOperation:
-            amount = Decimal("0")
-        phone = request.POST.get("phone", "").strip()
-        if amount <= 0 or amount > wallet.available_balance or not phone:
-            messages.error(request, "Enter a valid payout amount, phone number and keep the request within your available balance.")
+            payout, created = request_seller_payout(
+                seller,
+                request.POST.get("amount", "0"),
+                request.POST.get("phone", "").strip(),
+                idempotency_key,
+            )
+        except Exception as exc:
+            messages.error(request, str(exc))
         else:
-            SellerPayoutRequest.objects.create(seller=seller, amount=amount, phone=phone, idempotency_key=uuid.uuid4().hex)
-            messages.success(request, "Payout request submitted for processing.")
+            if created:
+                request.session["seller_payout_key"] = uuid.uuid4().hex
+                request.session.modified = True
+                messages.success(request, "Payout request submitted for processing. Your available balance has been reserved.")
+            else:
+                messages.info(request, f"Payout request #{payout.id} is already on file.")
     return redirect("seller_dashboard")
