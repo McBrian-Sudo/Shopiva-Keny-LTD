@@ -32,7 +32,7 @@ COUNTY_COVERAGE_FEES = (
     ("Migori", "600.00"),
     ("Mombasa", "500.00"),
     ("Murang'a", "350.00"),
-    ("Nairobi City", "250.00"),
+    ("Nairobi", "250.00"),
     ("Nakuru", "400.00"),
     ("Nandi", "500.00"),
     ("Narok", "450.00"),
