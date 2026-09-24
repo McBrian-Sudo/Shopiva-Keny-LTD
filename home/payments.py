@@ -124,7 +124,7 @@ def normalize_phone(phone):
     return value
 
 
-def _request_json(url, data=None, headers=None, method=None):
+def _request_json(url, data=None, headers=None, method=None, timeout=30):
     body = None
     if data is not None:
         body = json.dumps(data).encode("utf-8") if isinstance(data, (dict, list)) else data
@@ -135,7 +135,7 @@ def _request_json(url, data=None, headers=None, method=None):
         method=method or ("POST" if body else "GET"),
     )
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             raw = response.read().decode("utf-8")
             return response.status, json.loads(raw) if raw else {}
     except urllib.error.HTTPError as exc:
@@ -244,6 +244,7 @@ def query_mpesa_stk(payment):
             "CheckoutRequestID": checkout_request_id,
         },
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        timeout=10,
     )
     if status not in (200, 201):
         raise RuntimeError(response.get("errorMessage") or response.get("ResponseDescription") or str(response))
@@ -653,10 +654,14 @@ def mpesa_callback(request):
         return JsonResponse({"ResultCode": 1, "ResultDesc": "Invalid JSON."}, status=400)
 
     callback = payload.get("Body", {}).get("stkCallback", {})
-    checkout_request_id = str(callback.get("CheckoutRequestID", ""))
+    checkout_request_id = str(callback.get("CheckoutRequestID", "")).strip()
     result_code = callback.get("ResultCode")
-    result_desc = callback.get("ResultDesc", "")
-    payment = PaymentTransaction.objects.filter(checkout_request_id=checkout_request_id, method="mpesa").first()
+    result_desc = str(callback.get("ResultDesc", "")).strip()
+    payment = (
+        PaymentTransaction.objects
+        .filter(checkout_request_id=checkout_request_id, method="mpesa")
+        .first()
+    )
     if not payment:
         return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
 
@@ -665,7 +670,34 @@ def mpesa_callback(request):
         order = Order.objects.select_for_update().get(pk=payment.order_id)
         payment.raw_response = payload
 
-        if str(result_code) == "0":
+        try:
+            query_payload = query_mpesa_stk(payment)
+            payment.raw_response = {**payload, "last_stk_query": query_payload}
+            query_checkout_id = str(query_payload.get("CheckoutRequestID") or "").strip()
+            query_merchant_id = str(query_payload.get("MerchantRequestID") or "").strip()
+            query_result_raw = query_payload.get("ResultCode")
+            try:
+                query_result_code = int(query_result_raw)
+            except (TypeError, ValueError):
+                query_result_code = None
+            query_identifiers_match = (
+                (not query_checkout_id or query_checkout_id == payment.checkout_request_id)
+                and (not payment.merchant_request_id or not query_merchant_id or query_merchant_id == payment.merchant_request_id)
+            )
+        except Exception as exc:
+            query_payload = None
+            query_result_code = None
+            query_identifiers_match = False
+            payment.raw_response = {
+                **payload,
+                "verification_pending": True,
+                "verification_error": str(exc)[:500],
+            }
+
+        if query_payload is not None and not query_identifiers_match:
+            query_result_code = None
+
+        if query_result_code == 0:
             if payment.status == "paid":
                 return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
 
@@ -679,20 +711,21 @@ def mpesa_callback(request):
             callback_phone = normalize_phone(metadata.get("PhoneNumber") or "")
             expected_phone = normalize_phone(payment.phone)
             try:
-                amount_matches = Decimal(str(callback_amount)).quantize(Decimal("0.01")) == Decimal(payment.amount).quantize(Decimal("0.01"))
+                amount_matches = (
+                    Decimal(str(callback_amount)).quantize(Decimal("0.01"))
+                    == Decimal(payment.amount).quantize(Decimal("0.01"))
+                )
             except Exception:
                 amount_matches = False
 
-            # A positive-looking callback is not enough. A payment becomes paid
-            # only when the provider supplies the receipt and matches the amount
-            # and phone recorded for this transaction.
             if not receipt or not amount_matches or callback_phone != expected_phone:
                 payment.status = "pending"
                 payment.provider_reference = receipt
                 payment.paid_at = None
                 payment.raw_response = {
-                    **payload,
+                    **payment.raw_response,
                     "shopiva_validation": {
+                        "provider_query_confirmed": True,
                         "receipt_present": bool(receipt),
                         "amount_matches": amount_matches,
                         "phone_matches": callback_phone == expected_phone,
@@ -712,13 +745,12 @@ def mpesa_callback(request):
             OrderEvent.objects.create(order=order, event_type="paid", note=f"M-PESA payment confirmed: {receipt}")
             _create_seller_settlements(order)
 
-            customer_id = None
-            seller_ids = []
-            if order.email:
-                from django.contrib.auth.models import User
-                customer = User.objects.filter(id=order.customer_id, is_active=True).first()
-                customer_id = customer.id if customer else None
-            seller_ids = [item.seller.user_id for item in order.items.select_related("seller", "seller__user") if item.seller_id and item.seller]
+            customer_id = order.customer_id if order.customer_id else None
+            seller_ids = [
+                item.seller.user_id
+                for item in order.items.select_related("seller", "seller__user")
+                if item.seller_id and item.seller
+            ]
             tracking = order.tracking_code
             order_id = order.id
             seller_ids = list(dict.fromkeys(seller_ids))
@@ -727,19 +759,36 @@ def mpesa_callback(request):
                     customer_id, seller_ids, tracking, order_id, receipt
                 )
             )
-        else:
+        elif query_result_code is not None and query_result_code != 0:
             payment.status = "failed"
             if not payment.inventory_released:
                 _release_reserved_inventory(order)
                 payment.inventory_released = True
             order.payment_status = "failed"
             order.save(update_fields=["payment_status"])
-            OrderEvent.objects.create(order=order, event_type="cancelled", note=f"M-PESA payment failed: {result_desc}")
+            OrderEvent.objects.create(
+                order=order,
+                event_type="cancelled",
+                note=f"M-PESA payment failed after provider verification: {result_desc or query_payload.get('ResultDesc', 'provider failure')}",
+            )
+        else:
+            # Callback is not enough to establish a payment or a failure.
+            # Keep the order pending until a provider query confirms a terminal state.
+            payment.status = "pending"
+            payment.paid_at = None
 
-        payment.save(update_fields=["status", "provider_reference", "paid_at", "raw_response", "inventory_released", "updated_at"])
+        payment.save(
+            update_fields=[
+                "status",
+                "provider_reference",
+                "paid_at",
+                "raw_response",
+                "inventory_released",
+                "updated_at",
+            ]
+        )
 
     return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
-
 
 def _send_payment_notifications(customer_id, seller_ids, tracking, order_id, receipt):
     from django.contrib.auth.models import User
