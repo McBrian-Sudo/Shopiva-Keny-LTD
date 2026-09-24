@@ -8,7 +8,7 @@ from django.shortcuts import render
 from .models import Order
 from .payments import checkout_mpesa as original_checkout_mpesa
 from .delivery_pricing import calculate_order_quote, tariff_text
-from .models import DeliveryTariff
+from .models import DeliveryTariff, DeliveryPickupPoint
 
 
 def _coord(value, low, high):
@@ -18,6 +18,38 @@ def _coord(value, low, high):
         return None
     return value.quantize(Decimal("0.000001")) if low <= value <= high else None
 
+
+
+def pickup_points(request):
+    if request.method != "GET":
+        return JsonResponse({"ok": False, "error": "GET required."}, status=405)
+    county = request.GET.get("county", "").strip()
+    town = request.GET.get("town", "").strip()
+    qs = DeliveryPickupPoint.objects.filter(is_active=True)
+    if county:
+        qs = qs.filter(county__iexact=county)
+    if town:
+        qs = qs.filter(town__icontains=town)
+    points = list(qs.order_by("town", "name")[:50])
+    return JsonResponse({
+        "ok": True,
+        "pickup_points": [
+            {
+                "id": point.id,
+                "name": point.name,
+                "code": point.code,
+                "county": point.county,
+                "town": point.town,
+                "address": point.address,
+                "phone": point.phone,
+                "partner_name": point.partner_name,
+                "max_holding_days": point.max_holding_days,
+                "latitude": str(point.latitude),
+                "longitude": str(point.longitude),
+            }
+            for point in points
+        ],
+    })
 
 
 def checkout_quote(request):
