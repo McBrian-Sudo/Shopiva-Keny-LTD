@@ -147,6 +147,7 @@ class DeliveryTariff(models.Model):
     pickup_available = models.BooleanField(default=False)
     express_available = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    is_fallback = models.BooleanField(default=False, help_text="Use this tariff for any other delivery point in the county when no exact destination tariff exists.")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
