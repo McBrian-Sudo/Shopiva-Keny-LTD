@@ -21,7 +21,7 @@ from .admin_operations import admin_operations_center
 from .payments import _create_seller_settlements
 from .notifications import notify_user
 from .notification_service import notify_wishlist_product_change
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff, DeliveryHub, DeliveryPricingProfile
 
 
 class ProductForm(forms.ModelForm):
@@ -547,6 +547,32 @@ class DeliveryAgentAdmin(admin.ModelAdmin):
         if obj.user_id:
             obj.user.is_active = bool(obj.is_active)
             obj.user.save(update_fields=("is_active",))
+
+
+@admin.register(DeliveryHub, site=shopiva_admin_site)
+class DeliveryHubAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "county", "town", "fulfillment_model", "is_primary", "is_active", "updated_at")
+    list_filter = ("county", "fulfillment_model", "is_primary", "is_active")
+    search_fields = ("name", "code", "county", "town", "address")
+    list_editable = ("fulfillment_model", "is_primary", "is_active")
+    ordering = ("-is_primary", "name")
+
+
+@admin.register(DeliveryPricingProfile, site=shopiva_admin_site)
+class DeliveryPricingProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        "name", "delivery_mode", "pricing_mode", "base_fee", "per_km_fee",
+        "per_seller_fee", "rural_surcharge", "minimum_fee", "maximum_fee",
+        "rounding_step", "is_active", "updated_at",
+    )
+    list_filter = ("delivery_mode", "pricing_mode", "is_active")
+    search_fields = ("name", "notes")
+    list_editable = (
+        "base_fee", "per_km_fee", "per_seller_fee", "rural_surcharge",
+        "minimum_fee", "maximum_fee", "rounding_step", "is_active",
+    )
+    ordering = ("delivery_mode", "name")
+    list_per_page = 50
 
 
 @admin.register(DeliveryTariff, site=shopiva_admin_site)
