@@ -129,6 +129,80 @@ class Product(models.Model):
             models.CheckConstraint(condition=models.Q(discount_percent__gte=0, discount_percent__lte=100), name="product_discount_0_100"),
         ]
 
+class DeliveryHub(models.Model):
+    FULFILLMENT_OWN = "shopiva_owned"
+    FULFILLMENT_THIRD_PARTY = "third_party"
+    FULFILLMENT_INDEPENDENT = "independent"
+    FULFILLMENT_MIXED = "mixed"
+    FULFILLMENT_CHOICES = (
+        (FULFILLMENT_OWN, "Shopiva-owned fleet"),
+        (FULFILLMENT_THIRD_PARTY, "Third-party couriers"),
+        (FULFILLMENT_INDEPENDENT, "Independent riders/drivers"),
+        (FULFILLMENT_MIXED, "Mixed fulfillment"),
+    )
+
+    name = models.CharField(max_length=120)
+    code = models.CharField(max_length=30, unique=True)
+    county = models.CharField(max_length=100)
+    town = models.CharField(max_length=120)
+    address = models.CharField(max_length=255, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    fulfillment_model = models.CharField(max_length=30, choices=FULFILLMENT_CHOICES, default=FULFILLMENT_MIXED)
+    is_primary = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-is_primary", "name")
+        constraints = [
+            models.CheckConstraint(condition=models.Q(latitude__gte=-90, latitude__lte=90), name="deliveryhub_latitude_range"),
+            models.CheckConstraint(condition=models.Q(longitude__gte=-180, longitude__lte=180), name="deliveryhub_longitude_range"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.town}, {self.county})"
+
+
+class DeliveryPricingProfile(models.Model):
+    MODE_DISTANCE = "distance"
+    MODE_LEGACY = "legacy_tariff"
+    PRICING_MODE_CHOICES = (
+        (MODE_DISTANCE, "Distance-based pricing"),
+        (MODE_LEGACY, "Destination tariff pricing"),
+    )
+
+    name = models.CharField(max_length=120)
+    delivery_mode = models.CharField(max_length=20, choices=DeliveryTariff.MODE_CHOICES, default=DeliveryTariff.MODE_STANDARD)
+    pricing_mode = models.CharField(max_length=30, choices=PRICING_MODE_CHOICES, default=MODE_DISTANCE)
+    base_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    per_km_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    per_seller_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    rural_surcharge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    minimum_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    maximum_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    rounding_step = models.DecimalField(max_digits=10, decimal_places=2, default=10)
+    is_active = models.BooleanField(default=False)
+    notes = models.TextField(blank=True, help_text="Record the approved commercial/transport basis for these rates.")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("delivery_mode", "name")
+        constraints = [
+            models.CheckConstraint(condition=models.Q(base_fee__gte=0), name="deliverypricing_base_gte_0"),
+            models.CheckConstraint(condition=models.Q(per_km_fee__gte=0), name="deliverypricing_km_gte_0"),
+            models.CheckConstraint(condition=models.Q(per_seller_fee__gte=0), name="deliverypricing_seller_gte_0"),
+            models.CheckConstraint(condition=models.Q(rural_surcharge__gte=0), name="deliverypricing_rural_gte_0"),
+            models.CheckConstraint(condition=models.Q(minimum_fee__gte=0), name="deliverypricing_min_gte_0"),
+            models.CheckConstraint(condition=models.Q(maximum_fee__gte=0) | models.Q(maximum_fee__isnull=True), name="deliverypricing_max_gte_0"),
+            models.CheckConstraint(condition=models.Q(rounding_step__gt=0), name="deliverypricing_rounding_gt_0"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} — {self.get_delivery_mode_display()}"
+
+
 class DeliveryTariff(models.Model):
     MODE_STANDARD = "standard"
     MODE_PICKUP = "pickup"
@@ -222,6 +296,12 @@ class Order(models.Model):
     delivery_mode = models.CharField(max_length=20, default="standard")
     delivery_distance_km = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     delivery_distance_source = models.CharField(max_length=30, default="estimated")
+    delivery_hub = models.ForeignKey("DeliveryHub", on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
+    delivery_pricing_profile = models.ForeignKey("DeliveryPricingProfile", on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
+    delivery_pricing_basis = models.CharField(max_length=40, default="legacy_tariff")
+    delivery_base_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    delivery_distance_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    delivery_distance_charge = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="pending")
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="unpaid")
     payment_reference = models.CharField(max_length=120, blank=True)
