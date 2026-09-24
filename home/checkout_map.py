@@ -8,6 +8,7 @@ from django.shortcuts import render
 from .models import Order
 from .payments import checkout_mpesa as original_checkout_mpesa
 from .delivery_pricing import calculate_order_quote, tariff_text
+from .models import DeliveryTariff
 
 
 def _coord(value, low, high):
@@ -30,6 +31,9 @@ def checkout_quote(request):
     if latitude is None or longitude is None:
         return JsonResponse({"ok": False, "error": "Pin an exact delivery location first."}, status=400)
 
+    county = request.GET.get("county", "").strip()
+    town = request.GET.get("town", "").strip()
+    mode = request.GET.get("delivery_mode", DeliveryTariff.MODE_STANDARD).strip().lower() or DeliveryTariff.MODE_STANDARD
     cart = request.session.get("cart", {})
     items = []
     from .models import Product
@@ -45,7 +49,7 @@ def checkout_quote(request):
         return JsonResponse({"ok": False, "error": "Your cart is empty."}, status=400)
 
     try:
-        quote = calculate_order_quote(items, latitude, longitude)
+        quote = calculate_order_quote(items, latitude, longitude, county, town, mode)
     except ValueError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=400)
 
@@ -58,6 +62,10 @@ def checkout_quote(request):
         "distance_km": f"{quote['distance_km']:.2f}",
         "distance_source": quote["distance_source"],
         "seller_count": quote["seller_count"],
+        "county": quote["county"],
+        "destination": quote["destination"],
+        "delivery_mode": quote["delivery_mode"],
+        "tariff_fee_per_seller": f"{quote['tariff_fee_per_seller']:.2f}",
         "tariff": tariff_text(),
     })
 
