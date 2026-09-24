@@ -24,12 +24,10 @@ def checkout_quote(request):
     if request.method != "GET":
         return JsonResponse({"ok": False, "error": "GET required."}, status=405)
     try:
-        latitude = _coord(request.GET.get("lat"), Decimal("-90"), Decimal("90"))
-        longitude = _coord(request.GET.get("lng"), Decimal("-180"), Decimal("180"))
+        latitude = _coord(request.GET.get("lat"), Decimal("-90"), Decimal("90")) if request.GET.get("lat") else None
+        longitude = _coord(request.GET.get("lng"), Decimal("-180"), Decimal("180")) if request.GET.get("lng") else None
     except Exception:
         latitude = longitude = None
-    if latitude is None or longitude is None:
-        return JsonResponse({"ok": False, "error": "Pin an exact delivery location first."}, status=400)
 
     county = request.GET.get("county", "").strip()
     town = request.GET.get("town", "").strip()
@@ -59,7 +57,7 @@ def checkout_quote(request):
         "commission": f"{quote['commission']:.2f}",
         "delivery_fee": f"{quote['delivery_fee']:.2f}",
         "total": f"{quote['total']:.2f}",
-        "distance_km": f"{quote['distance_km']:.2f}",
+        "distance_km": f"{quote['distance_km']:.2f}" if quote["distance_km"] is not None else None,
         "distance_source": quote["distance_source"],
         "seller_count": quote["seller_count"],
         "county": quote["county"],
