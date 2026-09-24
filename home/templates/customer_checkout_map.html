@@ -63,8 +63,7 @@ form.onsubmit=e=>{if(!document.getElementById('delivery_county').value.trim()||!
       distanceEl.textContent=data.distance_km+' km'+(data.distance_source==='google_roads'?' · road':' · estimated');
       totalEl.textContent='KSh '+Number(data.total).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
       messageEl.className='status ok';
-      messageEl.textContent='✓ '+data.destination+', '+data.county+' — KSh '+data.tariff_fee_per_seller+' standard tariff per seller leg. '+(data.distance_source==='google_roads' ? 'Google road distance is also recorded.' : 'Map distance is recorded for operations.');
-        : '✓ Delivery fee calculated from the map distance. Road-distance routing activates when the Shopiva Google Routes key is configured.';
+      messageEl.textContent='✓ '+data.destination+', '+data.county+' — KSh '+data.tariff_fee_per_seller+' standard tariff per seller leg. '+(data.distance_source==='google_roads' ? 'Google road distance is also recorded.' : 'Map distance is recorded for operations.');;
     }catch(e){
       commissionEl.textContent='Calculated at checkout';
       deliveryEl.textContent='Unavailable';
@@ -74,5 +73,6 @@ form.onsubmit=e=>{if(!document.getElementById('delivery_county').value.trim()||!
     }finally{busy=false;}
   }
   window.shopivaRefreshQuote=refreshQuote;
+  ['delivery_county','delivery_town'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>{lastKey='';refreshQuote()})});
 })();
 </script></body></html>
