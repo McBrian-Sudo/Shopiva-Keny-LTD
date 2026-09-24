@@ -129,6 +129,50 @@ class Product(models.Model):
             models.CheckConstraint(condition=models.Q(discount_percent__gte=0, discount_percent__lte=100), name="product_discount_0_100"),
         ]
 
+class DeliveryTariff(models.Model):
+    MODE_STANDARD = "standard"
+    MODE_PICKUP = "pickup"
+    MODE_EXPRESS = "express"
+    MODE_CHOICES = (
+        (MODE_STANDARD, "Standard Delivery"),
+        (MODE_PICKUP, "Pickup Station"),
+        (MODE_EXPRESS, "Express Delivery"),
+    )
+
+    county = models.CharField(max_length=100)
+    destination = models.CharField(max_length=120)
+    standard_fee = models.DecimalField(max_digits=10, decimal_places=2)
+    pickup_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    express_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    pickup_available = models.BooleanField(default=False)
+    express_available = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("county", "destination")
+        constraints = [
+            models.UniqueConstraint(fields=("county", "destination"), name="unique_shopiva_delivery_tariff_destination"),
+            models.CheckConstraint(condition=models.Q(standard_fee__gte=0), name="deliverytariff_standard_fee_gte_0"),
+            models.CheckConstraint(condition=models.Q(pickup_fee__gte=0) | models.Q(pickup_fee__isnull=True), name="deliverytariff_pickup_fee_gte_0"),
+            models.CheckConstraint(condition=models.Q(express_fee__gte=0) | models.Q(express_fee__isnull=True), name="deliverytariff_express_fee_gte_0"),
+        ]
+
+    def fee_for_mode(self, mode=MODE_STANDARD):
+        if mode == self.MODE_PICKUP:
+            if not self.pickup_available or self.pickup_fee is None:
+                raise ValueError("Pickup Station delivery is not currently available for this destination.")
+            return self.pickup_fee
+        if mode == self.MODE_EXPRESS:
+            if not self.express_available or self.express_fee is None:
+                raise ValueError("Express delivery is not currently available for this destination.")
+            return self.express_fee
+        return self.standard_fee
+
+    def __str__(self):
+        return f"{self.destination}, {self.county} — KSh {self.standard_fee}"
+
+
 class DeliveryAgent(models.Model):
     STATUS_CHOICES = [("offline", "Offline"), ("available", "Available"), ("on_delivery", "On Delivery")]
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="delivery_agent_profile")
