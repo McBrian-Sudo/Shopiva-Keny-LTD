@@ -63,8 +63,13 @@ def checkout_quote(request):
         "county": quote["county"],
         "destination": quote["destination"],
         "delivery_mode": quote["delivery_mode"],
-        "tariff_fee_per_seller": f"{quote['tariff_fee_per_seller']:.2f}",
+        "tariff_fee_per_seller": f"{quote['tariff_fee_per_seller']:.2f}" if quote["tariff_fee_per_seller"] is not None else None,
         "tariff_scope": quote["tariff_scope"],
+        "pricing_basis": quote["pricing_basis"],
+        "hub": quote["hub"].name if quote["hub"] else None,
+        "base_fee": f"{quote['base_fee']:.2f}",
+        "distance_rate": f"{quote['distance_rate']:.2f}",
+        "distance_charge": f"{quote['distance_charge']:.2f}",
         "tariff": tariff_text(),
     })
 
