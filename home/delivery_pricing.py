@@ -264,14 +264,12 @@ def calculate_order_quote(
     route_class = _route_class(distance, tariff.is_fallback)
 
     profile = _active_distance_profile(delivery_mode)
-    rate_card = None
-    if profile:
-        rate_card = _active_rate_card(
-            delivery_mode,
-            package_class,
-            route_class,
-            hub.fulfillment_model if hub else DeliveryHub.FULFILLMENT_MIXED,
-        )
+    rate_card = _active_rate_card(
+        delivery_mode,
+        package_class,
+        route_class,
+        hub.fulfillment_model if hub else DeliveryHub.FULFILLMENT_MIXED,
+    )
     if rate_card:
         if distance is None:
             raise ValueError(
