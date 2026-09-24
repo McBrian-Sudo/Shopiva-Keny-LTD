@@ -75,7 +75,8 @@ def _routes_api_distance_km(origin_lat, origin_lng, destination_lat, destination
 
 def calculate_order_quote(items, customer_latitude, customer_longitude, destination_county, destination_town, delivery_mode=DeliveryTariff.MODE_STANDARD):
     from .commission import get_platform_commission_percent
-    destination_lat, destination_lng = _decimal(customer_latitude), _decimal(customer_longitude)
+    destination_lat = _decimal(customer_latitude) if customer_latitude not in (None, "") else None
+    destination_lng = _decimal(customer_longitude) if customer_longitude not in (None, "") else None
     tariff, fee_per_seller = find_delivery_tariff(destination_county, destination_town, delivery_mode)
     subtotal = Decimal("0.00")
     commission = Decimal("0.00")
@@ -94,7 +95,8 @@ def calculate_order_quote(items, customer_latitude, customer_longitude, destinat
             raise ValueError(f"{product.name} cannot be ordered until the seller adds a pickup location.")
         seller_legs.setdefault(seller.id, {"latitude": _decimal(seller.business_latitude), "longitude": _decimal(seller.business_longitude)})
     distances, distance_sources = [], []
-    for leg in seller_legs.values():
+    if destination_lat is not None and destination_lng is not None:
+      for leg in seller_legs.values():
         road_distance = _routes_api_distance_km(leg["latitude"], leg["longitude"], destination_lat, destination_lng)
         if road_distance is not None:
             distance, source = road_distance, "google_roads"
@@ -107,9 +109,9 @@ def calculate_order_quote(items, customer_latitude, customer_longitude, destinat
     return {
         "subtotal": subtotal, "commission": commission.quantize(Decimal("0.01")),
         "delivery_fee": delivery_fee, "total": total,
-        "distance_km": sum(distances, Decimal("0.00")).quantize(Decimal("0.01")),
+        "distance_km": sum(distances, Decimal("0.00")).quantize(Decimal("0.01")) if distances else None,
         "seller_count": len(seller_legs), "distances": distances,
-        "distance_source": "google_roads" if distance_sources and all(x == "google_roads" for x in distance_sources) else "estimated",
+        "distance_source": ("google_roads" if distance_sources and all(x == "google_roads" for x in distance_sources) else "estimated") if distances else "not_pinned",
         "county": tariff.county, "destination": tariff.destination,
         "delivery_mode": delivery_mode, "tariff_fee_per_seller": fee_per_seller,
     }
