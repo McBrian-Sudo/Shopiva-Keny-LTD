@@ -64,6 +64,7 @@ def checkout_quote(request):
         "destination": quote["destination"],
         "delivery_mode": quote["delivery_mode"],
         "tariff_fee_per_seller": f"{quote['tariff_fee_per_seller']:.2f}",
+        "tariff_scope": quote["tariff_scope"],
         "tariff": tariff_text(),
     })
 
