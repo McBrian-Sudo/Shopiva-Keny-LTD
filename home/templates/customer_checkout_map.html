@@ -21,21 +21,6 @@ if(savedAddressEl){
 }
 form.onsubmit=e=>{if(!latEl.value||!lngEl.value){e.preventDefault();setStatus('Please pin the exact delivery location before continuing.','warn');mapEl.scrollIntoView({behavior:'smooth',block:'center'})}};setTimeout(()=>map.invalidateSize(),250)})();
 </script><script>
-(()=>{
- const savedAddressEl=document.getElementById('saved-address'),nameEl=document.getElementById('name'),phoneEl=document.getElementById('phone');
- if(savedAddressEl){
-   savedAddressEl.addEventListener('change',()=>{
-     const o=savedAddressEl.options[savedAddressEl.selectedIndex];
-     if(!o||!o.value)return;
-     if(nameEl&&o.dataset.name)nameEl.value=o.dataset.name;
-     if(phoneEl&&o.dataset.phone)phoneEl.value=o.dataset.phone;
-     if(addrEl&&o.dataset.address)addrEl.value=o.dataset.address;
-     if(o.dataset.lat&&o.dataset.lng){setPoint(o.dataset.lat,o.dataset.lng,o.dataset.address||'Saved delivery address');searchEl.value=o.dataset.address||'Saved delivery address';}
-   });
- }
- })();
-
-<script>
 (function(){
   const latEl=document.getElementById('lat'), lngEl=document.getElementById('lng');
   const subtotalEl=document.getElementById('quote-subtotal'), commissionEl=document.getElementById('quote-commission');
