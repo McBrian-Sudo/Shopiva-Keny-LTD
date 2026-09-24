@@ -8,7 +8,7 @@ from home.admin_session import admin_session_status
 from home.business_intelligence import business_intelligence
 from home.ai import shop_assistant
 from home.customer_tracking import customer_order_tracking
-from home.checkout_map import checkout_mpesa_map, checkout_quote
+from home.checkout_map import checkout_mpesa_map, checkout_quote, pickup_points
 from home.google_admin_map import google_admin_delivery_map
 from home.map_views import customer_addresses_map, customer_delivery_location_map, seller_product_add_map, seller_product_edit_map
 from home.platform import app_install, app_manifest, service_worker, favicon, shopiva_app_icon
@@ -61,6 +61,7 @@ urlpatterns = [
 
     path("checkout/", checkout_mpesa_map, name="checkout"),
     path("checkout/quote/", checkout_quote, name="checkout_quote"),
+    path("checkout/pickup-points/", pickup_points, name="pickup_points"),
     path("payments/mpesa/callback/", mpesa_callback, name="mpesa_callback"),
     path("payments/mpesa/status/<int:order_id>/", mpesa_payment_status, name="mpesa_payment_status"),
     path("payments/mpesa/verify/<int:order_id>/", mpesa_payment_verify, name="mpesa_payment_verify"),
