@@ -9,6 +9,7 @@ from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group, User
 from django.db import transaction
+from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -21,6 +22,7 @@ from .admin_operations import admin_operations_center
 from .payments import _create_seller_settlements
 from .notifications import notify_user
 from .notification_service import notify_wishlist_product_change
+from .payouts import transition_seller_payout
 from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery
 
 
@@ -425,7 +427,11 @@ class OrderAdmin(admin.ModelAdmin):
     ordering = ("-created_at",)
     list_per_page = 25
     readonly_fields = (
-        "tracking_code", "packed_at", "paid_at", "assigned_at",
+        "tracking_code",
+        "total_amount", "items_subtotal", "platform_commission_amount",
+        "delivery_fee", "delivery_distance_km", "delivery_distance_source",
+        "payment_status", "payment_reference", "paid_at",
+        "packed_at", "assigned_at",
         "delivery_confirmation_code", "delivery_verification_attempts",
         "delivery_verification_locked_at", "delivered_at",
     )
@@ -434,6 +440,16 @@ class OrderAdmin(admin.ModelAdmin):
         previous = None
         if change and obj.pk:
             previous = Order.objects.get(pk=obj.pk)
+            if previous.payment_status != obj.payment_status:
+                raise ValidationError("Payment status is system-controlled and cannot be changed from the Order admin.")
+
+        if obj.status == "paid" and obj.payment_status != "paid":
+            raise ValidationError("An order cannot be marked paid before a verified payment transition.")
+        is_cod = obj.payments.filter(method="cod").exists() if obj.pk else False
+        if obj.status in {"packed", "processing", "shipped", "out_for_delivery", "delivered"} and obj.payment_status != "paid":
+            raise ValidationError("Fulfillment requires a confirmed payment. Cash on Delivery becomes paid when delivery is verified.")
+        if obj.status == "confirmed" and obj.payment_status != "paid" and not is_cod:
+            raise ValidationError("Only paid orders or Cash on Delivery orders may be confirmed for fulfillment.")
 
         if not obj.tracking_code:
             obj.tracking_code = f"SPV-{uuid.uuid4().hex[:10].upper()}"
@@ -441,8 +457,6 @@ class OrderAdmin(admin.ModelAdmin):
         now = timezone.now()
         if obj.status == "packed" and not obj.packed_at:
             obj.packed_at = now
-        if obj.payment_status == "paid" and not obj.paid_at:
-            obj.paid_at = now
         if obj.delivery_agent_id and not obj.assigned_at:
             obj.assigned_at = now
         if obj.delivery_agent_id:
@@ -471,7 +485,14 @@ class OrderAdmin(admin.ModelAdmin):
                     settlement.status = "available"
                     settlement.released_at = now
                     settlement.save(update_fields=("status", "released_at"))
-                    notify_user(settlement.seller.user, "Seller earnings released", f"Order {obj.tracking_code} was delivered. KSh {settlement.seller_amount:,.2f} is now available for payout.", "delivery", "/seller/")
+                    notify_user(
+                        settlement.seller.user,
+                        "Seller earnings released",
+                        f"Order {obj.tracking_code} was delivered. KSh {settlement.seller_amount:,.2f} is now available for payout.",
+                        "delivery",
+                        "/seller/",
+                    )
+
         if previous.status != obj.status:
             event_map = {
                 "confirmed": "confirmed",
@@ -492,16 +513,6 @@ class OrderAdmin(admin.ModelAdmin):
                     delivery_agent=obj.delivery_agent,
                 )
 
-        if previous.payment_status != obj.payment_status and obj.payment_status == "paid":
-            _create_seller_settlements(obj)
-            OrderEvent.objects.create(
-                order=obj,
-                event_type="paid",
-                note=f"Payment confirmed{(' - ' + obj.payment_reference) if obj.payment_reference else ''}.",
-                actor=request.user,
-                delivery_agent=obj.delivery_agent,
-            )
-
         if previous.delivery_agent_id != obj.delivery_agent_id and obj.delivery_agent:
             OrderEvent.objects.create(
                 order=obj,
@@ -510,6 +521,12 @@ class OrderAdmin(admin.ModelAdmin):
                 actor=request.user,
                 delivery_agent=obj.delivery_agent,
             )
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(OrderItem, site=shopiva_admin_site)
@@ -605,32 +622,38 @@ class SellerSettlementAdmin(admin.ModelAdmin):
     search_fields = ("order__tracking_code", "seller__business_name", "seller__user__username", "provider_reference")
     readonly_fields = ("order", "seller", "gross_amount", "platform_commission", "seller_amount", "provider_reference", "created_at", "released_at", "paid_at")
 
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 @admin.register(SellerPayoutRequest, site=shopiva_admin_site)
 class SellerPayoutRequestAdmin(admin.ModelAdmin):
     list_display = ("id", "seller", "amount", "phone", "status", "provider_reference", "created_at", "paid_at")
     list_filter = ("status", "created_at")
     search_fields = ("seller__business_name", "seller__user__username", "seller__user__email", "phone", "provider_reference", "idempotency_key")
-    readonly_fields = ("seller", "amount", "phone", "idempotency_key", "provider_response", "created_at", "updated_at", "paid_at")
-    list_editable = ("status",)
+    readonly_fields = (
+        "seller", "amount", "phone", "idempotency_key",
+        "provider_reference", "provider_response", "failure_reason",
+        "created_at", "updated_at", "paid_at",
+    )
     list_per_page = 25
 
     def save_model(self, request, obj, form, change):
-        previous_status = None
-        if change and obj.pk:
-            previous_status = SellerPayoutRequest.objects.get(pk=obj.pk).status
-        super().save_model(request, obj, form, change)
-        if not change or previous_status == obj.status:
+        if not change or not obj.pk:
+            raise ValidationError("Payout requests are created by the seller payout workflow.")
+        previous = SellerPayoutRequest.objects.get(pk=obj.pk)
+        if previous.status == obj.status:
             return
-        with transaction.atomic():
-            wallet = SellerWallet.objects.select_for_update().get(seller=obj.seller)
-            if obj.status == "paid":
-                obj.paid_at = timezone.now()
-                obj.save(update_fields=("paid_at", "updated_at"))
-                notify_user(obj.seller.user, "Seller payout confirmed", f"Your Shopiva payout #{obj.id} for KSh {obj.amount:,.2f} has been marked paid by the admin.", "payout", "/seller/")
-            elif obj.status in {"failed", "cancelled"} and previous_status not in {"failed", "cancelled"}:
-                wallet.available_balance += obj.amount
-                wallet.save(update_fields=("available_balance", "updated_at"))
-                obj.save(update_fields=("updated_at",))
+        transition_seller_payout(obj.pk, obj.status)
+        obj.refresh_from_db()
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(ProductReview, site=shopiva_admin_site)
