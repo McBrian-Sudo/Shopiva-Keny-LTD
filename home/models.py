@@ -219,7 +219,7 @@ class DeliveryRateCard(models.Model):
 
     name = models.CharField(max_length=150)
     fulfillment_model = models.CharField(max_length=30, choices=DeliveryHub.FULFILLMENT_CHOICES, default=DeliveryHub.FULFILLMENT_MIXED)
-    delivery_mode = models.CharField(max_length=20, choices=DeliveryTariff.MODE_CHOICES, default=DeliveryTariff.MODE_STANDARD)
+    delivery_mode = models.CharField(max_length=20, choices=(("standard", "Standard Delivery"), ("pickup", "Pickup Station"), ("express", "Express Delivery")), default="standard")
     package_class = models.CharField(max_length=20, choices=Product.PACKAGE_CHOICES, default=Product.PACKAGE_SMALL)
     route_class = models.CharField(max_length=20, choices=ROUTE_CHOICES, default=ROUTE_LOCAL)
     base_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
