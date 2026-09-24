@@ -551,8 +551,8 @@ class DeliveryAgentAdmin(admin.ModelAdmin):
 
 @admin.register(DeliveryTariff, site=shopiva_admin_site)
 class DeliveryTariffAdmin(admin.ModelAdmin):
-    list_display = ("county", "destination", "standard_fee", "pickup_fee", "express_fee", "pickup_available", "express_available", "is_active", "updated_at")
-    list_filter = ("county", "pickup_available", "express_available", "is_active")
+    list_display = ("county", "destination", "standard_fee", "is_fallback", "pickup_fee", "express_fee", "pickup_available", "express_available", "is_active", "updated_at")
+    list_filter = ("county", "is_fallback", "pickup_available", "express_available", "is_active")
     search_fields = ("county", "destination")
     list_editable = ("standard_fee", "pickup_fee", "express_fee", "pickup_available", "express_available", "is_active")
     ordering = ("county", "destination")
