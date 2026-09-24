@@ -23,6 +23,7 @@ from .payments import _release_reserved_inventory
 from .notifications import notify_user
 from .notification_service import notify_wishlist_product_change
 from .payouts import transition_seller_payout
+from .forms import _validate_product_image
 from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery
 
 
@@ -47,6 +48,12 @@ class ProductForm(forms.ModelForm):
             "description": forms.Textarea(attrs={"rows": 5}),
             "promo_text": forms.TextInput(attrs={"placeholder": "Optional promotion text"}),
         }
+
+    def clean_image(self):
+        image = self.cleaned_data.get("image")
+        if image:
+            _validate_product_image(image, "Product image")
+        return image
 
 
 class ShopivaAdminSite(admin.AdminSite):
