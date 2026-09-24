@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .commission import get_platform_commission_percent
 from .delivery_pricing import calculate_order_quote
-from .models import Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerSettlement, SellerWallet
+from .models import DeliveryTariff,  Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerSettlement, SellerWallet
 from .notifications import notify_user
 
 
@@ -432,6 +432,9 @@ def checkout_mpesa(request):
     email = request.POST.get("email", "").strip()
     phone = request.POST.get("phone", "").strip()
     address = request.POST.get("address", "").strip()
+    delivery_county = request.POST.get("delivery_county", "").strip()
+    delivery_town = request.POST.get("delivery_town", "").strip()
+    delivery_mode = request.POST.get("delivery_mode", DeliveryTariff.MODE_STANDARD).strip().lower() or DeliveryTariff.MODE_STANDARD
     payment_method = request.POST.get("payment_method", "").strip().lower() or ("pesapal" if pesapal_ready() else "cod")
 
     if not all([customer_name, email, phone, address]) or not items:
@@ -467,6 +470,9 @@ def checkout_mpesa(request):
                 [(product, quantity) for product, quantity, _ in locked_items],
                 customer_latitude,
                 customer_longitude,
+                delivery_county,
+                delivery_town,
+                delivery_mode,
             )
         except ValueError as exc:
             return render(request, "checkout.html", {"items": items, "total": total, "error": str(exc)})
