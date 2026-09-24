@@ -5,7 +5,7 @@ import os
 import urllib.error
 import urllib.request
 
-from .models import DeliveryHub, DeliveryPricingProfile, DeliveryTariff
+from .models import DeliveryHub, DeliveryPricingProfile, DeliveryRateCard, DeliveryTariff, Product
 
 COMMISSION_LABEL = "Shopiva service fee"
 
@@ -141,6 +141,62 @@ def _round_delivery_fee(value, step):
     return (value / step).quantize(Decimal("1"), rounding=ROUND_UP) * step
 
 
+def _route_class(distance_km, rural):
+    if rural:
+        return DeliveryRateCard.ROUTE_REMOTE
+    if distance_km is None:
+        return DeliveryRateCard.ROUTE_NATIONAL
+    if distance_km <= Decimal("25"):
+        return DeliveryRateCard.ROUTE_LOCAL
+    if distance_km <= Decimal("100"):
+        return DeliveryRateCard.ROUTE_REGIONAL
+    if distance_km <= Decimal("300"):
+        return DeliveryRateCard.ROUTE_NATIONAL
+    return DeliveryRateCard.ROUTE_REMOTE
+
+
+def _package_class(items):
+    order = {
+        Product.PACKAGE_MICRO: 0,
+        Product.PACKAGE_SMALL: 1,
+        Product.PACKAGE_MEDIUM: 2,
+        Product.PACKAGE_BIG: 3,
+        Product.PACKAGE_EXTRA_BIG: 4,
+    }
+    selected = Product.PACKAGE_MICRO
+    for product, quantity in items:
+        if order.get(product.package_class, 1) > order.get(selected, 0):
+            selected = product.package_class
+    return selected
+
+
+def _active_rate_card(delivery_mode, package_class, route_class, fulfillment_model):
+    qs = DeliveryRateCard.objects.filter(
+        is_active=True,
+        delivery_mode=delivery_mode,
+        package_class=package_class,
+        route_class=route_class,
+    )
+    exact = list(qs.filter(fulfillment_model=fulfillment_model).order_by("-updated_at"))
+    mixed = list(qs.filter(fulfillment_model=DeliveryHub.FULFILLMENT_MIXED).order_by("-updated_at"))
+    candidates = exact or mixed
+    if len(candidates) > 1:
+        raise ValueError("Shopiva has more than one active fulfillment rate card for this route and package class.")
+    return candidates[0] if candidates else None
+
+
+def _rate_card_charge(card, distance_km, seller_count):
+    charge = (
+        card.base_fee
+        + (distance_km * card.per_km_fee)
+        + (max(0, seller_count - 1) * card.per_extra_seller_fee)
+    )
+    charge = max(charge, card.minimum_fee)
+    if card.maximum_fee is not None:
+        charge = min(charge, card.maximum_fee)
+    return _round_delivery_fee(charge, card.rounding_step).quantize(Decimal("0.01"))
+
+
 def _distance_delivery_charge(profile, distance_km, seller_count, rural):
     charge = (
         profile.base_fee
@@ -204,8 +260,31 @@ def calculate_order_quote(
             )
             distance_source = "estimated"
 
+    package_class = _package_class(items)
+    route_class = _route_class(distance, tariff.is_fallback)
+
     profile = _active_distance_profile(delivery_mode)
+    rate_card = None
     if profile:
+        rate_card = _active_rate_card(
+            delivery_mode,
+            package_class,
+            route_class,
+            hub.fulfillment_model if hub else DeliveryHub.FULFILLMENT_MIXED,
+        )
+    if rate_card:
+        if distance is None:
+            raise ValueError(
+                "Shopiva's fulfillment rate card requires an exact map pin. "
+                "Please confirm your delivery location so the route can be priced."
+            )
+        delivery_fee = _rate_card_charge(rate_card, distance, seller_count)
+        pricing_basis = "fulfillment_rate_card"
+        base_fee = rate_card.base_fee
+        distance_rate = rate_card.per_km_fee
+        distance_charge = delivery_fee
+        tariff_fee_per_seller = None
+    elif profile:
         if distance is None:
             raise ValueError(
                 "Shopiva's distance-based delivery pricing requires an exact map pin. "
@@ -252,6 +331,9 @@ def calculate_order_quote(
         "base_fee": base_fee,
         "distance_rate": distance_rate,
         "distance_charge": distance_charge,
+        "package_class": package_class,
+        "route_class": route_class,
+        "rate_card": rate_card,
     }
 
 
