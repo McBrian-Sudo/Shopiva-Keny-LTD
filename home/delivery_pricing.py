@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_UP
+from decimal import Decimal
 from math import asin, cos, radians, sin, sqrt
 import json
 import os
@@ -6,18 +6,10 @@ import urllib.error
 import urllib.request
 
 
-# Launch delivery tariff. Fees are based on estimated straight-line distance
-# between the seller pickup point and the customer's pinned location.
-# A road-routing provider can replace this calculator later without changing
+# Delivery tariff configuration intentionally cleared.
+# A new nationwide tariff schedule can be installed here without changing
 # the order/pricing contract.
-DISTANCE_BANDS = (
-    (Decimal("3"), Decimal("150")),
-    (Decimal("7"), Decimal("250")),
-    (Decimal("12"), Decimal("350")),
-    (Decimal("20"), Decimal("450")),
-    (Decimal("30"), Decimal("550")),
-    (Decimal("50"), Decimal("750")),
-)
+
 
 COMMISSION_LABEL = "Shopiva service fee"
 
@@ -84,16 +76,8 @@ def _routes_api_distance_km(origin_lat, origin_lng, destination_lat, destination
 
 
 def delivery_fee_for_distance(distance_km):
-    """Return the customer delivery fee for one seller-to-customer leg."""
-    distance = max(Decimal("0"), _decimal(distance_km))
-    for maximum_km, fee in DISTANCE_BANDS:
-        if distance <= maximum_km:
-            return fee
-
-    extra_km = distance - Decimal("50")
-    fee = Decimal("750") + (extra_km * Decimal("25"))
-    # Bill whole KSh 10 blocks above 50km for predictable checkout amounts.
-    return fee.quantize(Decimal("10"), rounding=ROUND_UP)
+    """Return zero while the previous delivery tariff is intentionally cleared."""
+    return Decimal("0.00")
 
 
 def calculate_order_quote(items, customer_latitude, customer_longitude):
@@ -101,9 +85,9 @@ def calculate_order_quote(items, customer_latitude, customer_longitude):
     Calculate:
       - item subtotal
       - value-based Shopiva commission
-      - location-based delivery fee
+      - delivery fee (currently zero because the previous tariff was cleared)
       - total customer payment
-    Delivery is charged once per unique seller represented in the cart.
+    Delivery distance is still calculated for operational use.
     """
     from .commission import get_platform_commission_percent
 
@@ -189,8 +173,4 @@ def calculate_order_quote(items, customer_latitude, customer_longitude):
 
 
 def tariff_text():
-    return (
-        "0–3 km: KSh 150; 3–7 km: KSh 250; 7–12 km: KSh 350; "
-        "12–20 km: KSh 450; 20–30 km: KSh 550; 30–50 km: KSh 750; "
-        "50+ km: KSh 750 + KSh 25/km above 50 km."
-    )
+    return "No delivery tariff is currently configured."
