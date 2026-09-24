@@ -1,6 +1,7 @@
 import base64
 import json
-import os       
+import os
+import uuid
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -30,6 +31,8 @@ def mpesa_production_ready():
     required = (
         "MPESA_CONSUMER_KEY",
         "MPESA_CONSUMER_SECRET",
+        "MPESA_SHORTCODE",
+        "MPESA_TILL_NUMBER",
         "MPESA_PASSKEY",
         "MPESA_CALLBACK_URL",
     )
@@ -77,6 +80,35 @@ def _till_number():
 
 def _callback_url():
     return _env("MPESA_CALLBACK_URL", "https://shopivakenya.top/payments/mpesa/callback/")
+
+
+def _checkout_key(request):
+    raw = str(request.POST.get("checkout_key") or request.session.get("checkout_key") or "").strip()
+    try:
+        key = uuid.UUID(raw)
+    except (ValueError, AttributeError, TypeError):
+        key = uuid.uuid4()
+    request.session["checkout_key"] = str(key)
+    request.session.modified = True
+    return key
+
+
+def _redirect_existing_checkout(request, checkout_key):
+    existing = Order.objects.filter(checkout_key=checkout_key).first()
+    if not existing:
+        return None
+    request.session["payment_order_id"] = existing.id
+    request.session["cart"] = {}
+    request.session.modified = True
+    payment = existing.payments.order_by("-created_at").first()
+    if payment and payment.method == "mpesa":
+        return redirect("mpesa_waiting", order_id=existing.id)
+    if payment and payment.provider == "pesapal" and payment.status == "pending":
+        redirect_url = str((payment.raw_response or {}).get("redirect_url") or "").strip()
+        if redirect_url.startswith("https://"):
+            return redirect(redirect_url)
+    return redirect("order_success", order_id=existing.id)
+
 
 
 def normalize_phone(phone):
@@ -282,7 +314,7 @@ def create_pesapal_checkout(order, payment):
         raise RuntimeError(payload.get("message") or "Pesapal could not create the payment session.")
     payment.provider = "pesapal"
     payment.provider_reference = str(tracking_id)
-    payment.raw_response = {"order_tracking_id": tracking_id, "merchant_reference": reference}
+    payment.raw_response = {"order_tracking_id": tracking_id, "merchant_reference": reference, "redirect_url": redirect_url}
     payment.status = "pending"
     payment.save(update_fields=["provider", "provider_reference", "raw_response", "status", "updated_at"])
     return redirect_url
@@ -426,7 +458,13 @@ def checkout_mpesa(request):
         items.append({"product": product, "quantity": quantity, "subtotal": subtotal, "unit_price": product.discounted_price})
 
     if request.method != "POST":
-        return render(request, "checkout.html", {"items": items, "total": total})
+        checkout_key = _checkout_key(request)
+        return render(request, "checkout.html", {"items": items, "total": total, "checkout_key": checkout_key})
+
+    checkout_key = _checkout_key(request)
+    existing_response = _redirect_existing_checkout(request, checkout_key)
+    if existing_response is not None:
+        return existing_response
 
     customer_name = request.POST.get("customer_name", "").strip()
     email = request.POST.get("email", "").strip()
@@ -502,7 +540,8 @@ def checkout_mpesa(request):
             delivery_distance_source=quote["distance_source"],
             status="pending",
             payment_status="unpaid",
-            tracking_code=f"SPV-{__import__('uuid').uuid4().hex[:10].upper()}",
+            tracking_code=f"SPV-{uuid.uuid4().hex[:10].upper()}",
+            checkout_key=checkout_key,
         )
         OrderEvent.objects.create(order=order, event_type="placed", note="Order placed through Shopiva checkout.", actor=request.user if request.user.is_authenticated else None)
         if request.user.is_authenticated and not request.user.is_staff:
@@ -526,22 +565,24 @@ def checkout_mpesa(request):
             product.save(update_fields=["stock_quantity"])
 
         if payment_method == "cod":
-            PaymentTransaction.objects.create(order=order, method="cod", status="pending", provider="shopiva", amount=final_total, phone=phone, idempotency_key=f"COD-{order.id}")
+            PaymentTransaction.objects.create(order=order, method="cod", status="pending", provider="shopiva", amount=final_total, phone=phone, idempotency_key=f"COD-{checkout_key}")
             order.payment_status = "pending"
             order.status = "confirmed"
             order.save(update_fields=["payment_status", "status"])
             OrderEvent.objects.create(order=order, event_type="confirmed", note="Cash on Delivery order accepted.")
             request.session["cart"] = {}
+            request.session["checkout_key"] = str(uuid.uuid4())
+            request.session["payment_order_id"] = order.id
             request.session.modified = True
             return redirect("order_success", order_id=order.id)
 
         if payment_method in {"pesapal", "card"}:
-            payment = PaymentTransaction.objects.create(order=order, method="card", status="initiated", provider="pesapal", amount=final_total, phone=phone, idempotency_key=f"PESAPAL-{order.id}")
+            payment = PaymentTransaction.objects.create(order=order, method="card", status="initiated", provider="pesapal", amount=final_total, phone=phone, idempotency_key=f"PESAPAL-{checkout_key}")
             order.payment_status = "pending"
             order.save(update_fields=["payment_status"])
             OrderEvent.objects.create(order=order, event_type="payment_pending", note="Waiting for secure Pesapal payment selection.")
         else:
-            payment = PaymentTransaction.objects.create(order=order, method="mpesa", status="initiated", provider="daraja", amount=final_total, phone=normalize_phone(phone), idempotency_key=f"MPESA-{order.id}")
+            payment = PaymentTransaction.objects.create(order=order, method="mpesa", status="initiated", provider="daraja", amount=final_total, phone=normalize_phone(phone), idempotency_key=f"MPESA-{checkout_key}")
         order.payment_status = "pending"
         order.save(update_fields=["payment_status"])
         payment_note = "Waiting for M-PESA STK payment."
@@ -567,6 +608,7 @@ def checkout_mpesa(request):
             return render(request, "checkout.html", {"items": items, "total": total, "error": str(exc)})
         request.session["cart"] = {}
         request.session["payment_order_id"] = order.id
+        request.session["checkout_key"] = str(uuid.uuid4())
         request.session.modified = True
         return redirect(checkout_url)
 
@@ -596,6 +638,7 @@ def checkout_mpesa(request):
 
     request.session["cart"] = {}
     request.session["payment_order_id"] = order.id
+    request.session["checkout_key"] = str(uuid.uuid4())
     request.session.modified = True
     return redirect("mpesa_waiting", order_id=order.id)
 
