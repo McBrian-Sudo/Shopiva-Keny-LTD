@@ -147,6 +147,63 @@ class Product(models.Model):
             models.CheckConstraint(condition=models.Q(discount_percent__gte=0, discount_percent__lte=100), name="product_discount_0_100"),
         ]
 
+class ShopivaBranch(models.Model):
+    name = models.CharField(max_length=150)
+    code = models.CharField(max_length=40, unique=True)
+    county = models.CharField(max_length=100)
+    town = models.CharField(max_length=120)
+    address = models.CharField(max_length=255)
+    phone = models.CharField(max_length=30, blank=True)
+    email = models.EmailField(blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    opening_time = models.TimeField(null=True, blank=True)
+    closing_time = models.TimeField(null=True, blank=True)
+    services = models.TextField(blank=True, help_text="Customer-facing services offered at this branch.")
+    is_headquarters = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("county", "town", "name")
+
+    def __str__(self):
+        return f"{self.name} ({self.town}, {self.county})"
+
+
+class ShopivaOutlet(models.Model):
+    branch = models.ForeignKey(
+        ShopivaBranch,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="outlets",
+    )
+    name = models.CharField(max_length=150)
+    code = models.CharField(max_length=40, unique=True)
+    county = models.CharField(max_length=100)
+    town = models.CharField(max_length=120)
+    address = models.CharField(max_length=255)
+    phone = models.CharField(max_length=30, blank=True)
+    email = models.EmailField(blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    opening_time = models.TimeField(null=True, blank=True)
+    closing_time = models.TimeField(null=True, blank=True)
+    services = models.TextField(blank=True, help_text="Customer-facing services offered at this outlet.")
+    pickup_available = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("county", "town", "name")
+
+    def __str__(self):
+        return f"{self.name} ({self.town}, {self.county})"
+
+
 class DeliveryHub(models.Model):
     FULFILLMENT_OWN = "shopiva_owned"
     FULFILLMENT_THIRD_PARTY = "third_party"
