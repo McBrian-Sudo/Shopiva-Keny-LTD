@@ -665,37 +665,49 @@ def mpesa_callback(request):
     if not payment:
         return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
 
-    with transaction.atomic():
-        payment = PaymentTransaction.objects.select_for_update().get(pk=payment.pk)
-        order = Order.objects.select_for_update().get(pk=payment.order_id)
-        payment.raw_response = payload
-
+    # Perform the provider query before opening a database transaction. This
+    # avoids holding row locks while waiting on Safaricom network I/O.
+    query_payload = None
+    query_result_code = None
+    query_identifiers_match = False
+    query_error = ""
+    try:
+        query_payload = query_mpesa_stk(payment)
+        query_checkout_id = str(query_payload.get("CheckoutRequestID") or "").strip()
+        query_merchant_id = str(query_payload.get("MerchantRequestID") or "").strip()
         try:
-            query_payload = query_mpesa_stk(payment)
-            payment.raw_response = {**payload, "last_stk_query": query_payload}
-            query_checkout_id = str(query_payload.get("CheckoutRequestID") or "").strip()
-            query_merchant_id = str(query_payload.get("MerchantRequestID") or "").strip()
-            query_result_raw = query_payload.get("ResultCode")
-            try:
-                query_result_code = int(query_result_raw)
-            except (TypeError, ValueError):
-                query_result_code = None
-            query_identifiers_match = (
-                (not query_checkout_id or query_checkout_id == payment.checkout_request_id)
-                and (not payment.merchant_request_id or not query_merchant_id or query_merchant_id == payment.merchant_request_id)
+            query_result_code = int(query_payload.get("ResultCode"))
+        except (TypeError, ValueError):
+            query_result_code = None
+        query_identifiers_match = (
+            (not query_checkout_id or query_checkout_id == payment.checkout_request_id)
+            and (
+                not payment.merchant_request_id
+                or not query_merchant_id
+                or query_merchant_id == payment.merchant_request_id
             )
-        except Exception as exc:
-            query_payload = None
-            query_result_code = None
-            query_identifiers_match = False
-            payment.raw_response = {
-                **payload,
-                "verification_pending": True,
-                "verification_error": str(exc)[:500],
-            }
+        )
+    except Exception as exc:
+        query_error = str(exc)[:500]
 
-        if query_payload is not None and not query_identifiers_match:
-            query_result_code = None
+    if query_payload is not None and not query_identifiers_match:
+        query_result_code = None
+
+    notifications = None
+    with transaction.atomic():
+        payment = (
+            PaymentTransaction.objects
+            .select_for_update()
+            .select_related("order")
+            .get(pk=payment.pk)
+        )
+        order = Order.objects.select_for_update().get(pk=payment.order_id)
+        raw_response = {**payload}
+        if query_payload is not None:
+            raw_response["last_stk_query"] = query_payload
+        else:
+            raw_response["verification_pending"] = True
+            raw_response["verification_error"] = query_error
 
         if query_result_code == 0:
             if payment.status == "paid":
@@ -723,7 +735,7 @@ def mpesa_callback(request):
                 payment.provider_reference = receipt
                 payment.paid_at = None
                 payment.raw_response = {
-                    **payment.raw_response,
+                    **raw_response,
                     "shopiva_validation": {
                         "provider_query_confirmed": True,
                         "receipt_present": bool(receipt),
@@ -731,7 +743,15 @@ def mpesa_callback(request):
                         "phone_matches": callback_phone == expected_phone,
                     },
                 }
-                payment.save(update_fields=["status", "provider_reference", "paid_at", "raw_response", "updated_at"])
+                payment.save(
+                    update_fields=[
+                        "status",
+                        "provider_reference",
+                        "paid_at",
+                        "raw_response",
+                        "updated_at",
+                    ]
+                )
                 return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
 
             payment.status = "paid"
@@ -740,7 +760,7 @@ def mpesa_callback(request):
             order.payment_status = "paid"
             order.status = "paid"
             order.payment_reference = receipt
-            order.paid_at = timezone.now()
+            order.paid_at = payment.paid_at
             order.save(update_fields=["payment_status", "status", "payment_reference", "paid_at"])
             OrderEvent.objects.create(order=order, event_type="paid", note=f"M-PESA payment confirmed: {receipt}")
             _create_seller_settlements(order)
@@ -751,13 +771,12 @@ def mpesa_callback(request):
                 for item in order.items.select_related("seller", "seller__user")
                 if item.seller_id and item.seller
             ]
-            tracking = order.tracking_code
-            order_id = order.id
-            seller_ids = list(dict.fromkeys(seller_ids))
-            transaction.on_commit(
-                lambda customer_id=customer_id, seller_ids=seller_ids, tracking=tracking, order_id=order_id, receipt=receipt: _send_payment_notifications(
-                    customer_id, seller_ids, tracking, order_id, receipt
-                )
+            notifications = (
+                customer_id,
+                list(dict.fromkeys(seller_ids)),
+                order.tracking_code,
+                order.id,
+                receipt,
             )
         elif query_result_code is not None and query_result_code != 0:
             payment.status = "failed"
@@ -769,14 +788,18 @@ def mpesa_callback(request):
             OrderEvent.objects.create(
                 order=order,
                 event_type="cancelled",
-                note=f"M-PESA payment failed after provider verification: {result_desc or query_payload.get('ResultDesc', 'provider failure')}",
+                note=(
+                    f"M-PESA payment failed after provider verification: "
+                    f"{query_payload.get('ResultDesc') if query_payload else result_desc or 'provider failure'}"
+                ),
             )
         else:
-            # Callback is not enough to establish a payment or a failure.
-            # Keep the order pending until a provider query confirms a terminal state.
+            # Neither a provider-confirmed success nor a provider-confirmed
+            # terminal failure is available. Keep the order pending.
             payment.status = "pending"
             payment.paid_at = None
 
+        payment.raw_response = raw_response
         payment.save(
             update_fields=[
                 "status",
@@ -786,6 +809,14 @@ def mpesa_callback(request):
                 "inventory_released",
                 "updated_at",
             ]
+        )
+
+    if notifications:
+        customer_id, seller_ids, tracking, order_id, receipt = notifications
+        transaction.on_commit(
+            lambda customer_id=customer_id, seller_ids=seller_ids, tracking=tracking, order_id=order_id, receipt=receipt: _send_payment_notifications(
+                customer_id, seller_ids, tracking, order_id, receipt
+            )
         )
 
     return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
