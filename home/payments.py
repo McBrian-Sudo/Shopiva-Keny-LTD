@@ -709,7 +709,7 @@ def mpesa_callback(request):
             raw_response["verification_pending"] = True
             raw_response["verification_error"] = query_error
 
-        if query_result_code == 0:
+        if query_result_code == 0 and str(result_code) == "0":
             if payment.status == "paid":
                 return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
 
