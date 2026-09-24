@@ -124,6 +124,25 @@ def normalize_phone(phone):
     return value
 
 
+def _payment_access_allowed(request, order):
+    if request.session.get("payment_order_id") == order.id:
+        return True
+    token = str(request.GET.get("token") or request.POST.get("token") or "").strip()
+    if token and str(getattr(order, "access_token", "")) == token:
+        return True
+    if request.user.is_authenticated and request.user.is_staff:
+        return True
+    if (
+        request.user.is_authenticated
+        and order.customer_id
+        and order.customer_id == request.user.id
+        and not request.user.is_staff
+        and not request.user.is_superuser
+    ):
+        return True
+    return False
+
+
 def _request_json(url, data=None, headers=None, method=None, timeout=30):
     body = None
     if data is not None:
@@ -929,10 +948,7 @@ def stripe_webhook(request):
 def mpesa_payment_verify(request, order_id):
     """Manual STK Query fallback. A successful query still waits for callback receipt validation."""
     order = get_object_or_404(Order, id=order_id)
-    allowed = bool(
-        request.session.get("payment_order_id") == order.id
-        or (request.user.is_authenticated and (request.user.is_staff or order.email.lower() == request.user.email.lower()))
-    )
+    allowed = _payment_access_allowed(request, order)
     if not allowed:
         return JsonResponse({"ok": False, "error": "You are not authorized to verify this payment."}, status=403)
 
@@ -1015,10 +1031,7 @@ def mpesa_payment_verify(request, order_id):
 
 def mpesa_payment_status(request, order_id):
     order = get_object_or_404(Order, id=order_id)
-    allowed = bool(
-        request.session.get("payment_order_id") == order.id
-        or (request.user.is_authenticated and (request.user.is_staff or order.email.lower() == request.user.email.lower()))
-    )
+    allowed = _payment_access_allowed(request, order)
     if not allowed:
         return JsonResponse({"ok": False, "error": "You are not authorized to view this payment."}, status=403)
     payment = order.payments.filter(method="mpesa").order_by("-created_at").first()
@@ -1046,10 +1059,7 @@ def mpesa_payment_status(request, order_id):
 
 def mpesa_waiting(request, order_id):
     order = get_object_or_404(Order, id=order_id)
-    allowed = bool(
-        request.session.get("payment_order_id") == order.id
-        or (request.user.is_authenticated and (request.user.is_staff or order.email.lower() == request.user.email.lower()))
-    )
+    allowed = _payment_access_allowed(request, order)
     if not allowed:
         return JsonResponse({"ok": False, "error": "You are not authorized to view this payment."}, status=403)
     request.session["payment_order_id"] = order.id
