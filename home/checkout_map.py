@@ -102,6 +102,9 @@ def checkout_quote(request):
         "base_fee": f"{quote['base_fee']:.2f}",
         "distance_rate": f"{quote['distance_rate']:.2f}",
         "distance_charge": f"{quote['distance_charge']:.2f}",
+        "package_class": quote["package_class"],
+        "route_class": quote["route_class"],
+        "rate_card": quote["rate_card"].name if quote["rate_card"] else None,
         "tariff": tariff_text(),
     })
 
