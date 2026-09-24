@@ -40,7 +40,7 @@ def find_delivery_tariff(county, destination, mode=DeliveryTariff.MODE_STANDARD)
         return tariff, tariff.fee_for_mode(mode)
 
     if county_key:
-        fallback = list(qs.filter(is_fallback=True).filter(county__iexact=county_text))
+        fallback = [row for row in qs.filter(is_fallback=True) if _normalize_location(row.county) == county_key]
         if len(fallback) == 1:
             tariff = fallback[0]
             return tariff, tariff.fee_for_mode(mode)
