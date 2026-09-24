@@ -21,7 +21,7 @@ from .admin_operations import admin_operations_center
 from .payments import _create_seller_settlements
 from .notifications import notify_user
 from .notification_service import notify_wishlist_product_change
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff
 
 
 class ProductForm(forms.ModelForm):
@@ -547,6 +547,16 @@ class DeliveryAgentAdmin(admin.ModelAdmin):
         if obj.user_id:
             obj.user.is_active = bool(obj.is_active)
             obj.user.save(update_fields=("is_active",))
+
+
+@admin.register(DeliveryTariff, site=shopiva_admin_site)
+class DeliveryTariffAdmin(admin.ModelAdmin):
+    list_display = ("county", "destination", "standard_fee", "pickup_fee", "express_fee", "pickup_available", "express_available", "is_active", "updated_at")
+    list_filter = ("county", "pickup_available", "express_available", "is_active")
+    search_fields = ("county", "destination")
+    list_editable = ("standard_fee", "pickup_fee", "express_fee", "pickup_available", "express_available", "is_active")
+    ordering = ("county", "destination")
+    list_per_page = 100
 
 
 @admin.register(CustomerAddress, site=shopiva_admin_site)
