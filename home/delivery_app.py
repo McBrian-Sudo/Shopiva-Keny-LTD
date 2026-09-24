@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from .models import DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, SellerSettlement, SellerWallet
 from .notification_service import notify_user
+from .payments import _create_seller_settlements
 from .forms import DeliveryRegistrationForm
 
 
@@ -83,54 +84,10 @@ def delivery_login(request):
             form.add_error(None, "This account is not registered as a Shopiva delivery partner.")
         else:
             if not agent.is_active:
-                # Normal path: an active administrator must verify and approve
-                # every new staff application. Emergency fallback: if there are
-                # no active admins at all, allow the already-registered staff
-                # member to authenticate and activate their own delivery access.
-                # This prevents the platform from becoming permanently blocked
-                # when the admin accounts are all inactive.
-                from django.contrib.auth.models import User
-                from .models import Notification
-
-                active_admin_exists = User.objects.filter(
-                    is_staff=True,
-                    is_active=True,
-                ).exists()
-
-                if active_admin_exists:
-                    form.add_error(
-                        None,
-                        "Your staff application is registered and awaiting administrator verification.",
-                    )
-                else:
-                    with transaction.atomic():
-                        agent = (
-                            DeliveryAgent.objects
-                            .select_for_update()
-                            .select_related("user")
-                            .get(pk=agent.pk)
-                        )
-                        if not agent.is_active:
-                            agent.is_active = True
-                            agent.status = "available"
-                            agent.user.is_active = True
-                            agent.user.save(update_fields=["is_active"])
-                            agent.save(update_fields=["is_active", "status"])
-
-                            Notification.objects.create(
-                                user=agent.user,
-                                notification_type="system",
-                                title="Delivery access activated",
-                                message=(
-                                    "No active Shopiva administrator was available to review your "
-                                    "registered staff application, so your delivery access was "
-                                    "automatically activated at login."
-                                ),
-                                link="/delivery/",
-                            )
-
-                    login(request, agent.user)
-                    return redirect("delivery_portal")
+                form.add_error(
+                    None,
+                    "Your staff application is registered and awaiting administrator verification.",
+                )
             else:
                 login(request, user)
                 agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
@@ -189,6 +146,13 @@ def delivery_action(request, order_id):
                 "error": f"Order cannot be marked {target_status.replace('_', ' ')} from its current status.",
             }, status=409)
 
+        is_cod = order.payments.filter(method="cod").exists()
+        if action == "start" and order.payment_status != "paid" and not is_cod:
+            return JsonResponse({
+                "ok": False,
+                "error": "Online orders can enter delivery only after payment is confirmed.",
+            }, status=409)
+
         now = timezone.now()
 
         if action == "delivered":
@@ -223,6 +187,35 @@ def delivery_action(request, order_id):
                     "error": "Too many invalid delivery codes. Verification is locked for 10 minutes." if status_code == 429 else "Invalid delivery code.",
                     "attempts_remaining": remaining,
                 }, status=status_code)
+
+            if is_cod and order.payment_status != "paid":
+                cod_payment = (
+                    order.payments.select_for_update()
+                    .filter(method="cod", status__in={"pending", "initiated"})
+                    .order_by("-created_at")
+                    .first()
+                )
+                if not cod_payment:
+                    return JsonResponse({
+                        "ok": False,
+                        "error": "Cash on Delivery payment record could not be verified.",
+                    }, status=409)
+                cod_payment.status = "paid"
+                cod_payment.provider_reference = f"COD-{order.id}"
+                cod_payment.paid_at = now
+                cod_payment.save(update_fields=("status", "provider_reference", "paid_at", "updated_at"))
+                order.payment_status = "paid"
+                order.payment_reference = cod_payment.provider_reference
+                order.paid_at = now
+                order.save(update_fields=("payment_status", "payment_reference", "paid_at"))
+                OrderEvent.objects.create(
+                    order=order,
+                    event_type="paid",
+                    note="Cash on Delivery payment collected and verified at handover.",
+                    actor=request.user,
+                    delivery_agent=agent,
+                )
+                _create_seller_settlements(order)
 
             order.status = "delivered"
             order.delivered_at = now
