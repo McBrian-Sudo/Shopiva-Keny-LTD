@@ -24,7 +24,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
-    private static final String SHOPIVA_URL = "https://shopiva-keny-ltd.onrender.com/";
+    private static final String SHOPIVA_URL = "https://shopivakenya.top/";
     private static final int LOCATION_REQUEST = 4001;
     private WebView webView;
     private View loadingView;
