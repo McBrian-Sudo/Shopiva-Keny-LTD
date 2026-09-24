@@ -18,6 +18,8 @@ def _normalize_location(value):
 def find_delivery_tariff(county, destination, mode=DeliveryTariff.MODE_STANDARD):
     county_key = _normalize_location(county)
     destination_key = _normalize_location(destination)
+    if mode not in {DeliveryTariff.MODE_STANDARD, DeliveryTariff.MODE_PICKUP, DeliveryTariff.MODE_EXPRESS}:
+        raise ValueError("Invalid delivery option selected.")
     if not destination_key:
         raise ValueError("Select or enter your delivery town/destination before continuing.")
     qs = DeliveryTariff.objects.filter(is_active=True)
