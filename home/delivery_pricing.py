@@ -137,4 +137,4 @@ def calculate_order_quote(items, customer_latitude, customer_longitude, destinat
     }
 
 def tariff_text():
-    return "Shopiva nationwide destination tariffs are active. Standard delivery is the default checkout mode."
+    return "Shopiva nationwide delivery coverage is active. Exact destination tariffs apply where configured; county-wide coverage applies to other towns and rural locations."
