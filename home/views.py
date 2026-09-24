@@ -787,6 +787,22 @@ def seller_order_update(request, order_id):
         if not current_items.exists():
             messages.error(request, "This order does not belong to your shop.")
             return redirect("seller_dashboard")
+
+        seller_ids = set(order.items.values_list("seller_id", flat=True))
+        if len(seller_ids) > 1:
+            messages.error(
+                request,
+                "This order contains items from multiple sellers. Seller-level fulfillment is intentionally locked until a shared shipment state is available.",
+            )
+            return redirect("seller_dashboard")
+
+        is_cod = order.payments.filter(method="cod").exists()
+        if order.payment_status != "paid" and not is_cod:
+            messages.error(
+                request,
+                "Online orders cannot enter fulfillment until payment is confirmed.",
+            )
+            return redirect("seller_dashboard")
         if order.status in {"delivered", "cancelled"}:
             messages.error(request, "Delivered or cancelled orders cannot be moved back into processing.")
             return redirect("seller_dashboard")
