@@ -129,7 +129,10 @@ def calculate_order_quote(items, customer_latitude, customer_longitude, destinat
         "distance_km": sum(distances, Decimal("0.00")).quantize(Decimal("0.01")) if distances else None,
         "seller_count": len(seller_legs), "distances": distances,
         "distance_source": ("google_roads" if distance_sources and all(x == "google_roads" for x in distance_sources) else "estimated") if distances else "not_pinned",
-        "county": tariff.county, "destination": tariff.destination, "tariff_scope": "exact" if not tariff.is_fallback else "county_coverage",
+        "county": tariff.county,
+        "destination": destination_town.strip(),
+        "tariff_destination": tariff.destination,
+        "tariff_scope": "exact" if not tariff.is_fallback else "county_coverage",
         "delivery_mode": delivery_mode, "tariff_fee_per_seller": fee_per_seller,
     }
 
