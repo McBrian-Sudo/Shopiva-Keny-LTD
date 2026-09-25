@@ -792,7 +792,7 @@ class NiaCallerVerificationAdmin(admin.ModelAdmin):
     list_filter = ("role", "verified_at", "used_at", "expires_at")
     search_fields = ("phone_e164", "user__username", "user__email")
     readonly_fields = (
-        "id", "user", "role", "phone_e164", "pin_code", "attempts",
+        "id", "user", "role", "phone_e164", "attempts",
         "expires_at", "verified_at", "used_at", "created_at", "updated_at",
     )
     exclude = ("pin_code",)
