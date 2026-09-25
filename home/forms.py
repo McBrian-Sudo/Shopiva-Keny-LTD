@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.utils.html import conditional_escape, mark_safe
 from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.urls import reverse
 import uuid
 import re
@@ -214,7 +213,7 @@ class DeliveryRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
         # or the no-active-admin fallback in delivery_login() is triggered.
         user.is_active = True
         if commit:
-            from .models import DeliveryAgent, Notification
+            from .models import DeliveryAgent
             user.save()
             agent = DeliveryAgent.objects.create(
                 user=user,
