@@ -134,9 +134,23 @@ def customer_logout(request):
 def customer_dashboard(request):
     if not _customer_only(request):
         return _customer_boundary_redirect(request)
-    orders = (Order.objects.filter(customer=request.user).select_related("delivery_agent").prefetch_related("events__delivery_agent", "items__product").order_by("-created_at"))
-    latest_order = orders.first()
-    return render(request, "accounts/dashboard.html", {"orders": orders[:5], "latest_order": latest_order})
+
+    # The account landing page must remain usable even if an older/partially
+    # migrated order record cannot be loaded. A broken order relation should
+    # never prevent a customer from reaching the account controls or signing out.
+    orders = Order.objects.none()
+    latest_order = None
+    try:
+        orders = Order.objects.filter(customer=request.user).order_by("-created_at")
+        latest_order = orders.first()
+    except Exception:
+        logger.exception("Customer dashboard could not load orders for user %s", request.user.pk)
+
+    return render(
+        request,
+        "accounts/dashboard.html",
+        {"orders": orders[:5], "latest_order": latest_order},
+    )
 
 
 @login_required(login_url="customer_login")
