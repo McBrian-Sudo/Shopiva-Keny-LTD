@@ -75,9 +75,10 @@
         <div class="panel-head"><div class="ai-title"><div class="ai-orb">📞</div><div><h2>Nia Phone — Hands-Free Operations</h2><div class="panel-sub">Nia can call the configured administrator phone through Twilio.</div></div></div><span class="shopiva-badge" style="background:#ecfdf5;color:#087448;border-color:#bbf7d0;">PHONE READY</span></div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
             <div><strong style="font-size:16px;color:var(--shopiva-dark);">Call Nia</strong><div class="panel-sub" style="margin-top:4px;">Starts a protected outbound call to the administrator number configured in Shopiva.</div></div>
-            <button type="button" id="admin-call-nia-top" style="border:0;border-radius:12px;padding:12px 18px;background:#16a34a;color:#fff;font-weight:900;cursor:pointer;">📞 Call Nia now</button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button type="button" id="admin-call-nia-top" style="border:0;border-radius:12px;padding:12px 18px;background:#16a34a;color:#fff;font-weight:900;cursor:pointer;">📞 Call Nia now</button><button type="button" id="admin-nia-pin" style="border:1px solid #bbf7d0;border-radius:12px;padding:12px 15px;background:#fff;color:#087448;font-weight:900;cursor:pointer;">🔐 Generate call PIN</button></div>
         </div>
         <div id="admin-call-status-top" class="panel-sub" style="margin-top:10px;">Ready for a phone call.</div>
+        <div id="admin-nia-pin-status" class="panel-sub" style="margin-top:7px;">Generate a four-digit PIN before calling Nia from the phone registered for this admin account.</div>
     </section>
 
     <div class="layout">
@@ -395,6 +396,8 @@
 </script><script>
 (function(){
   const b=document.getElementById('admin-call-nia-top'),s=document.getElementById('admin-call-status-top');
+  const p=document.getElementById('admin-nia-pin'),ps=document.getElementById('admin-nia-pin-status');
+  p?.addEventListener('click',async()=>{p.disabled=true;ps.textContent='Generating a 10-minute PIN…';try{const r=await fetch("{% url 'nia_phone_pin' %}",{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}','X-Requested-With':'XMLHttpRequest'}});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Could not generate a Nia PIN.');ps.textContent='🔐 Your Nia call PIN is '+d.pin+' · valid for 10 minutes.';}catch(e){ps.textContent=e.message||'Could not generate a Nia PIN.';}finally{p.disabled=false;}});
   if(!b||!s)return;
   b.addEventListener('click',async()=>{b.disabled=true;b.setAttribute('aria-busy','true');s.textContent='Nia is placing your call…';try{const r=await fetch("{% url 'nia_phone_call' %}",{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}','X-Requested-With':'XMLHttpRequest'}});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Nia could not place the call.');s.textContent='📞 Nia is calling the configured administrator number now.';}catch(e){s.textContent=e.message||'Nia could not place the call.';b.disabled=false;b.removeAttribute('aria-busy');}});
 })();
