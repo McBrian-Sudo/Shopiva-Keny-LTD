@@ -571,7 +571,13 @@ def order_success(request, order_id):
         if not raw_token:
             raise Http404
         order = get_object_or_404(Order, id=order_id, access_token=raw_token)
-    return render(request, "order_success.html", {"order": order})
+    latest_payment = order.payments.order_by("-created_at").first()
+    payment_method = latest_payment.method if latest_payment else ""
+    return render(
+        request,
+        "order_success.html",
+        {"order": order, "payment_method": payment_method},
+    )
 
 
 def products(request):
