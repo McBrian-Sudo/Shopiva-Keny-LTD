@@ -39,7 +39,7 @@
       {% csrf_token %}
       <input id="seller-copilot-input" class="seller-copilot-input" name="question" type="text" placeholder="Ask: Which products are low stock?" autocomplete="off" required>
       <button class="seller-ai-btn seller-ai-ask" type="submit">Ask Copilot</button>
-      <button class="seller-ai-btn seller-ai-voice" id="seller-copilot-voice" type="button">🎙️ Voice</button>
+      <button class="seller-ai-btn seller-ai-voice" id="seller-copilot-voice" type="button">🎙️ Voice</button><button class="seller-ai-btn seller-ai-ask" id="seller-copilot-live" type="button">🗣️ Talk Live</button>
     </form>
     <div id="seller-copilot-status" class="seller-copilot-status">Ready. Your Copilot can only see this seller's Shopiva data.</div>
     <div id="seller-copilot-answer" class="seller-copilot-answer"><strong id="seller-copilot-answer-text"></strong></div>
@@ -153,6 +153,68 @@
   recognition.onerror=()=>{status.textContent='I could not hear that. Please try again.';};
   recognition.onend=()=>{voice.disabled=false;voice.textContent='🎙️ Voice';};
   voice.addEventListener('click',()=>{try{recognition.start();}catch(_){ }});
+
+  const live=document.getElementById('seller-copilot-live');
+  let pc=null,dc=null,stream=null,liveOn=false;
+  function stopLive(){
+    liveOn=false;
+    try{dc?.close();pc?.close();stream?.getTracks().forEach(t=>t.stop())}catch(_){}
+    dc=null;pc=null;stream=null;
+    if(live){live.disabled=false;live.textContent='🗣️ Talk Live';}
+    status.textContent='Live voice is off.';
+  }
+  async function startLive(){
+    if(liveOn){stopLive();return}
+    if(!window.RTCPeerConnection||!navigator.mediaDevices?.getUserMedia){
+      status.textContent='Live voice is not supported by this browser.';
+      return;
+    }
+    try{
+      status.textContent='Starting Nia Seller Voice…';
+      stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      pc=new RTCPeerConnection();
+      const audio=document.createElement('audio');
+      audio.autoplay=true;audio.style.display='none';document.body.appendChild(audio);
+      pc.ontrack=e=>audio.srcObject=e.streams[0];
+      stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+      dc=pc.createDataChannel('oai-events');
+      dc.onopen=()=>{liveOn=true;live.textContent='⏹️ End Voice';status.textContent='🟢 Nia Seller Voice is listening.';};
+      dc.onclose=()=>{if(liveOn)stopLive();};
+      dc.onmessage=async event=>{
+        try{
+          const ev=JSON.parse(event.data);
+          if(ev.type==='error'){status.textContent=ev.error?.message||'Voice AI error.';return;}
+          if(ev.type==='response.audio_transcript.done'){answerText.textContent=ev.transcript||answerText.textContent;answer.classList.add('show');}
+          if(ev.type==='response.function_call_arguments.done'){
+            const args=JSON.parse(ev.arguments||'{}');
+            const r=await fetch("{% url 'realtime_action' %}",{
+              method:'POST',
+              headers:{'Content-Type':'application/json','X-CSRFToken':form.querySelector('[name="csrfmiddlewaretoken"]').value},
+              body:JSON.stringify({action:ev.name,...args})
+            });
+            const out=await r.json();
+            if(dc?.readyState==='open'){
+              dc.send(JSON.stringify({type:'conversation.item.create',item:{type:'function_call_output',call_id:ev.call_id,output:JSON.stringify(out)}}));
+              dc.send(JSON.stringify({type:'response.create'}));
+            }
+          }
+        }catch(_){}
+      };
+      const offer=await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      const r=await fetch("{% url 'realtime_call' %}",{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/sdp',
+          'X-CSRFToken':form.querySelector('[name="csrfmiddlewaretoken"]').value
+        },
+        body:offer.sdp
+      });
+      if(!r.ok)throw new Error('Could not connect to Nia Seller Voice.');
+      await pc.setRemoteDescription({type:'answer',sdp:await r.text()});
+    }catch(e){status.textContent=e.message||'Unable to start seller voice.';stopLive();}
+  }
+  live?.addEventListener('click',startLive);
 })();
 </script>
 <script>
