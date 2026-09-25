@@ -42,6 +42,8 @@ def _normalize_phone(value):
 def _caller_phone(request):
     if not request.user.is_authenticated:
         return ""
+    if request.user.is_staff or request.user.is_superuser:
+        return _normalize_phone(_env("NIA_ADMIN_PHONE"))
     seller = getattr(request.user, "seller_profile", None)
     if seller and seller.is_active:
         return _normalize_phone(seller.mpesa_phone)
@@ -198,6 +200,21 @@ USER:
         return "Nia is temporarily unable to reach the intelligence service. Please use the Shopiva dashboard for live information."
 
 
+def _twilio_webhook_valid(request):
+    token = _env("TWILIO_AUTH_TOKEN")
+    signature = request.META.get("HTTP_X_TWILIO_SIGNATURE", "")
+    if not token or not signature:
+        return False
+    try:
+        from twilio.request_validator import RequestValidator
+        url = f"{_public_site_url(request)}{request.path}"
+        if request.META.get("QUERY_STRING"):
+            url += "?" + request.META["QUERY_STRING"]
+        return RequestValidator(token).validate(url, request.POST, signature)
+    except Exception:
+        return False
+
+
 def _twilio_client():
     try:
         from twilio.rest import Client
@@ -305,6 +322,8 @@ def nia_phone_answer(request, session_id):
     session = get_object_or_404(NiaCallSession, id=session_id)
     if request.method not in {"GET", "POST"}:
         return HttpResponse(status=405)
+    if request.method == "POST" and not _twilio_webhook_valid(request):
+        return HttpResponse("Forbidden", status=403)
     context = _role_context(type("Request", (), {"user": session.user})(), session.role)
     text = _opening_text(context)
     session.conversation.append({"role": "assistant", "text": text, "at": timezone.now().isoformat()})
@@ -319,6 +338,8 @@ def nia_phone_respond(request, session_id):
     session = get_object_or_404(NiaCallSession, id=session_id)
     if request.method != "POST":
         return HttpResponse(status=405)
+    if not _twilio_webhook_valid(request):
+        return HttpResponse("Forbidden", status=403)
     user_text = str(request.POST.get("SpeechResult", "")).strip()
     if not user_text:
         return _twiml_gather(request, session.id, "I didn't catch that. Please tell me what you need.")
