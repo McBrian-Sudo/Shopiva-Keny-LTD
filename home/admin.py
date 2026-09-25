@@ -22,7 +22,7 @@ from .admin_operations import admin_operations_center
 from .payments import _create_seller_settlements
 from .notifications import notify_user
 from .notification_service import notify_wishlist_product_change
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff, DeliveryHub, DeliveryPricingProfile, DeliveryPickupPoint, DeliveryRateCard, ShopivaBranch, ShopivaOutlet, NiaCallSession, NiaTask
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff, DeliveryHub, DeliveryPricingProfile, DeliveryPickupPoint, DeliveryRateCard, ShopivaBranch, ShopivaOutlet, NiaCallSession, NiaTask, NiaCallerVerification, NiaAuditLog
 
 
 class ProductForm(forms.ModelForm):
@@ -780,10 +780,31 @@ class NotificationDeliveryAdmin(admin.ModelAdmin):
 
 @admin.register(NiaCallSession, site=shopiva_admin_site)
 class NiaCallSessionAdmin(admin.ModelAdmin):
-    list_display = ("created_at", "role", "phone_e164", "status", "provider_sid", "updated_at")
+    list_display = ("created_at", "role", "direction", "phone_e164", "caller_verified", "status", "provider_sid", "updated_at")
     list_filter = ("role", "status", "provider")
     search_fields = ("phone_e164", "provider_sid", "last_user_text", "last_ai_text")
     readonly_fields = ("id", "user", "role", "phone_e164", "status", "provider", "provider_sid", "conversation", "last_user_text", "last_ai_text", "created_at", "updated_at")
+
+
+@admin.register(NiaCallerVerification, site=shopiva_admin_site)
+class NiaCallerVerificationAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "user", "role", "phone_e164", "attempts", "expires_at", "verified_at", "used_at")
+    list_filter = ("role", "verified_at", "used_at", "expires_at")
+    search_fields = ("phone_e164", "user__username", "user__email")
+    readonly_fields = (
+        "id", "user", "role", "phone_e164", "pin_code", "attempts",
+        "expires_at", "verified_at", "used_at", "created_at", "updated_at",
+    )
+    exclude = ("pin_code",)
+
+
+@admin.register(NiaAuditLog, site=shopiva_admin_site)
+class NiaAuditLogAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "role", "action", "user")
+    list_filter = ("role", "action", "created_at")
+    search_fields = ("action", "user__username", "user__email")
+    readonly_fields = ("user", "role", "action", "detail", "created_at")
+    ordering = ("-created_at",)
 
 
 @admin.register(NiaTask, site=shopiva_admin_site)
