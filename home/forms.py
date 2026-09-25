@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.utils.html import conditional_escape, mark_safe
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.urls import reverse
 import uuid
 import re
 
@@ -223,22 +225,22 @@ class DeliveryRegistrationForm(_ShopivaUsernameBoundary, UserCreationForm):
                 is_active=False,
             )
             # Surface the application in every active admin's notification center.
-            admins = User.objects.filter(is_staff=True, is_active=True).only("id")
-            Notification.objects.bulk_create(
-                [
-                    Notification(
-                        user_id=admin.id,
-                        notification_type="system",
-                        title="New staff approval required",
-                        message=(
-                            f"{user.get_full_name() or user.username} submitted a delivery staff application. "
-                            "Verify the applicant's details before approving access."
-                        ),
-                        link="/admin/operations-center/",
-                    )
-                    for admin in admins
-                ]
-            )
+            # Use the same notification service as the rest of Shopiva so the alert
+            # is stored in-app and can also use configured email/SMS/WhatsApp channels.
+            approval_url = reverse("shopiva_admin:approval_center")
+            admins = list(User.objects.filter(is_staff=True, is_active=True).only("id", "email"))
+            from .notification_service import notify_user
+            for admin in admins:
+                notify_user(
+                    admin,
+                    "system",
+                    "New staff approval required",
+                    (
+                        f"{user.get_full_name() or user.username} submitted a delivery staff application. "
+                        "Verify the applicant's identity, phone and vehicle details before approving access."
+                    ),
+                    link=approval_url,
+                )
         return user
 
 
