@@ -5,9 +5,11 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from .models import DeliveryAgent, Notification, Order, PaymentTransaction, Product
+from .notification_service import notify_user
 from support.models import SupportTicket
 
 
@@ -33,7 +35,7 @@ def admin_operations_center(request):
             )
             if not agent:
                 messages.error(request, "Delivery partner was not found.")
-                return redirect("shopiva_admin:operations_center")
+                return redirect("shopiva_admin:approval_center")
 
             if action == "approve_delivery" and not verification_confirmed:
                 messages.error(
@@ -41,7 +43,7 @@ def admin_operations_center(request):
                     "Verification is required before approving a new staff member. "
                     "Confirm that the applicant's identity and submitted vehicle details have been checked.",
                 )
-                return redirect("shopiva_admin:operations_center")
+                return redirect("shopiva_admin:approval_center")
 
             with transaction.atomic():
                 enabled = action == "approve_delivery"
@@ -77,7 +79,36 @@ def admin_operations_center(request):
                         f"{agent.display_name} remains inactive and cannot access delivery operations.",
                     )
 
-        return redirect("shopiva_admin:operations_center")
+            # Confirm the outcome to the applicant. This creates an in-app
+            # notification immediately and uses any configured external channels.
+            if enabled:
+                notify_user(
+                    agent.user,
+                    "system",
+                    "Delivery staff application approved",
+                    (
+                        "Your Shopiva delivery staff application has been verified and approved. "
+                        "You can now sign in to the Shopiva Delivery app."
+                    ),
+                    link="/delivery/login/",
+                    email=agent.user.email,
+                    phone=agent.phone,
+                )
+            else:
+                notify_user(
+                    agent.user,
+                    "system",
+                    "Delivery staff application not approved",
+                    (
+                        "Your Shopiva delivery staff application is still inactive. "
+                        "Please contact Shopiva administration if you need clarification."
+                    ),
+                    link="/delivery/login/",
+                    email=agent.user.email,
+                    phone=agent.phone,
+                )
+
+        return redirect("shopiva_admin:approval_center")
 
     active_statuses = ("open", "in_progress", "waiting_for_customer")
     pending_delivery_qs = DeliveryAgent.objects.filter(is_active=False).select_related("user").order_by("-created_at")
