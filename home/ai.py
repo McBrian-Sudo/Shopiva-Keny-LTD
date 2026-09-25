@@ -50,6 +50,49 @@ def shop_assistant(request):
     products = _catalog()
     fallback = _fallback(question, products)
 
+    customer_orders = []
+    cart_items = []
+    if request.user.is_authenticated and not request.user.is_staff:
+        customer_orders = list(
+            Order.objects.filter(email__iexact=request.user.email)
+            .order_by("-created_at")
+            .values("id", "tracking_code", "status", "payment_status", "total_amount")[:8]
+        )
+        cart = request.session.get("cart", {})
+        for product_id, quantity in cart.items():
+            try:
+                product = Product.objects.get(id=int(product_id), is_active=True)
+                qty = max(1, int(quantity))
+            except (Product.DoesNotExist, TypeError, ValueError):
+                continue
+            cart_items.append({
+                "id": product.id,
+                "name": product.name,
+                "quantity": qty,
+                "unit_price": str(product.discounted_price),
+                "line_total": str(product.discounted_price * qty),
+            })
+
+        q_lower = question.lower()
+        if "cart" in q_lower or "basket" in q_lower:
+            fallback["answer"] = (
+                "Your current cart is: " + "; ".join(
+                    f"{item['name']} × {item['quantity']}" for item in cart_items
+                )
+                if cart_items else "Your cart is currently empty."
+            )
+        elif "order" in q_lower and any(
+            word in q_lower for word in ("status", "track", "where", "latest", "recent")
+        ):
+            if customer_orders:
+                latest = customer_orders[0]
+                fallback["answer"] = (
+                    f"Your latest order is #{latest['id']} ({latest['tracking_code']}). "
+                    f"Status: {latest['status']}. Payment: {latest['payment_status']}."
+                )
+            else:
+                fallback["answer"] = "I don't see any orders in your customer account yet."
+
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
     if not api_key:
         return JsonResponse({"ok": True, "ai": False, **fallback})
@@ -83,14 +126,14 @@ def shop_assistant(request):
                 .order_by("-created_at")
                 .values_list("id", "status")[:5]
             )
-            profile = f"Customer wishlist product IDs: {wishlist_ids}; recent orders: {recent_orders}."
+            profile = f"Customer wishlist product IDs: {wishlist_ids}; recent orders: {recent_orders}; current cart: {request.session.get('cart', {})}."
 
         prompt = f"""
-You are Shopiva Kenya's shopping AI. Help the customer find products in the supplied catalog.
-Never invent a product, price, stock level, discount, delivery promise, or payment result.
+You are Nia, Shopiva Kenya's customer shopping copilot. Help the customer find products and understand their own cart and orders using the supplied data.
+Never invent a product, price, stock level, discount, delivery promise, order status, or payment result.
 Use Kenya-friendly language and KSh pricing.
 If the request is vague, ask one useful follow-up question.
-Recommend up to 5 catalog products.
+Recommend up to 5 catalog products when product recommendations are relevant.
 Return ONLY valid JSON with keys: answer (string), product_ids (array of integers).
 Customer context: {profile}
 Customer request: {question}
