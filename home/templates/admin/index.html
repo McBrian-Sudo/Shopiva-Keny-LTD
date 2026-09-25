@@ -302,7 +302,7 @@
             await livePc.setLocalDescription(offer);
             const response = await fetch("{% url 'realtime_call' %}", {
                 method: "POST",
-                headers: {"Content-Type":"application/sdp"},
+                headers: {"Content-Type":"application/sdp","X-CSRFToken":form.querySelector("[name=csrfmiddlewaretoken]").value},
                 body: offer.sdp
             });
             if (!response.ok) throw new Error("Could not connect to Shopiva Admin Voice.");
