@@ -993,4 +993,5 @@ def mpesa_waiting(request, order_id):
         return JsonResponse({"ok": False, "error": "You are not authorized to view this payment."}, status=403)
     request.session["payment_order_id"] = order.id
     request.session.modified = True
-    return render(request, "mpesa_waiting.html", {"order": order})
+    payment = order.payments.filter(method="mpesa").order_by("-created_at").first()
+    return render(request, "mpesa_waiting.html", {"order": order, "payment": payment})
