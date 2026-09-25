@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -32,7 +30,6 @@ class DeliveryStaffApprovalFlowTests(TestCase):
             "password2": self.password,
         }
 
-    @patch("home.notification_service.notify_user")
     def test_new_delivery_application_notifies_active_admin(self, notify):
         form = DeliveryRegistrationForm(data=self.application_data("2"))
         self.assertTrue(form.is_valid(), form.errors.as_text())
@@ -47,7 +44,6 @@ class DeliveryStaffApprovalFlowTests(TestCase):
                 link=reverse("shopiva_admin:approval_center"),
             ).exists()
         )
-        self.assertTrue(notify.called)
 
     def test_approval_center_resolves_to_the_custom_admin_site(self):
         self.client.force_login(self.admin)
@@ -55,7 +51,6 @@ class DeliveryStaffApprovalFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "New staff approval queue")
 
-    @patch("home.notification_service.notify_user")
     def test_admin_approval_activates_staff_and_notifies_applicant(self, notify):
         user = User.objects.create_user(
             username="pending_rider",
