@@ -107,7 +107,7 @@ def _customer_instructions(request):
         )
         customer = f"Authenticated customer. Their recent orders are: {json.dumps(orders, default=str)}."
     return f"""
-You are Shopiva Voice, the natural voice shopping assistant for Shopiva Kenya.
+You are Nia, Shopiva Kenya's natural voice shopping assistant.
 Speak naturally and briefly. Use KSh for prices.
 The customer may interrupt you. Listen carefully and continue the conversation.
 You can help discover products, compare options, explain discounts, add products to the cart, and check the customer's own order status.
@@ -140,7 +140,7 @@ def _seller_instructions(request, seller):
         .values("id", "tracking_code", "status", "payment_status", "total_amount")[:30]
     )
     return f"""
-You are Shopiva Seller Voice, a voice operations assistant for the authenticated seller only.
+You are Nia Seller Voice, the voice operations assistant for the authenticated seller only.
 Speak clearly and briefly.
 You may help with the seller's own products, stock, orders, sales, commissions and payout balances.
 Never reveal data belonging to another seller or administrator.
@@ -164,7 +164,7 @@ def _admin_instructions():
         .values("id", "tracking_code", "status", "payment_status", "total_amount", "email")[:20]
     )
     return f"""
-You are Shopiva Admin Voice, the voice operations assistant for Shopiva Kenya.
+You are Nia Admin Voice, the voice operations assistant for Shopiva Kenya.
 Speak clearly, concisely and professionally.
 Answer using only the supplied Shopiva data.
 You can explain products, stock, orders, delivery and M-PESA operations.
