@@ -3,11 +3,13 @@ import secrets
 
 from django.core.management import call_command
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .nia_phone import _log_audit
 
 
+@csrf_exempt
 @require_POST
 def run_nia_tasks_endpoint(request):
     configured = os.getenv("NIA_CRON_SECRET", "").strip()
