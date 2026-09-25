@@ -28,7 +28,7 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:#f
 </div>
 <div class="section"><div class="maphead"><div><span class="mapkicker">SHOPIVA SMART LOCATION</span><h3>📍 Find your exact delivery point</h3><p>Search for an estate, street, business or landmark, use GPS, or move the pin to your gate.</p></div><span class="maplive">● LOCATION CHECK</span></div>
 <div class="mapcard">
-<div class="mapsearch"><input id="customer-place-search" class="google-search" type="search" placeholder="Search Kenya: Eldoret, Kimumu, estate, street, landmark…" autocomplete="off"><div class="searchhint">Select a suggestion when it appears. Searching only a town gives an approximate point — move the pin to the actual delivery entrance.</div></div>
+<div class="mapsearch"><input id="customer-place-search" class="google-search" type="search" placeholder="Search Kenya: Eldoret, Kimumu, estate, street, landmark…" autocomplete="off"><div class="searchhint">Search results are provided for Kenyan locations. Searching only a town gives an approximate point — move the pin to the actual delivery entrance.</div></div>
 <div class="tools"><button type="button" class="maptool primary" id="gps">⌖ Use my current location</button><button type="button" class="maptool" id="clear">Clear location</button><a class="maptool" id="open" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=-1.2921,36.8219">Open Google Maps ↗</a></div>
 <div id="map" class="map"></div>
 <div id="place-chip" class="place-chip"></div>
@@ -54,18 +54,11 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:#f
 <div class="item"><span>Items subtotal</span><strong id="quote-subtotal">KSh {{ total|floatformat:2 }}</strong></div><div class="item"><span>Shopiva service fee</span><strong id="quote-commission">Enter destination</strong></div><div class="item"><span>Delivery — <span id="quote-destination">destination</span></span><strong id="quote-delivery">Enter town</strong></div><div class="item"><span>Fulfillment hub</span><strong id="quote-hub">Finding hub…</strong></div><div class="item"><span>Route distance</span><strong id="quote-distance">Pin required</strong></div><div class="item total"><span>Total customer payment</span><strong id="quote-total">KSh {{ total|floatformat:2 }}</strong></div>
 <div id="quote-message" class="status ok">Enter your county and town. Shopiva will use your exact map pin to calculate the route from the active fulfillment hub.</div><div class="status ok">🔐 The final order still requires a confirmed exact map pin.</div></aside>
 </div></main>
-<script>
-window.shopivaGoogleMapsAuthFailed = false;
-window.gm_authFailure = function(){
-  window.shopivaGoogleMapsAuthFailed = true;
-  if (window.shopivaInitLeafletFallback) window.shopivaInitLeafletFallback('Google Maps authentication failed. Using the Shopiva map fallback until the Google key is corrected.');
-};
-</script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>{% if google_maps_api_key %}<script async src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key|urlencode }}&loading=async&auth_referrer_policy=origin&callback=shopivaGoogleMapsReady"></script>{% endif %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 (function(){
 const home={lat:-1.2921,lng:36.8219},form=document.getElementById('checkout-form'),latEl=document.getElementById('lat'),lngEl=document.getElementById('lng'),countyEl=document.getElementById('delivery_county'),townEl=document.getElementById('delivery_town'),addrEl=document.getElementById('address'),searchEl=document.getElementById('customer-place-search'),status=document.getElementById('status'),accuracyEl=document.getElementById('accuracy'),confirmBox=document.getElementById('confirm-location'),confirmBtn=document.getElementById('confirm-btn'),placeChip=document.getElementById('place-chip'),openGoogle=document.getElementById('open');
-let map=null,marker=null,userMarker=null,confirmed=false,locationAccuracy=null,locationSource='',fallbackStarted=false,googleMapHealthy=false;
+let map=null,marker=null,userMarker=null,confirmed=false,locationAccuracy=null,locationSource='',fallbackStarted=false;
 function msg(t,type){status.className='status'+(type?' '+type:'');status.textContent=t}
 function resetConfirmation(){confirmed=false;confirmBox.checked=false;confirmBtn.disabled=true}
 confirmBox.onchange=()=>{confirmBtn.disabled=!confirmBox.checked||!latEl.value||!lngEl.value};
@@ -167,23 +160,11 @@ searchEl.addEventListener('input',()=>{
 });
 }
 
-function initGoogle(){
-document.documentElement.classList.remove('shopiva-leaflet-mode');
-if(window.shopivaGoogleMapsAuthFailed){initLeafletFallback('Google Maps rejected the current production API key. Shopiva has switched to the backup map.');return;}
-const mapOptions={center:home,zoom:6,mapTypeControl:false,streetViewControl:false,fullscreenControl:true};
-const configuredMapId='{{ google_maps_map_id|default:""|escapejs }}'.trim();
-if(configuredMapId)mapOptions.mapId=configuredMapId;
-map=new google.maps.Map(document.getElementById('map'),mapOptions);google.maps.event.addListenerOnce(map,'tilesloaded',()=>{googleMapHealthy=true;});
-attachNominatimSearch();
-map.addListener('click',e=>{setPoint(e.latLng.lat(),e.latLng.lng(),addrEl.value||'Pinned delivery','manual',null);resolveCoordinates(e.latLng.lat(),e.latLng.lng())});
-}
+function initGoogle(){ initLeafletFallback('Shopiva checkout uses the reliable OpenStreetMap backup while Google Maps API configuration is unavailable.'); }
 window.shopivaGoogleMapsReady=initGoogle;
 window.shopivaInitLeafletFallback=initLeafletFallback;
-{% if not google_maps_api_key %}
-initLeafletFallback('Google Maps is not configured yet. Shopiva has switched to the backup map.');
-{% else %}
-setTimeout(()=>{if(window.shopivaGoogleMapsAuthFailed||!googleMapHealthy)initLeafletFallback('Google Maps did not authenticate or finish loading for this website. Shopiva has switched to the backup map.');},6000);
-{% endif %}
+document.documentElement.classList.add('shopiva-leaflet-mode');
+initLeafletFallback('Shopiva checkout map ready. Search, GPS and pin placement are available.');
 document.getElementById('gps').onclick=()=>{if(!navigator.geolocation){msg('Your browser does not support device location.','warn');return}msg('Requesting your device location…');navigator.geolocation.getCurrentPosition(p=>{const label=addrEl.value||'Current device location';if(map&&window.google&&map.panTo){map.panTo({lat:p.coords.latitude,lng:p.coords.longitude});if(map.getZoom()<16)map.setZoom(16);if(!userMarker)userMarker=new google.maps.Marker({map,position:{lat:p.coords.latitude,lng:p.coords.longitude},title:'Your device location',icon:'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'});else userMarker.setPosition({lat:p.coords.latitude,lng:p.coords.longitude})}setPoint(p.coords.latitude,p.coords.longitude,label,'gps',p.coords.accuracy);resolveCoordinates(p.coords.latitude,p.coords.longitude)},()=>msg('Location permission was denied or your device could not determine your location. Search your address or move the map pin instead.','warn'),{enableHighAccuracy:true,timeout:15000,maximumAge:10000})};
 document.getElementById('clear').onclick=()=>{latEl.value='';lngEl.value='';locationAccuracy=null;locationSource='';resetConfirmation();placeChip.style.display='none';accuracyEl.textContent='';msg('Location cleared. Search for your address or use GPS.');if(map){if(marker){if(marker.setMap)marker.setMap(null);else if(map.removeLayer)map.removeLayer(marker);marker=null}if(map.setCenter){map.setCenter(home);map.setZoom(6)}else if(map.setView){map.setView([home.lat,home.lng],6)}}openGoogle.href='https://www.google.com/maps/search/?api=1&query='+home.lat+','+home.lng;refreshQuote()};
 const saved=document.getElementById('saved-address');if(saved)saved.onchange=()=>{const o=saved.options[saved.selectedIndex];if(!o||!o.value)return;document.getElementById('name').value=o.dataset.name||document.getElementById('name').value;document.getElementById('phone').value=o.dataset.phone||document.getElementById('phone').value;countyEl.value=o.dataset.county||'';townEl.value=o.dataset.town||'';addrEl.value=o.dataset.address||'';if(o.dataset.lat&&o.dataset.lng)setPoint(o.dataset.lat,o.dataset.lng,o.dataset.address||'Saved address','saved',null);msg('Saved address loaded. Check the pin and confirm it before ordering.','ok');refreshQuote()};
