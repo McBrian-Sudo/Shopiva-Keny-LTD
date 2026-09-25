@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 from urllib.parse import urlencode
@@ -14,6 +15,7 @@ from django.conf import settings
 from .models import CustomerAddress, DeliveryAgent, NiaCallSession, Order, OrderItem, Product
 
 
+logger = logging.getLogger(__name__)
 KENYA_PHONE_RE = re.compile(r"^254[17]\d{8}$")
 
 
@@ -314,10 +316,17 @@ def place_nia_call_for_user(user):
             status_callback_method="POST",
             status_callback_event=["initiated", "ringing", "answered", "completed"],
         )
-    except Exception:
+    except Exception as exc:
         session.status = NiaCallSession.STATUS_FAILED
+        code = getattr(exc, "code", None)
+        twilio_status = getattr(exc, "status", None)
+        detail = getattr(exc, "msg", None) or str(exc)
         session.last_ai_text = "Twilio could not create the outbound call."
         session.save(update_fields=["status", "last_ai_text", "updated_at"])
+        logger.exception(
+            "Nia outbound call failed role=%s user_id=%s destination=%s twilio_status=%s twilio_code=%s detail=%s",
+            role, getattr(user, "pk", None), phone, twilio_status, code, detail[:500],
+        )
         raise
 
     session.provider_sid = call.sid
@@ -337,8 +346,19 @@ def start_nia_call(request):
         session = place_nia_call_for_user(request.user)
     except RuntimeError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=503)
-    except Exception:
-        return JsonResponse({"ok": False, "error": "Nia could not place the phone call right now."}, status=502)
+    except Exception as exc:
+        code = getattr(exc, "code", None)
+        twilio_status = getattr(exc, "status", None)
+        if code or twilio_status:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": "Twilio rejected the call request. Verify the destination number and current Twilio trial/Voice permissions.",
+                    "provider_code": str(code) if code else "",
+                },
+                status=502,
+            )
+        return JsonResponse({"ok": False, "error": "Nia could not place the phone call right now. Please try again."}, status=502)
     finally:
         cache.delete(lock_key)
     return JsonResponse({"ok": True, "session_id": str(session.id), "status": session.status})
