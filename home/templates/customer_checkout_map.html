@@ -65,7 +65,7 @@ window.gm_authFailure = function(){
 <script>
 (function(){
 const home={lat:-1.2921,lng:36.8219},form=document.getElementById('checkout-form'),latEl=document.getElementById('lat'),lngEl=document.getElementById('lng'),countyEl=document.getElementById('delivery_county'),townEl=document.getElementById('delivery_town'),addrEl=document.getElementById('address'),searchEl=document.getElementById('customer-place-search'),status=document.getElementById('status'),accuracyEl=document.getElementById('accuracy'),confirmBox=document.getElementById('confirm-location'),confirmBtn=document.getElementById('confirm-btn'),placeChip=document.getElementById('place-chip'),openGoogle=document.getElementById('open');
-let map=null,marker=null,userMarker=null,confirmed=false,locationAccuracy=null,locationSource='';
+let map=null,marker=null,userMarker=null,confirmed=false,locationAccuracy=null,locationSource='',fallbackStarted=false;
 function msg(t,type){status.className='status'+(type?' '+type:'');status.textContent=t}
 function resetConfirmation(){confirmed=false;confirmBox.checked=false;confirmBtn.disabled=true}
 confirmBox.onchange=()=>{confirmBtn.disabled=!confirmBox.checked||!latEl.value||!lngEl.value};
