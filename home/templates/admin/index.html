@@ -130,6 +130,7 @@
                     <button id="ai-live-button" type="button" title="Start a natural admin voice conversation">🗣️ Talk Live</button>
                 </form>
                 <audio id="ai-audio" controls style="width:100%;margin-top:10px;display:none;"></audio>
+                <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button type="button" id="admin-call-nia" class="ai-suggestions" style="border:1px solid var(--shopiva-border);background:#e8fff4;color:#08784f;border-radius:10px;padding:8px 11px;font-weight:850;cursor:pointer">📞 Call Nia</button><span id="admin-call-status" class="panel-sub">Nia can call the configured admin number for a hands-free operations briefing.</span></div>
                 <div class="ai-suggestions">
                     <button type="button" data-q="How many products do we have?">Products</button>
                     <button type="button" data-q="Which products are low stock?">Low stock</button>
@@ -366,6 +367,20 @@
             }
         });
     }
+})();
+</script><script>
+(function(){
+  const b=document.getElementById('admin-call-nia'),s=document.getElementById('admin-call-status');
+  if(!b||!s)return;
+  b.addEventListener('click',async()=>{
+    b.disabled=true;s.textContent='Nia is placing your call…';
+    try{
+      const r=await fetch("{% url 'nia_phone_call' %}",{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}'}});
+      const d=await r.json();
+      if(!r.ok||!d.ok)throw new Error(d.error||'Nia could not place the call.');
+      s.textContent='📞 Nia is calling the configured admin number now.';
+    }catch(e){s.textContent=e.message||'Nia could not place the call.';b.disabled=false;}
+  });
 })();
 </script>
 {% endblock %}
