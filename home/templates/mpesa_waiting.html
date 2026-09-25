@@ -10,7 +10,7 @@
     <p>Order <strong>#{{ order.id }}</strong></p>
     <p id="intro">Shopiva submitted the M-PESA payment request.</p>
     <p id="instruction"><strong>If Safaricom accepts the request, an official M-PESA prompt will appear on your phone.</strong></p>
-    <p id="status">Waiting for M-PESA confirmation…</p>
+    <p id="status">Waiting for M-PESA confirmation…</p><p style="font-size:12px;color:#555">Canceling the prompt or leaving it unpaid does not confirm the order.</p>
     <button id="verify" type="button">Check M-PESA status</button>
     <p><a href="{% url 'order_success' order.id %}">View order</a></p>
 
