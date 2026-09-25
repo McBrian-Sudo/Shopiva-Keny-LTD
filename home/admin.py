@@ -21,7 +21,7 @@ from .admin_operations import admin_operations_center
 from .payments import _create_seller_settlements
 from .notifications import notify_user
 from .notification_service import notify_wishlist_product_change
-from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff, DeliveryHub, DeliveryPricingProfile, DeliveryPickupPoint, DeliveryRateCard, ShopivaBranch, ShopivaOutlet
+from .models import CustomerAddress, DeliveryAgent, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerPayoutRequest, SellerProfile, SellerSettlement, SellerWallet, WishlistItem, ProductReview, Notification, NotificationDelivery, DeliveryTariff, DeliveryHub, DeliveryPricingProfile, DeliveryPickupPoint, DeliveryRateCard, ShopivaBranch, ShopivaOutlet, NiaCallSession, NiaTask
 
 
 class ProductForm(forms.ModelForm):
@@ -780,3 +780,21 @@ class NotificationDeliveryAdmin(admin.ModelAdmin):
     search_fields = ("notification__user__username", "notification__user__email", "provider_message_id", "provider_status", "error_message")
     readonly_fields = ("notification", "channel", "status", "provider_status", "provider_message_id", "error_message", "created_at", "updated_at", "delivered_at")
     ordering = ("-created_at",)
+
+
+
+@admin.register(NiaCallSession, site=shopiva_admin_site)
+class NiaCallSessionAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "role", "phone_e164", "status", "provider_sid", "updated_at")
+    list_filter = ("role", "status", "provider")
+    search_fields = ("phone_e164", "provider_sid", "last_user_text", "last_ai_text")
+    readonly_fields = ("id", "user", "role", "phone_e164", "status", "provider", "provider_sid", "conversation", "last_user_text", "last_ai_text", "created_at", "updated_at")
+
+
+@admin.register(NiaTask, site=shopiva_admin_site)
+class NiaTaskAdmin(admin.ModelAdmin):
+    list_display = ("title", "user", "role", "trigger_kind", "enabled", "next_run_at", "last_run_at")
+    list_filter = ("role", "trigger_kind", "enabled")
+    search_fields = ("title", "instruction", "user__username", "user__email")
+    readonly_fields = ("last_run_at", "last_result", "created_at", "updated_at")
+    ordering = ("enabled", "next_run_at", "-created_at")
