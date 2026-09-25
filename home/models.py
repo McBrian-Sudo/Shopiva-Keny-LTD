@@ -756,6 +756,14 @@ class NiaCallSession(models.Model):
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    DIRECTION_OUTBOUND = "outbound"
+    DIRECTION_INBOUND = "inbound"
+    DIRECTION_CHOICES = (
+        (DIRECTION_OUTBOUND, "Outbound"),
+        (DIRECTION_INBOUND, "Inbound"),
+    )
+    direction = models.CharField(max_length=10, choices=DIRECTION_CHOICES, default=DIRECTION_OUTBOUND)
+    caller_verified = models.BooleanField(default=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -773,12 +781,74 @@ class NiaCallSession(models.Model):
     last_ai_text = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    verification = models.ForeignKey(
+        "NiaCallerVerification",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="call_sessions",
+    )
 
     class Meta:
         ordering = ("-created_at",)
 
     def __str__(self):
         return f"Nia call {self.id} · {self.role} · {self.status}"
+
+
+class NiaCallerVerification(models.Model):
+    ROLE_CHOICES = NiaCallSession.ROLE_CHOICES
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="nia_caller_verifications",
+    )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    phone_e164 = models.CharField(max_length=20, db_index=True)
+    pin_code = models.CharField(max_length=4)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    expires_at = models.DateTimeField(db_index=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=("phone_e164", "expires_at")),
+        ]
+
+    def __str__(self):
+        return f"Nia caller verification · {self.role} · {self.phone_e164}"
+
+
+class NiaAuditLog(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="nia_audit_logs",
+    )
+    role = models.CharField(max_length=20, choices=NiaCallSession.ROLE_CHOICES)
+    action = models.CharField(max_length=100)
+    detail = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=("user", "created_at")),
+            models.Index(fields=("role", "action", "created_at")),
+        ]
+
+    def __str__(self):
+        return f"Nia audit · {self.role} · {self.action}"
 
 
 class NiaTask(models.Model):
