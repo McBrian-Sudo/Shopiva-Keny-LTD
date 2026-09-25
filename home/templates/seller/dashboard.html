@@ -44,6 +44,7 @@
     </form>
     <div id="seller-copilot-status" class="seller-copilot-status">Ready. Your Copilot can only see this seller's Shopiva data.</div>
     <div id="seller-copilot-live-status" class="seller-copilot-status">Voice conversation is off.</div>
+    <div style="margin-top:9px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="seller-ai-btn" id="seller-copilot-call" type="button" style="background:#1bd976;color:#062018">📞 Call Nia</button><span id="seller-copilot-call-status" class="seller-copilot-status" style="margin:0">Nia can call your saved M-PESA number.</span></div>
     <div id="seller-copilot-answer" class="seller-copilot-answer"><strong id="seller-copilot-answer-text"></strong></div>
     <div class="seller-copilot-suggestions">
       <button type="button" data-q="Which products are low stock?">Low stock</button>
@@ -141,6 +142,17 @@
     button.addEventListener('click',()=>ask(button.dataset.q));
   });
 
+  const callButton=document.getElementById('seller-copilot-call');
+  const callStatus=document.getElementById('seller-copilot-call-status');
+  callButton?.addEventListener('click',async()=>{
+    callButton.disabled=true;callStatus.textContent='Nia is placing your call…';
+    try{
+      const r=await fetch("{% url 'nia_phone_call' %}",{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}'}});
+      const d=await r.json();
+      if(!r.ok||!d.ok)throw new Error(d.error||'Nia could not place the call.');
+      callStatus.textContent='📞 Nia is calling you now. Keep your phone nearby.';
+    }catch(e){callStatus.textContent=e.message||'Nia could not place the call.';callButton.disabled=false;}
+  });
   const liveButton=document.getElementById('seller-copilot-live');
   const liveStatus=document.getElementById('seller-copilot-live-status');
   let livePc=null,liveDc=null,liveStream=null,liveOn=false;
