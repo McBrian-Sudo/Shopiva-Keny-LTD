@@ -145,13 +145,13 @@
   const callButton=document.getElementById('seller-copilot-call');
   const callStatus=document.getElementById('seller-copilot-call-status');
   callButton?.addEventListener('click',async()=>{
-    callButton.disabled=true;callStatus.textContent='Nia is placing your call…';
+    callButton.disabled=true;callButton.setAttribute('aria-busy','true');callStatus.textContent='Nia is placing your call…';
     try{
       const r=await fetch("{% url 'nia_phone_call' %}",{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}'}});
       const d=await r.json();
       if(!r.ok||!d.ok)throw new Error(d.error||'Nia could not place the call.');
-      callStatus.textContent='📞 Nia is calling you now. Keep your phone nearby.';
-    }catch(e){callStatus.textContent=e.message||'Nia could not place the call.';callButton.disabled=false;}
+      callStatus.textContent='📞 Nia is calling your saved M-PESA number now. Keep your phone nearby.';callButton.removeAttribute('aria-busy');
+    }catch(e){callStatus.textContent=e.message||'Nia could not place the call.';callButton.disabled=false;callButton.removeAttribute('aria-busy');}
   });
   const liveButton=document.getElementById('seller-copilot-live');
   const liveStatus=document.getElementById('seller-copilot-live-status');
