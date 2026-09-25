@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+<title id="title">Shopiva paints and finishing supplies</title>
+<desc id="desc">A clean illustrated paint and finishing supplies scene with paint cans, rollers and a brush.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#6f4936"/>
+    <stop offset="0.52" stop-color="#ad744f"/>
+    <stop offset="1" stop-color="#d99b68"/>
+  </linearGradient>
+  <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#fff7ea"/>
+    <stop offset="1" stop-color="#f1d2b0"/>
+  </linearGradient>
+  <linearGradient id="green" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#1ce77a"/>
+    <stop offset="1" stop-color="#0ebc61"/>
+  </linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="18" stdDeviation="18" flood-opacity=".24"/>
+  </filter>
+</defs>
+<rect width="1600" height="900" fill="url(#bg)"/>
+<circle cx="1380" cy="135" r="180" fill="#ffffff" opacity=".08"/>
+<circle cx="1460" cy="725" r="240" fill="#ffffff" opacity=".06"/>
+<rect x="920" y="135" width="540" height="610" rx="34" fill="url(#panel)" opacity=".96" filter="url(#shadow)"/>
+<rect x="957" y="172" width="466" height="72" rx="20" fill="#fff" opacity=".75"/>
+<text x="986" y="219" font-family="Arial,Helvetica,sans-serif" font-size="28" font-weight="800" fill="#24352e">PAINT • PROTECT • FINISH</text>
+
+<g filter="url(#shadow)">
+  <ellipse cx="1190" cy="605" rx="190" ry="38" fill="#5a3d2e" opacity=".25"/>
+  <rect x="1065" y="385" width="235" height="210" rx="24" fill="#ffffff"/>
+  <ellipse cx="1182" cy="385" rx="117" ry="28" fill="#e9ece9"/>
+  <ellipse cx="1182" cy="382" rx="101" ry="19" fill="#1bd976"/>
+  <rect x="1094" y="425" width="176" height="95" rx="18" fill="#eafff2"/>
+  <text x="1182" y="475" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="900" fill="#0b6d45">SHOPIVA</text>
+  <text x="1182" y="503" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="700" fill="#52645c">WALL FINISH</text>
+</g>
+
+<g transform="translate(1260 310) rotate(-14)" filter="url(#shadow)">
+  <rect x="0" y="0" width="300" height="42" rx="21" fill="#2d3b37"/>
+  <rect x="214" y="-20" width="74" height="82" rx="30" fill="#1f2926"/>
+  <rect x="30" y="8" width="132" height="26" rx="13" fill="#f4d6b7"/>
+  <rect x="54" y="4" width="84" height="34" rx="17" fill="#16d96f"/>
+</g>
+
+<g transform="translate(1005 620) rotate(9)" filter="url(#shadow)">
+  <rect x="0" y="0" width="270" height="34" rx="17" fill="#244138"/>
+  <rect x="208" y="-11" width="88" height="56" rx="20" fill="#f5c28e"/>
+  <rect x="229" y="-7" width="46" height="48" rx="18" fill="#d97842"/>
+</g>
+
+<g filter="url(#shadow)">
+  <rect x="1320" y="395" width="75" height="152" rx="14" fill="#ffd166"/>
+  <rect x="1334" y="410" width="47" height="122" rx="8" fill="#fff4c9"/>
+  <path d="M1341 505c16-36 23-70 16-95" fill="none" stroke="#7f5b3d" stroke-width="9" stroke-linecap="round"/>
+</g>
+
+<g opacity=".9">
+  <text x="970" y="686" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="800" fill="#5a4538">Wall paints</text>
+  <text x="970" y="718" font-family="Arial,Helvetica,sans-serif" font-size="18" fill="#786354">Primers · Rollers · Brushes · Varnish</text>
+</g>
+
+<g transform="translate(90 570)">
+  <rect x="0" y="0" width="600" height="6" rx="3" fill="#fff" opacity=".22"/>
+  <rect x="0" y="0" width="235" height="6" rx="3" fill="#1bd976"/>
+</g>
+</svg>
