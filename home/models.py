@@ -726,3 +726,95 @@ class NotificationDelivery(models.Model):
 
     def __str__(self):
         return f"{self.notification_id} · {self.channel} · {self.status}"
+
+
+class NiaCallSession(models.Model):
+    ROLE_CUSTOMER = "customer"
+    ROLE_SELLER = "seller"
+    ROLE_ADMIN = "admin"
+    ROLE_CHOICES = (
+        (ROLE_CUSTOMER, "Customer"),
+        (ROLE_SELLER, "Seller"),
+        (ROLE_ADMIN, "Admin"),
+    )
+
+    STATUS_QUEUED = "queued"
+    STATUS_RINGING = "ringing"
+    STATUS_IN_PROGRESS = "in-progress"
+    STATUS_COMPLETED = "completed"
+    STATUS_FAILED = "failed"
+    STATUS_CANCELED = "canceled"
+    STATUS_NO_ANSWER = "no-answer"
+    STATUS_CHOICES = (
+        (STATUS_QUEUED, "Queued"),
+        (STATUS_RINGING, "Ringing"),
+        (STATUS_IN_PROGRESS, "In progress"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_FAILED, "Failed"),
+        (STATUS_CANCELED, "Canceled"),
+        (STATUS_NO_ANSWER, "No answer"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="nia_calls",
+    )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    phone_e164 = models.CharField(max_length=20)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_QUEUED)
+    provider = models.CharField(max_length=30, default="twilio")
+    provider_sid = models.CharField(max_length=100, blank=True, db_index=True)
+    conversation = models.JSONField(default=list, blank=True)
+    last_user_text = models.TextField(blank=True)
+    last_ai_text = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"Nia call {self.id} · {self.role} · {self.status}"
+
+
+class NiaTask(models.Model):
+    TRIGGER_MANUAL = "manual"
+    TRIGGER_ORDER = "order"
+    TRIGGER_PAYMENT = "payment"
+    TRIGGER_DELIVERY = "delivery"
+    TRIGGER_LOW_STOCK = "low_stock"
+    TRIGGER_SCHEDULE = "schedule"
+    TRIGGER_CHOICES = (
+        (TRIGGER_MANUAL, "Manual"),
+        (TRIGGER_ORDER, "Order"),
+        (TRIGGER_PAYMENT, "Payment"),
+        (TRIGGER_DELIVERY, "Delivery"),
+        (TRIGGER_LOW_STOCK, "Low stock"),
+        (TRIGGER_SCHEDULE, "Scheduled"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="nia_tasks",
+    )
+    role = models.CharField(max_length=20, choices=NiaCallSession.ROLE_CHOICES)
+    title = models.CharField(max_length=180)
+    instruction = models.TextField()
+    trigger_kind = models.CharField(max_length=20, choices=TRIGGER_CHOICES, default=TRIGGER_MANUAL)
+    next_run_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    enabled = models.BooleanField(default=True)
+    last_run_at = models.DateTimeField(null=True, blank=True)
+    last_result = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("next_run_at", "-created_at")
+
+    def __str__(self):
+        return f"{self.title} · {self.user_id}"
