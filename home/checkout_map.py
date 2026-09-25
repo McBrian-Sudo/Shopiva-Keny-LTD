@@ -164,7 +164,7 @@ class _MapGetRequest:
     def __init__(self, request):
         self.session = request.session
         self.user = request.user
-        self.POST = {}
+        self.POST = request.POST
         self.FILES = {}
         self.META = request.META
         self.COOKIES = request.COOKIES
