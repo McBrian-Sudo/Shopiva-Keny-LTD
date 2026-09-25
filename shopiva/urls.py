@@ -7,6 +7,7 @@ from home.admin_helpers import admin_ai_assistant, admin_login, admin_logout
 from home.admin_session import admin_session_status
 from home.business_intelligence import business_intelligence
 from home.ai import shop_assistant
+from home.role_ai import seller_assistant
 from home.customer_tracking import customer_order_tracking
 from home.checkout_map import checkout_mpesa_map, checkout_quote, pickup_points
 from home.location_views import shopiva_locations
@@ -126,6 +127,7 @@ urlpatterns = [
     path("admin/statistics/", statistics_center, name="statistics_center"),
     path("admin/coop-connect/sit/", coop_connect_sit_console, name="coop_connect_sit_console"),
     path("ai/shop-assistant/", shop_assistant, name="shop_assistant"),
+    path("ai/seller-assistant/", seller_assistant, name="seller_assistant"),
     path("ai/voice/transcribe/", transcribe_voice, name="voice_transcribe"),
     path("ai/realtime/call/", realtime_call, name="realtime_call"),
     path("ai/realtime/action/", realtime_action, name="realtime_action"),
