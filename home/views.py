@@ -507,58 +507,8 @@ def cart(request):
 
 
 def checkout(request):
-    cart_data = request.session.get("cart", {})
-    items, total = _cart_items(cart_data)
-    if request.method == "POST":
-        customer_name = request.POST.get("customer_name", "").strip()
-        email = request.POST.get("email", "").strip()
-        phone = request.POST.get("phone", "").strip()
-        address = request.POST.get("address", "").strip()
-        if not all([customer_name, email, phone, address]) or not items:
-            return render(request, "checkout.html", {"items": items, "total": total, "error": "Please complete all customer details and make sure your cart is not empty."})
-        with transaction.atomic():
-            locked_items = []
-            final_total = Decimal("0.00")
-            for item in items:
-                product = Product.objects.select_for_update().get(id=item["product"].id)
-                quantity = item["quantity"]
-                if not product.is_active or product.stock_quantity < quantity:
-                    return render(request, "checkout.html", {"items": items, "total": total, "error": f"Sorry, {product.name} no longer has enough stock. Please review your cart."})
-                unit_price = product.discounted_price
-                subtotal = unit_price * quantity
-                final_total += subtotal
-                locked_items.append((product, quantity, unit_price))
-            tracking_code = f"SPV-{uuid.uuid4().hex[:10].upper()}"
-            order = Order.objects.create(
-            customer_name=customer_name,
-            customer=request.user if _customer_only(request) else None,
-            email=email,
-            phone=phone,
-            address=address,
-            total_amount=final_total,
-            status="pending",
-            payment_status="unpaid",
-            tracking_code=tracking_code,
-        )
-            _record_order_event(order, "placed", note="Order placed through Shopiva checkout.", actor=request.user if request.user.is_authenticated else None)
-            for product, quantity, unit_price in locked_items:
-                OrderItem.objects.create(order=order, product=product, quantity=quantity, price=unit_price)
-                product.stock_quantity -= quantity
-                product.save(update_fields=["stock_quantity"])
-        request.session["cart"] = {}
-        request.session.modified = True
-        notify_user(
-            order.customer or None,
-            notification_type="order",
-            title=f"Shopiva order #{order.id} received",
-            message=f"Your order {order.tracking_code} has been received. Total: KSh {order.total_amount}.",
-            link=f"/order-success/{order.id}/",
-            email=order.email,
-            phone=order.phone,
-        )
-        return redirect("order_success", order_id=order.id)
-    return render(request, "checkout.html", {"items": items, "total": total})
-
+    """Compatibility shim: all customer checkout traffic uses the modern map checkout."""
+    return redirect("checkout")
 
 def order_success(request, order_id):
     """Show an order confirmation only to its authenticated owner or bearer-token holder."""
