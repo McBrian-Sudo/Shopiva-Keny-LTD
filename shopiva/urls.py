@@ -24,7 +24,6 @@ from shopiva.health import health
 from home.delivery_app import delivery_login, delivery_signup, delivery_logout, delivery_action, delivery_status, delivery_history, delivery_update_location, delivery_ping_location
 from home.delivery_platform import delivery_manifest, delivery_service_worker
 from home.admin_delivery_feed import admin_live_delivery_feed
-from home.admin_operations import admin_operations_center
 from home.admin_statistics import statistics_center
 from home.coop_connect_views import coop_connect_sit_console
 from home.notifications_center import customer_notification_center, seller_notification_center, admin_notification_center
@@ -124,7 +123,6 @@ urlpatterns = [
     path("admin/google-delivery-map/", google_admin_delivery_map, name="google_delivery_map"),
     path("admin/live-delivery-feed/", admin_live_delivery_feed, name="admin_live_delivery_feed"),
     path("admin/notifications/", admin_notification_center, name="admin_notifications"),
-    path("admin/operations-center/", admin_operations_center, name="admin_operations_center"),
     path("admin/statistics/", statistics_center, name="statistics_center"),
     path("admin/coop-connect/sit/", coop_connect_sit_console, name="coop_connect_sit_console"),
     path("ai/shop-assistant/", shop_assistant, name="shop_assistant"),
