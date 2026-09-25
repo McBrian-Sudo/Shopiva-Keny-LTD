@@ -3,45 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if order.payment_status == 'paid' or order.payment_method == 'cod' %}Order Confirmed{% else %}Payment Not Completed{% endif %} | Shopiva Kenya</title>
+    <meta name="theme-color" content="#087f5b">
+    <title>{% if order.payment_status == 'paid' or payment_method == 'cod' %}Order Confirmed{% else %}Payment Pending{% endif %} | Shopiva Kenya</title>
+    <style>
+        :root{
+            --ink:#13231d;--muted:#6b7a74;--line:#e4ece8;--bg:#f4f8f6;
+            --brand:#087f5b;--brand-2:#0aa06f;--soft:#eaf8f2;--white:#fff;
+            --warn:#9a5a00;--warn-bg:#fff7e8;--shadow:0 18px 50px rgba(16,54,42,.10)
+        }
+        *{box-sizing:border-box}
+        body{
+            margin:0;background:linear-gradient(180deg,#f8fbf9 0%,var(--bg) 100%);
+            color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+        }
+        a{text-decoration:none}
+        .shell{min-height:100vh;padding:36px 18px 56px}
+        .topbar{max-width:980px;margin:0 auto 18px;display:flex;justify-content:space-between;align-items:center;gap:14px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:900;color:var(--ink);letter-spacing:-.02em}
+        .brand-mark{width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;color:#fff;font-size:19px;box-shadow:0 8px 20px rgba(8,127,91,.20)}
+        .mini-link{font-size:13px;font-weight:800;color:var(--brand);padding:10px 13px;border:1px solid #cfe7dc;border-radius:12px;background:#fff}
+        .card{max-width:980px;margin:0 auto;background:var(--white);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);overflow:hidden}
+        .hero{padding:34px 34px 28px;background:linear-gradient(135deg,#effaf5 0%,#fff 72%);border-bottom:1px solid var(--line)}
+        .hero-row{display:flex;align-items:flex-start;gap:18px}
+        .status-icon{width:62px;height:62px;border-radius:20px;display:grid;place-items:center;font-size:30px;flex:none}
+        .success .status-icon{background:#dff5ea}
+        .pending .status-icon{background:#fff0cf}
+        .eyebrow{font-size:11px;font-weight:900;letter-spacing:.13em;color:var(--brand);text-transform:uppercase}
+        h1{font-size:clamp(28px,5vw,44px);line-height:1.02;margin:6px 0 9px;letter-spacing:-.045em}
+        .hero p{margin:0;max-width:650px;color:var(--muted);line-height:1.6;font-size:14px}
+        .body{padding:28px 34px 34px}
+        .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+        .panel{border:1px solid var(--line);border-radius:18px;padding:20px;background:#fff}
+        .panel h2{font-size:15px;margin:0 0 15px;letter-spacing:-.02em}
+        .meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+        .item{border:1px solid #edf2ef;border-radius:14px;padding:13px;background:#fbfdfc}
+        .label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:900;color:#86928d;margin-bottom:6px}
+        .value{font-size:14px;font-weight:800;line-height:1.45;word-break:break-word}
+        .total{margin-top:14px;border-radius:16px;padding:16px 17px;background:linear-gradient(135deg,#0a845f,#087f5b);color:#fff;display:flex;justify-content:space-between;gap:16px;align-items:center}
+        .total small{opacity:.82;font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:900}
+        .total strong{font-size:25px;letter-spacing:-.03em}
+        .status-line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #eef2f0}
+        .status-line:last-child{border-bottom:0}
+        .pill{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:900}
+        .pill.ok{background:#e5f8ef;color:#087f5b}.pill.wait{background:#fff2d7;color:var(--warn)}
+        .address{font-size:13px;line-height:1.65;color:#45534d;margin:0}
+        .note{margin-top:15px;padding:13px 14px;border-radius:14px;background:var(--warn-bg);border:1px solid #f0ddb5;color:#805000;font-size:12px;line-height:1.55}
+        .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+        .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:13px;font-size:13px;font-weight:900}
+        .btn.primary{background:var(--brand);color:#fff;box-shadow:0 8px 18px rgba(8,127,91,.18)}
+        .btn.secondary{background:#fff;color:var(--brand);border:1px solid #cfe7dc}
+        .footer-note{margin-top:18px;text-align:center;color:#8a9691;font-size:11px}
+        @media(max-width:760px){
+            .shell{padding:18px 12px 36px}.topbar{margin-bottom:12px}.hero{padding:25px 20px}.body{padding:20px}
+            .grid{grid-template-columns:1fr}.meta{grid-template-columns:1fr 1fr}
+            .hero-row{gap:13px}.status-icon{width:52px;height:52px;border-radius:16px;font-size:25px}
+        }
+        @media(max-width:480px){.meta{grid-template-columns:1fr}.total strong{font-size:21px}}
+    </style>
 </head>
 <body>
-    {% if order.payment_status == 'paid' or order.status == 'confirmed' %}
-<h1>Order Confirmed 🎉</h1>
-{% else %}
-<h1>Payment not completed</h1>
-<p style="padding:12px;border:1px solid #f0d2a8;background:#fff8ec;border-radius:10px">Your order #{{ order.id }} was created, but the payment has not been confirmed. No delivery should be released until payment is confirmed.</p>
-{% endif %}
-
-    <p>Thank you, {{ order.customer_name }}.</p>
-
-    <h2>Order #{{ order.id }}</h2>
-
-    <p><strong>Status:</strong> {{ order.get_status_display }}</p>
-    <p><strong>Items subtotal:</strong> KSh {{ order.items_subtotal|floatformat:2 }}</p>
-    <p><strong>Shopiva service fee:</strong> KSh {{ order.platform_commission_amount|floatformat:2 }}</p>
-    <p><strong>Delivery:</strong> KSh {{ order.delivery_fee|floatformat:2 }}</p>
-    <p><strong>Delivery distance:</strong> {{ order.delivery_distance_km|floatformat:2 }} km{% if order.delivery_distance_source == "google_roads" %} (road route){% else %} (estimated){% endif %}</p>
-    <p><strong>Total customer payment:</strong> KSh {{ order.total_amount|floatformat:2 }}</p>
-    <p><strong>Phone:</strong> {{ order.phone }}</p>
-    <p><strong>Delivery Address:</strong> {{ order.address }}</p>
-
-    {% if order.payment_status == 'paid' %}
-<p>Your order has been received successfully and your payment is confirmed.</p>
-{% elif order.status == 'confirmed' %}
-<p>Your Cash on Delivery order has been received successfully.</p>
-{% else %}
-<p>Your order record is saved for reference, but payment is not confirmed.</p>
-{% endif %}
-
-    {% if order.delivery_confirmation_code and order.status == 'out_for_delivery' %}
-    <div style="margin:20px 0;padding:18px;border:1px solid #bfe8d0;background:#effaf4;border-radius:14px">
-        <h3 style="margin:0 0 8px">🔐 Delivery handover code</h3>
-        <div style="font-size:30px;letter-spacing:.2em;font-weight:900;color:#087f5b">{{ order.delivery_confirmation_code }}</div>
-        <p style="margin:8px 0 0;font-size:12px">Share this code only with the Shopiva delivery partner at handover.</p>
+<div class="shell">
+    <div class="topbar">
+        <a class="brand" href="{% url 'home' %}">
+            <span class="brand-mark">S</span><span>Shopiva Kenya</span>
+        </a>
+        <a class="mini-link" href="{% url 'home' %}">Continue shopping →</a>
     </div>
-    {% endif %}
 
-    <a href="{% url 'home' %}">Continue Shopping</a>
+    <main class="card {% if order.payment_status == 'paid' or payment_method == 'cod' %}success{% else %}pending{% endif %}">
+        <section class="hero">
+            <div class="hero-row">
+                <div class="status-icon">{% if order.payment_status == 'paid' or payment_method == 'cod' %}✓{% else %}₿{% endif %}</div>
+                <div>
+                    <div class="eyebrow">{% if order.payment_status == 'paid' or payment_method == 'cod' %}Order successfully received{% else %}Payment status{% endif %}</div>
+                    <h1>{% if order.payment_status == 'paid' or payment_method == 'cod' %}Order confirmed{% else %}Payment not completed{% endif %}</h1>
+                    <p>
+                        {% if order.payment_status == 'paid' %}
+                            Your payment has been confirmed and Shopiva has received your order.
+                        {% elif payment_method == 'cod' %}
+                            Your Cash on Delivery order has been received. Payment will be collected according to the delivery arrangement.
+                        {% else %}
+                            Your order record is saved, but M-PESA payment has not been confirmed. No delivery should be released until payment is confirmed.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="body">
+            <div class="grid">
+                <div class="panel">
+                    <h2>Order summary</h2>
+                    <div class="meta">
+                        <div class="item"><span class="label">Order number</span><div class="value">#{{ order.id }}</div></div>
+                        <div class="item"><span class="label">Customer</span><div class="value">{{ order.customer_name }}</div></div>
+                        <div class="item"><span class="label">Order status</span><div class="value">{{ order.get_status_display }}</div></div>
+                        <div class="item"><span class="label">Payment</span><div class="value">{% if order.payment_status == 'paid' %}Paid{% elif payment_method == 'cod' %}Cash on Delivery{% else %}Payment Pending{% endif %}</div></div>
+                        <div class="item"><span class="label">Items subtotal</span><div class="value">KSh {{ order.items_subtotal|floatformat:2 }}</div></div>
+                        <div class="item"><span class="label">Shopiva service fee</span><div class="value">KSh {{ order.platform_commission_amount|floatformat:2 }}</div></div>
+                        <div class="item"><span class="label">Delivery</span><div class="value">KSh {{ order.delivery_fee|floatformat:2 }}</div></div>
+                        <div class="item"><span class="label">Distance</span><div class="value">{{ order.delivery_distance_km|floatformat:2 }} km{% if order.delivery_distance_source == "google_roads" %} · road route{% else %} · estimated{% endif %}</div></div>
+                    </div>
+                    <div class="total"><small>Total customer payment</small><strong>KSh {{ order.total_amount|floatformat:2 }}</strong></div>
+                </div>
+
+                <div class="panel">
+                    <h2>Payment & delivery</h2>
+                    <div class="status-line">
+                        <span>Payment status</span>
+                        {% if order.payment_status == 'paid' %}<span class="pill ok">● Paid</span>
+                        {% elif payment_method == 'cod' %}<span class="pill ok">● COD</span>
+                        {% else %}<span class="pill wait">● Pending</span>{% endif %}
+                    </div>
+                    <div class="status-line">
+                        <span>Phone</span><strong style="font-size:13px">{{ order.phone }}</strong>
+                    </div>
+                    <div style="padding-top:15px">
+                        <span class="label">Delivery address</span>
+                        <p class="address">{{ order.address }}</p>
+                    </div>
+                    {% if order.payment_status != 'paid' and payment_method != 'cod' %}
+                    <div class="note">Your M-PESA payment was not confirmed. You may return to checkout and start a new payment attempt when you are ready.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if order.delivery_confirmation_code and order.status == 'out_for_delivery' %}
+            <div class="panel" style="margin-top:18px;background:#effaf4;border-color:#cdeedf">
+                <h2>🔐 Delivery handover code</h2>
+                <div style="font-size:32px;letter-spacing:.22em;font-weight:950;color:#087f5b">{{ order.delivery_confirmation_code }}</div>
+                <p style="margin:8px 0 0;color:#5b6c65;font-size:12px">Share this code only with the Shopiva delivery partner at handover.</p>
+            </div>
+            {% endif %}
+
+            <div class="actions">
+                <a class="btn primary" href="{% url 'home' %}">🛍 Continue shopping</a>
+                {% if user.is_authenticated %}
+                    <a class="btn secondary" href="{% url 'customer_dashboard' %}">View my account</a>
+                {% endif %}
+            </div>
+
+            <div class="footer-note">Shopiva Kenya · Secure order records · Tracked delivery</div>
+        </section>
+    </main>
+</div>
 </body>
 </html>
