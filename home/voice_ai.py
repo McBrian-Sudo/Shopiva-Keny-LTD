@@ -10,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .ai import _catalog
-from .models import Order, Product, PaymentTransaction
+from .models import Order, OrderItem, Product, PaymentTransaction, SellerProfile
 
 
 def _openai_multipart_sdp(sdp, session):
@@ -121,6 +121,37 @@ CATALOG:
 """
 
 
+def _seller_for_request(request):
+    if not request.user.is_authenticated:
+        return None
+    seller = getattr(request.user, "seller_profile", None)
+    return seller if seller and seller.is_active else None
+
+
+def _seller_instructions(request, seller):
+    products = list(
+        Product.objects.filter(seller=seller, is_active=True)
+        .order_by("-id")
+        .values("id", "name", "category", "price", "discount_percent", "stock_quantity")[:40]
+    )
+    orders = list(
+        Order.objects.filter(items__seller=seller).distinct()
+        .order_by("-created_at")
+        .values("id", "tracking_code", "status", "payment_status", "total_amount")[:30]
+    )
+    return f"""
+You are Shopiva Seller Voice, a voice operations assistant for the authenticated seller only.
+Speak clearly and briefly.
+You may help with the seller's own products, stock, orders, sales, commissions and payout balances.
+Never reveal data belonging to another seller or administrator.
+Never invent a product, stock level, order, payment result, revenue figure or payout balance.
+Never claim that you changed a record; current seller tools are read-only.
+For payments, only status exactly paid means paid.
+Seller products:
+{json.dumps(products, default=str, ensure_ascii=False)}
+Seller orders:
+{json.dumps(orders, default=str, ensure_ascii=False)}
+"""
 def _admin_instructions():
     catalog = _catalog_context()
     payments = list(
@@ -156,6 +187,7 @@ def realtime_call(request):
     if not os.getenv("OPENAI_API_KEY", "").strip():
         return JsonResponse({"ok": False, "error": "Voice AI is not configured yet."}, status=503)
 
+    seller = _seller_for_request(request)
     if request.user.is_authenticated and request.user.is_staff:
         instructions = _admin_instructions()
         tools = [
@@ -181,6 +213,28 @@ def realtime_call(request):
                 "type": "function",
                 "name": "get_order_attention",
                 "description": "Return recent orders with unpaid, pending, or failed payment status that need attention.",
+                "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+            },
+        ]
+    elif seller:
+        instructions = _seller_instructions(request, seller)
+        tools = [
+            {
+                "type": "function",
+                "name": "get_seller_low_stock",
+                "description": "Return this seller's active low-stock products.",
+                "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+            },
+            {
+                "type": "function",
+                "name": "get_seller_orders_attention",
+                "description": "Return this seller's own orders needing attention, including unpaid or pending payment orders.",
+                "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+            },
+            {
+                "type": "function",
+                "name": "get_seller_summary",
+                "description": "Return this seller's live product counts, order counts and payout balances.",
                 "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
             },
         ]
@@ -370,6 +424,56 @@ def realtime_action(request):
                 "payment_status": order.get_payment_status_display(),
             }
         )
+
+    if action == "get_seller_low_stock":
+        seller = _seller_for_request(request)
+        if not seller:
+            return JsonResponse({"ok": False, "error": "Active seller access required."}, status=403)
+        rows = list(
+            Product.objects.filter(seller=seller, is_active=True, stock_quantity__lte=5)
+            .order_by("stock_quantity", "name")
+            .values("id", "name", "stock_quantity")[:30]
+        )
+        return JsonResponse({"ok": True, "products": rows})
+
+    if action == "get_seller_orders_attention":
+        seller = _seller_for_request(request)
+        if not seller:
+            return JsonResponse({"ok": False, "error": "Active seller access required."}, status=403)
+        rows = list(
+            Order.objects.filter(items__seller=seller).distinct()
+            .filter(payment_status__in=["unpaid", "pending", "failed"])
+            .exclude(status="cancelled")
+            .order_by("-created_at")
+            .values("id", "tracking_code", "status", "payment_status", "total_amount")[:30]
+        )
+        return JsonResponse({"ok": True, "orders": rows})
+
+    if action == "get_seller_summary":
+        seller = _seller_for_request(request)
+        if not seller:
+            return JsonResponse({"ok": False, "error": "Active seller access required."}, status=403)
+        products = Product.objects.filter(seller=seller, is_active=True)
+        orders = Order.objects.filter(items__seller=seller).distinct()
+        wallet = getattr(seller, "wallet", None)
+        return JsonResponse({
+            "ok": True,
+            "products": {
+                "total": products.count(),
+                "low_stock": products.filter(stock_quantity__lte=5).count(),
+                "out_of_stock": products.filter(stock_quantity=0).count(),
+            },
+            "orders": {
+                "total": orders.count(),
+                "pending": orders.filter(status="pending").count(),
+                "paid": orders.filter(payment_status="paid").count(),
+            },
+            "wallet": {
+                "pending_balance": str(wallet.pending_balance) if wallet else "0.00",
+                "available_balance": str(wallet.available_balance) if wallet else "0.00",
+                "total_sales": str(wallet.total_sales) if wallet else "0.00",
+            },
+        })
 
     if action == "get_low_stock":
         if not request.user.is_staff:
