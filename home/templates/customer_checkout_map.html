@@ -43,9 +43,9 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:#f
 <label class="pay" style="opacity:.55"><input type="radio" name="delivery_mode" value="express" disabled><strong>⚡ Express Delivery</strong><small>Not activated for customer selection yet.</small></label>
 </div>
 <h2 class="section">Payment</h2><div class="payOptions">
-<label class="pay"><input type="radio" name="payment_method" value="pesapal" checked><strong>💳 Pay Online — Pesapal</strong><small>Continue to the supported secure payment options available for the Shopiva merchant account.</small></label>
-<label class="pay"><input type="radio" name="payment_method" value="mpesa"><strong>📱 M-PESA Direct</strong><small>Shopiva Daraja payment path.</small></label>
-<label class="pay"><input type="radio" name="payment_method" value="cod"><strong>💵 Cash on Delivery</strong><small>Pay when your order arrives, where enabled.</small></label>
+<label class="pay"><input type="radio" name="payment_method" value="pesapal" {% if request.POST.payment_method == "pesapal" or not request.POST.payment_method and pesapal_ready %}checked{% endif %} {% if not pesapal_ready %}disabled{% endif %}><strong>💳 Pay Online — Pesapal</strong><small>{% if pesapal_ready %}Continue to the supported secure payment options available for the Shopiva merchant account.{% else %}Online payment is not configured yet. Cash on Delivery remains available.{% endif %}</small></label>
+<label class="pay" {% if not mpesa_ready %}style="opacity:.55"{% endif %}><input type="radio" name="payment_method" value="mpesa" {% if request.POST.payment_method == "mpesa" %}checked{% endif %} {% if not mpesa_ready %}disabled{% endif %}><strong>📱 M-PESA Direct</strong><small>{% if mpesa_ready %}Shopiva Daraja payment path.{% else %}Temporarily unavailable until the approved production M-PESA merchant configuration is active.{% endif %}</small></label>
+<label class="pay"><input type="radio" name="payment_method" value="cod" {% if request.POST.payment_method == "cod" or not request.POST.payment_method and not pesapal_ready %}checked{% endif %}><strong>💵 Cash on Delivery</strong><small>Pay when your order arrives, where enabled.</small></label>
 </div>
 <button class="submit" type="submit">Confirm delivery location &amp; continue →</button>
 </form><a class="back" href="{% url 'cart' %}">← Back to cart</a>
