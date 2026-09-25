@@ -564,7 +564,7 @@ class DeliveryAgentAdmin(admin.ModelAdmin):
 
         if not change and obj.user_id:
             approval_url = reverse("shopiva_admin:approval_center")
-            admins = User.objects.filter(is_staff=True, is_active=True).exclude(pk=obj.user_id)
+            admins = User.objects.filter(is_staff=True, is_active=True)
             for admin_user in admins:
                 notify_user(
                     admin_user,
