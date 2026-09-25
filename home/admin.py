@@ -57,7 +57,7 @@ class ShopivaAdminSite(admin.AdminSite):
     site_header = "Shopiva Control Center"
     site_title = "Shopiva Admin"
     index_title = "Store Operations"
-    index_template = "admin/index.html"
+    index_template = "admin/shopiva_index.html"
 
     def _stats(self):
         today = timezone.localdate()
