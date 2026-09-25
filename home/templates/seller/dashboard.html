@@ -36,6 +36,7 @@
       <span class="seller-copilot-badge">SELLER ONLY</span>
     </div>
     <form id="seller-copilot-form" class="seller-copilot-form">
+      {% csrf_token %}
       <input id="seller-copilot-input" class="seller-copilot-input" name="question" type="text" placeholder="Ask: Which products are low stock?" autocomplete="off" required>
       <button class="seller-ai-btn seller-ai-ask" type="submit">Ask Copilot</button>
       <button class="seller-ai-btn seller-ai-voice" id="seller-copilot-voice" type="button">🎙️ Voice</button>
@@ -114,6 +115,8 @@
     try{
       const body=new URLSearchParams();
       body.set('question',q);
+      const csrf=form.querySelector('[name="csrfmiddlewaretoken"]');
+      if(csrf) body.set('csrfmiddlewaretoken',csrf.value);
       const response=await fetch("{% url 'seller_assistant' %}",{
         method:'POST',
         headers:{
