@@ -120,12 +120,12 @@
 
         <aside>
             <section class="panel ai-panel">
-                <div class="panel-head"><div class="ai-title"><div class="ai-orb">🤖</div><div><h2>Shopiva AI Assistant</h2><div class="panel-sub">Live database assistant</div></div></div></div>
-                <div id="ai-answer">Hello! I'm your Shopiva operations assistant. Ask me about products, stock, orders or revenue.</div>
+                <div class="panel-head"><div class="ai-title"><div class="ai-orb">🤖</div><div><h2>Nia — Operations Copilot</h2><div class="panel-sub">Admin-only live operations assistant</div></div></div></div>
+                <div id="ai-answer">Hello! I'm Nia, your Admin Operations Copilot. Ask me about orders, payments, delivery, staff approvals, stock or revenue.</div>
                 <form id="ai-form" class="ai-form" method="post" action="{% url 'shopiva_admin:ai_assistant' %}">
                     {% csrf_token %}
-                    <input id="ai-question" name="question" type="text" autocomplete="off" placeholder="Ask Shopiva AI...">
-                    <button type="submit">Ask AI</button>
+                    <input id="ai-question" name="question" type="text" autocomplete="off" placeholder="Ask Nia about Shopiva operations…">
+                    <button type="submit">Ask Nia</button>
                     <button id="ai-voice-button" type="button" title="Record an admin voice question">🎙️ Voice</button>
                     <button id="ai-live-button" type="button" title="Start a natural admin voice conversation">🗣️ Talk Live</button>
                 </form>
