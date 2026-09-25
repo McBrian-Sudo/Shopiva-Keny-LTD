@@ -149,6 +149,10 @@ def checkout_mpesa_map(request, error=None):
         logger.exception("Unexpected checkout failure for the map checkout")
         return checkout_mpesa_map(_MapGetRequest(request), error="Checkout could not be completed right now. Your cart and delivery details are still safe; please review them and try again.")
 
+    if getattr(response, "status_code", 200) >= 500:
+        logger.error("Checkout returned HTTP %s for the map checkout", response.status_code)
+        return checkout_mpesa_map(_MapGetRequest(request), error="Checkout could not be completed right now. No order was confirmed. Please review the delivery and payment details and try again.")
+
     match = re.search(r"/(?:order-success|payments/mpesa/waiting)/(\d+)/", getattr(response, "url", ""))
     if match:
         order_id = int(match.group(1))
