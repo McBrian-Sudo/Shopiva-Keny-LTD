@@ -21,9 +21,13 @@ def _env(name, default=""):
     return os.getenv(name, default).strip()
 
 
-def _public_site_url(request):
+def _public_site_url(request=None):
     configured = _env("PUBLIC_SITE_URL")
-    return (configured or request.build_absolute_uri("/").rstrip("/")).rstrip("/")
+    if configured:
+        return configured.rstrip("/")
+    if request is not None:
+        return request.build_absolute_uri("/").rstrip("/")
+    return "https://shopivakenya.top"
 
 
 def _normalize_phone(value):
@@ -262,38 +266,45 @@ def _twiml_gather(request, session_id, say_text):
     return HttpResponse(str(response), content_type="application/xml")
 
 
-@require_POST
-def start_nia_call(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Please sign in before asking Nia to call you."}, status=401)
+def place_nia_call_for_user(user):
     if not _twilio_ready():
-        return JsonResponse({
-            "ok": False,
-            "error": "Nia phone calls are not configured yet. The dashboard voice assistant is available now.",
-        }, status=503)
+        raise RuntimeError("Nia phone calls are not configured yet.")
 
-    phone = _caller_phone(request)
+    # Resolve the user's verified/saved Kenyan number without accepting an arbitrary
+    # destination from the browser.
+    seller = getattr(user, "seller_profile", None)
+    if user.is_staff or user.is_superuser:
+        phone = _normalize_phone(_env("NIA_ADMIN_PHONE"))
+    elif seller and seller.is_active:
+        phone = _normalize_phone(seller.mpesa_phone)
+    else:
+        phone = _normalize_phone(
+            CustomerAddress.objects.filter(user=user, is_default=True)
+            .values_list("phone", flat=True)
+            .first()
+            or Order.objects.filter(email__iexact=user.email)
+            .exclude(phone="")
+            .order_by("-created_at")
+            .values_list("phone", flat=True)
+            .first()
+        )
+
     if not KENYA_PHONE_RE.fullmatch(phone):
-        return JsonResponse({
-            "ok": False,
-            "error": "Add a valid Kenyan mobile number to your Shopiva profile or default delivery address before asking Nia to call you.",
-        }, status=400)
+        raise RuntimeError("Add a valid Kenyan mobile number to the Shopiva profile/default address first.")
 
-    lock_key = f"nia-call-lock:{request.user.pk}"
-    if not cache.add(lock_key, "1", timeout=60):
-        return JsonResponse({"ok": False, "error": "Nia is already placing a call for you. Please wait a moment."}, status=429)
-
-    role = _role_for(request)
-    session = NiaCallSession.objects.create(
-        user=request.user,
-        role=role,
-        phone_e164=phone,
-        conversation=[],
+    role = (
+        NiaCallSession.ROLE_ADMIN
+        if user.is_staff or user.is_superuser
+        else (
+            NiaCallSession.ROLE_SELLER
+            if getattr(getattr(user, "seller_profile", None), "is_active", False)
+            else NiaCallSession.ROLE_CUSTOMER
+        )
     )
-    base = _public_site_url(request)
-
+    session = NiaCallSession.objects.create(user=user, role=role, phone_e164=phone, conversation=[])
+    base = _public_site_url()
+    client = _twilio_client()
     try:
-        client = _twilio_client()
         call = client.calls.create(
             to="+" + phone,
             from_=_env("TWILIO_FROM_NUMBER"),
@@ -303,19 +314,34 @@ def start_nia_call(request):
             status_callback_method="POST",
             status_callback_event=["initiated", "ringing", "answered", "completed"],
         )
-        session.provider_sid = call.sid
-        session.status = NiaCallSession.STATUS_QUEUED
-        session.save(update_fields=["provider_sid", "status", "updated_at"])
-    except Exception as exc:
+    except Exception:
         session.status = NiaCallSession.STATUS_FAILED
-        session.last_ai_text = str(exc)[:500]
+        session.last_ai_text = "Twilio could not create the outbound call."
         session.save(update_fields=["status", "last_ai_text", "updated_at"])
+        raise
+
+    session.provider_sid = call.sid
+    session.status = NiaCallSession.STATUS_QUEUED
+    session.save(update_fields=["provider_sid", "status", "updated_at"])
+    return session
+
+
+@require_POST
+def start_nia_call(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Please sign in before asking Nia to call you."}, status=401)
+    lock_key = f"nia-call-lock:{request.user.pk}"
+    if not cache.add(lock_key, "1", timeout=60):
+        return JsonResponse({"ok": False, "error": "Nia is already placing a call for you. Please wait a moment."}, status=429)
+    try:
+        session = place_nia_call_for_user(request.user)
+    except RuntimeError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=503)
+    except Exception:
         return JsonResponse({"ok": False, "error": "Nia could not place the phone call right now."}, status=502)
     finally:
         cache.delete(lock_key)
-
     return JsonResponse({"ok": True, "session_id": str(session.id), "status": session.status})
-
 
 @csrf_exempt
 def nia_phone_answer(request, session_id):
