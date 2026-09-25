@@ -426,7 +426,7 @@ def checkout_mpesa(request):
         items.append({"product": product, "quantity": quantity, "subtotal": subtotal, "unit_price": product.discounted_price})
 
     if request.method != "POST":
-        return render(request, "checkout.html", {"items": items, "total": total})
+        return render(request, "customer_checkout_map.html", {"items": items, "total": total})
 
     customer_name = request.POST.get("customer_name", "").strip()
     email = request.POST.get("email", "").strip()
@@ -441,28 +441,28 @@ def checkout_mpesa(request):
         try:
             pickup_point = DeliveryPickupPoint.objects.get(id=int(pickup_point_id), is_active=True)
         except (DeliveryPickupPoint.DoesNotExist, TypeError, ValueError):
-            return render(request, "checkout.html", {"items": items, "total": total, "error": "Please select an active Shopiva pickup station."})
+            return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "Please select an active Shopiva pickup station."})
         if pickup_point.county.casefold() != delivery_county.casefold():
-            return render(request, "checkout.html", {"items": items, "total": total, "error": "The selected pickup station does not match your county."})
+            return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "The selected pickup station does not match your county."})
     payment_method = request.POST.get("payment_method", "").strip().lower() or ("pesapal" if pesapal_ready() else "cod")
 
     if not all([customer_name, email, phone, address]) or not items:
-        return render(request, "checkout.html", {"items": items, "total": total, "error": "Please complete all customer details and make sure your cart is not empty."})
+        return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "Please complete all customer details and make sure your cart is not empty."})
     if payment_method not in {"mpesa", "pesapal", "card", "cod"}:
-        return render(request, "checkout.html", {"items": items, "total": total, "error": "Please select a valid payment method."})
+        return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "Please select a valid payment method."})
     if payment_method == "mpesa" and not mpesa_production_ready():
-        return render(request, "checkout.html", {"items": items, "total": total, "error": "M-PESA is temporarily unavailable while Safaricom production onboarding is being finalized. Please use the available alternative payment method or Cash on Delivery."})
+        return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "M-PESA is temporarily unavailable while Safaricom production onboarding is being finalized. Please use the available alternative payment method or Cash on Delivery."})
     if payment_method in {"pesapal", "card"} and not pesapal_ready():
-        return render(request, "checkout.html", {"items": items, "total": total, "error": "Online card/M-PESA checkout through the payment gateway is not configured yet. Please use Cash on Delivery until the payment provider is activated."})
+        return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "Online card/M-PESA checkout through the payment gateway is not configured yet. Please use Cash on Delivery until the payment provider is activated."})
 
     try:
         customer_latitude = Decimal(str(request.POST.get("delivery_latitude", "")).strip())
         customer_longitude = Decimal(str(request.POST.get("delivery_longitude", "")).strip())
     except (InvalidOperation, TypeError, ValueError):
-        return render(request, "checkout.html", {"items": items, "total": total, "error": "Please pin your exact delivery location before continuing."})
+        return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "Please pin your exact delivery location before continuing."})
 
     if not (-90 <= customer_latitude <= 90 and -180 <= customer_longitude <= 180):
-        return render(request, "checkout.html", {"items": items, "total": total, "error": "Your delivery map location is invalid. Please pin it again."})
+        return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "Your delivery map location is invalid. Please pin it again."})
 
     with transaction.atomic():
         locked_items = []
@@ -470,7 +470,7 @@ def checkout_mpesa(request):
             product = Product.objects.select_for_update().get(id=item["product"].id)
             quantity = item["quantity"]
             if not product.is_active or product.stock_quantity < quantity:
-                return render(request, "checkout.html", {"items": items, "total": total, "error": f"Sorry, {product.name} no longer has enough stock."})
+                return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": f"Sorry, {product.name} no longer has enough stock."})
             unit_price = product.discounted_price
             locked_items.append((product, quantity, unit_price))
 
@@ -484,7 +484,7 @@ def checkout_mpesa(request):
                 delivery_mode,
             )
         except ValueError as exc:
-            return render(request, "checkout.html", {"items": items, "total": total, "error": str(exc)})
+            return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": str(exc)})
 
         final_total = quote["total"]
 
@@ -592,7 +592,7 @@ def checkout_mpesa(request):
                 payment.save(update_fields=["status", "raw_response", "inventory_released", "updated_at"])
                 order.payment_status = "failed"
                 order.save(update_fields=["payment_status"])
-            return render(request, "checkout.html", {"items": items, "total": total, "error": str(exc)})
+            return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": str(exc)})
         request.session["cart"] = {}
         request.session["payment_order_id"] = order.id
         request.session.modified = True
