@@ -39,9 +39,11 @@
       {% csrf_token %}
       <input id="seller-copilot-input" class="seller-copilot-input" name="question" type="text" placeholder="Ask: Which products are low stock?" autocomplete="off" required>
       <button class="seller-ai-btn seller-ai-ask" type="submit">Ask Copilot</button>
-      <button class="seller-ai-btn seller-ai-voice" id="seller-copilot-voice" type="button">🎙️ Voice</button><button class="seller-ai-btn seller-ai-ask" id="seller-copilot-live" type="button">🗣️ Talk Live</button>
+      <button class="seller-ai-btn seller-ai-voice" id="seller-copilot-voice" type="button">🎙️ Voice</button>
+      <button class="seller-ai-btn" id="seller-copilot-live" type="button" style="background:#a7b3ff;color:#14203a">🗣️ Talk Live</button><button class="seller-ai-btn seller-ai-ask" id="seller-copilot-live" type="button">🗣️ Talk Live</button>
     </form>
     <div id="seller-copilot-status" class="seller-copilot-status">Ready. Your Copilot can only see this seller's Shopiva data.</div>
+    <div id="seller-copilot-live-status" class="seller-copilot-status">Voice conversation is off.</div>
     <div id="seller-copilot-answer" class="seller-copilot-answer"><strong id="seller-copilot-answer-text"></strong></div>
     <div class="seller-copilot-suggestions">
       <button type="button" data-q="Which products are low stock?">Low stock</button>
@@ -138,6 +140,75 @@
   document.querySelectorAll('.seller-copilot-suggestions [data-q]').forEach(button=>{
     button.addEventListener('click',()=>ask(button.dataset.q));
   });
+
+  const liveButton=document.getElementById('seller-copilot-live');
+  const liveStatus=document.getElementById('seller-copilot-live-status');
+  let livePc=null,liveDc=null,liveStream=null,liveOn=false;
+  function stopLive(){
+    liveOn=false;
+    try{liveDc?.close();livePc?.close();liveStream?.getTracks().forEach(t=>t.stop());}catch(_){}
+    liveDc=null;livePc=null;liveStream=null;
+    if(liveButton)liveButton.textContent='🗣️ Talk Live';
+    if(liveStatus)liveStatus.textContent='Voice conversation is off.';
+  }
+  async function startLive(){
+    if(liveOn){stopLive();return}
+    if(!window.RTCPeerConnection||!navigator.mediaDevices?.getUserMedia){
+      liveStatus.textContent='Live voice is not supported in this browser.';
+      return;
+    }
+    try{
+      liveStatus.textContent='Starting Seller Voice…';
+      liveStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      livePc=new RTCPeerConnection();
+      const audio=document.createElement('audio');
+      audio.autoplay=true;
+      audio.style.display='none';
+      document.body.appendChild(audio);
+      livePc.ontrack=e=>audio.srcObject=e.streams[0];
+      liveStream.getTracks().forEach(t=>livePc.addTrack(t,liveStream));
+      liveDc=livePc.createDataChannel('shopiva-seller-events');
+      liveDc.onopen=()=>{
+        liveOn=true;
+        liveButton.textContent='⏹️ End Voice';
+        liveStatus.textContent='🟢 Seller Voice is listening.';
+      };
+      liveDc.onclose=()=>{if(liveOn)stopLive()};
+      liveDc.onmessage=async e=>{
+        try{
+          const ev=JSON.parse(e.data);
+          if(ev.type==='error'){liveStatus.textContent=ev.error?.message||'Seller Voice error.';return}
+          if(ev.type==='response.function_call_arguments.done'){
+            const args=JSON.parse(ev.arguments||'{}');
+            const r=await fetch("{% url 'realtime_action' %}",{
+              method:'POST',
+              headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+              body:JSON.stringify({action:ev.name,...args})
+            });
+            const out=await r.json();
+            liveDc.send(JSON.stringify({
+              type:'conversation.item.create',
+              item:{type:'function_call_output',call_id:ev.call_id,output:JSON.stringify(out)}
+            }));
+            liveDc.send(JSON.stringify({type:'response.create'}));
+          }
+        }catch(_){}
+      };
+      const offer=await livePc.createOffer();
+      await livePc.setLocalDescription(offer);
+      const response=await fetch("{% url 'realtime_call' %}",{
+        method:'POST',
+        headers:{'Content-Type':'application/sdp','X-CSRFToken':'{{ csrf_token }}'},
+        body:offer.sdp
+      });
+      if(!response.ok)throw new Error('Could not connect to Seller Voice.');
+      await livePc.setRemoteDescription({type:'answer',sdp:await response.text()});
+    }catch(error){
+      liveStatus.textContent=error.message||'Unable to start Seller Voice.';
+      stopLive();
+    }
+  }
+  liveButton?.addEventListener('click',startLive);
 
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SpeechRecognition){
