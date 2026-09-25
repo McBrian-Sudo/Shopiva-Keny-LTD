@@ -1,11 +1,11 @@
 import json
-import os
 from decimal import Decimal
 
 from django.db.models import Count, Sum
 from django.http import JsonResponse
 
 from .models import Order, OrderItem, Product, SellerProfile, SellerWallet
+from .nia_core import call_nia
 
 
 def seller_profile_for(request):
@@ -115,30 +115,19 @@ def seller_assistant(request):
         return JsonResponse({"ok": False, "error": "Please ask a seller question."}, status=400)
 
     fallback = _seller_fallback(question, seller)
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        return JsonResponse({"ok": True, "ai": False, "answer": fallback})
-
     snapshot = _seller_snapshot(seller)
-    prompt = f"""
-You are Shopiva Seller Copilot for one authenticated seller.
-Use only the seller's supplied Shopiva data. Never reveal another seller's data.
-Never invent stock, orders, money, commissions, payout availability, product details, or payment results.
-Do not change records or claim to have changed anything.
-Answer briefly in clear Kenyan business language and use KSh.
-Seller snapshot:
-{json.dumps(snapshot, ensure_ascii=False, default=str)}
-Seller question:
-{question}
-"""
-    try:
-        from openai import OpenAI
+    result = call_nia(
+        "Seller Copilot",
+        snapshot,
+        question,
+        '{"answer": "string"}',
+    )
+    if result.get("ai"):
+        data = result.get("data") or {}
+        return JsonResponse({
+            "ok": True,
+            "ai": True,
+            "answer": str(data.get("answer") or fallback),
+        })
 
-        response = OpenAI(api_key=api_key).responses.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-5.6-luna"),
-            input=prompt,
-        )
-        answer = response.output_text.strip()
-        return JsonResponse({"ok": True, "ai": True, "answer": answer or fallback})
-    except Exception:
-        return JsonResponse({"ok": True, "ai": False, "answer": fallback})
+    return JsonResponse({"ok": True, "ai": False, "answer": fallback})
