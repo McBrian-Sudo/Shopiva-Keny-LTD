@@ -148,8 +148,15 @@ def initiate_mpesa_stk(order, payment, phone):
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     password = base64.b64encode(f"{shortcode}{passkey}{timestamp}".encode()).decode()
     amount_decimal = Decimal(order.total_amount).quantize(Decimal("0.01"))
-    if amount_decimal != amount_decimal.quantize(Decimal("1")):
-        raise RuntimeError("M-PESA payments must use a whole-KES amount.")
+    whole_amount = amount_decimal.quantize(Decimal("1"), rounding=ROUND_UP)
+    if whole_amount != amount_decimal:
+        adjustment = whole_amount - amount_decimal
+        order.total_amount = whole_amount
+        order.platform_commission_amount = (
+            Decimal(order.platform_commission_amount or "0.00") + adjustment
+        ).quantize(Decimal("0.01"))
+        order.save(update_fields=["total_amount", "platform_commission_amount"])
+        amount_decimal = whole_amount
     amount = max(1, int(amount_decimal))
     payload = {
         "BusinessShortCode": shortcode,
@@ -641,7 +648,7 @@ def checkout_mpesa(request):
             order.save(update_fields=["payment_status"])
         return render(
             request,
-            "checkout.html",
+            "customer_checkout_map.html",
             {
                 "items": items,
                 "total": final_total,
