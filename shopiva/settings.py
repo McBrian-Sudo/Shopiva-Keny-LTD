@@ -232,3 +232,4 @@ elif not CLOUDINARY_URL.startswith("cloudinary://"):
 
 # Production static delivery without manifest coupling.
 WHITENOISE_MAX_AGE = 31536000
+# Keep existing Render deployments able to serve Django staticfiles even before a build refreshes STATIC_ROOT.\nWHITENOISE_USE_FINDERS = True
