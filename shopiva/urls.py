@@ -21,6 +21,7 @@ from home.payments import (
 )
 from home.seller_auth import seller_login, seller_logout, seller_login_required
 from home.voice_ai import realtime_action, realtime_call, speak_text, transcribe_voice
+from home.nia_phone import start_nia_call, nia_phone_answer, nia_phone_respond, nia_phone_status
 from shopiva.health import health
 from home.delivery_app import delivery_login, delivery_signup, delivery_logout, delivery_action, delivery_status, delivery_history, delivery_update_location, delivery_ping_location
 from home.delivery_platform import delivery_manifest, delivery_service_worker
@@ -132,6 +133,10 @@ urlpatterns = [
     path("ai/realtime/call/", realtime_call, name="realtime_call"),
     path("ai/realtime/action/", realtime_action, name="realtime_action"),
     path("ai/voice/speak/", speak_text, name="voice_speak"),
+    path("ai/phone/call/", start_nia_call, name="nia_phone_call"),
+    path("ai/phone/answer/<uuid:session_id>/", nia_phone_answer, name="nia_phone_answer"),
+    path("ai/phone/respond/<uuid:session_id>/", nia_phone_respond, name="nia_phone_respond"),
+    path("ai/phone/status/<uuid:session_id>/", nia_phone_status, name="nia_phone_status"),
 
     path("admin/login/", admin_login, name="admin_login"),
     path("admin/ai-assistant/", admin_ai_assistant, name="admin_ai_assistant"),
