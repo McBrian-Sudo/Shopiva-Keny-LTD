@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -176,24 +175,25 @@ def _role_context(request, role):
     }
 
 
-def _opening_text(context):
+def _opening_text(context, task_instruction=""):
     role = context["role_name"]
     if role == "Admin Operations Copilot":
-        return (
+        base = (
             "Hi. This is Nia, your Shopiva Operations Copilot. "
-            "I can brief you on orders, payments, delivery, staff approvals and stock. "
-            "What would you like me to check?"
+            "I can brief you on orders, payments, delivery, staff approvals and stock."
         )
+        return base + (" I am calling for a scheduled Shopiva task briefing." if task_instruction else "") + " What would you like me to check?"
     if role == "Seller Copilot":
-        return (
+        base = (
             "Hi. This is Nia, your Shopiva Seller Copilot. "
-            "I can help with your stock, orders, sales and payout balance. "
-            "What would you like me to check?"
+            "I can help with your stock, orders, sales and payout balance."
         )
-    return (
+        return base + (" I am calling for a scheduled Shopiva task briefing." if task_instruction else "") + " What would you like me to check?"
+    base = (
         "Hi. This is Nia, your Shopiva Shopping Copilot. "
-        "I can help with your Shopiva orders and shopping. What can I help you with?"
+        "I can help with your Shopiva orders and shopping."
     )
+    return base + (" I am calling for a scheduled Shopiva task briefing." if task_instruction else "") + " What can I help you with?"
 
 
 def _log_audit(user, role, action, detail=None):
@@ -217,9 +217,18 @@ def _ai_reply(session, user_text):
     from .nia_core import call_nia
 
     context = _role_context(type("Request", (), {"user": session.user, "session": {}})(), session.role)
+    task_context = ""
+    for item in session.conversation:
+        if item.get("role") == "task" and item.get("text"):
+            task_context = str(item["text"])
+            break
     result = call_nia(
         context["role_name"],
-        context["summary"],
+        {
+            "shopiva": context["summary"],
+            "authorized_task_goal": task_context,
+            "conversation_history": session.conversation[-12:],
+        },
         user_text,
         '{"answer": "string"}',
     )
@@ -376,7 +385,7 @@ def nia_phone_pin(request):
     )
 
 
-def place_nia_call_for_user(user):
+def place_nia_call_for_user(user, task_instruction=""):
     if not _twilio_ready():
         raise RuntimeError("Nia phone calls are not configured yet.")
 
@@ -385,13 +394,16 @@ def place_nia_call_for_user(user):
         raise RuntimeError("Add a valid Kenyan mobile number to the Shopiva profile/default address first.")
 
     role = _role_for_user(user)
+    conversation = []
+    if task_instruction:
+        conversation.append({"role": "task", "text": str(task_instruction)[:2000]})
     session = NiaCallSession.objects.create(
         user=user,
         role=role,
         direction=NiaCallSession.DIRECTION_OUTBOUND,
         caller_verified=True,
         phone_e164=phone,
-        conversation=[],
+        conversation=conversation,
     )
     base = _public_site_url()
     client = _twilio_client()
