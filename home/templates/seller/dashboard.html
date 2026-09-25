@@ -23,7 +23,7 @@
 <a class="command-btn" href="{% url 'seller_product_add' %}">＋ Add custom product</a>
 </div>
 </section>
-<section class="seller-copilot" aria-label="Shopiva Seller Copilot">
+<section class="seller-copilot" aria-label="Nia — Seller Copilot">
   <div class="seller-copilot-inner">
     <div class="seller-copilot-head">
       <div class="seller-copilot-title">
@@ -33,7 +33,7 @@
           <p>Private seller assistant for your products, inventory, orders, sales, commission and payout balance.</p>
         </div>
       </div>
-      <span class="seller-copilot-badge">SELLER ONLY</span>
+      <span class="seller-copilot-badge">SELLER DATA ONLY</span>
     </div>
     <form id="seller-copilot-form" class="seller-copilot-form">
       {% csrf_token %}
@@ -110,7 +110,7 @@
     const q=(question||input.value||'').trim();
     if(!q)return;
     input.value=q;
-    status.textContent='Seller Copilot is checking your live Shopiva records…';
+    status.textContent='Nia is checking your live Shopiva seller records…';
     answer.classList.remove('show');
     try{
       const body=new URLSearchParams();
