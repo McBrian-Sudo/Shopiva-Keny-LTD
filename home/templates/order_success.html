@@ -3,10 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Confirmed | Shopiva Kenya</title>
+    <title>{% if order.payment_status == 'paid' or order.payment_method == 'cod' %}Order Confirmed{% else %}Payment Not Completed{% endif %} | Shopiva Kenya</title>
 </head>
 <body>
-    <h1>Order Confirmed 🎉</h1>
+    {% if order.payment_status == 'paid' or order.status == 'confirmed' %}
+<h1>Order Confirmed 🎉</h1>
+{% else %}
+<h1>Payment not completed</h1>
+<p style="padding:12px;border:1px solid #f0d2a8;background:#fff8ec;border-radius:10px">Your order #{{ order.id }} was created, but the payment has not been confirmed. No delivery should be released until payment is confirmed.</p>
+{% endif %}
 
     <p>Thank you, {{ order.customer_name }}.</p>
 
@@ -21,7 +26,13 @@
     <p><strong>Phone:</strong> {{ order.phone }}</p>
     <p><strong>Delivery Address:</strong> {{ order.address }}</p>
 
-    <p>Your order has been received successfully.</p>
+    {% if order.payment_status == 'paid' %}
+<p>Your order has been received successfully and your payment is confirmed.</p>
+{% elif order.status == 'confirmed' %}
+<p>Your Cash on Delivery order has been received successfully.</p>
+{% else %}
+<p>Your order record is saved for reference, but payment is not confirmed.</p>
+{% endif %}
 
     {% if order.delivery_confirmation_code and order.status == 'out_for_delivery' %}
     <div style="margin:20px 0;padding:18px;border:1px solid #bfe8d0;background:#effaf4;border-radius:14px">
