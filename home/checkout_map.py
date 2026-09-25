@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation
+import logging
 import re
 
 from django.contrib import messages
@@ -9,6 +10,8 @@ from .models import Order
 from .payments import checkout_mpesa as original_checkout_mpesa
 from .delivery_pricing import calculate_order_quote, tariff_text
 from .models import DeliveryTariff, DeliveryPickupPoint
+
+logger = logging.getLogger(__name__)
 
 
 def _coord(value, low, high):
@@ -108,7 +111,7 @@ def checkout_quote(request):
         "tariff": tariff_text(),
     })
 
-def checkout_mpesa_map(request):
+def checkout_mpesa_map(request, error=None):
     if request.method == "GET":
         cart = request.session.get("cart", {})
         items, total = [], Decimal("0.00")
@@ -131,7 +134,7 @@ def checkout_mpesa_map(request):
         return render(
             request,
             "customer_checkout_map.html",
-            {"items": items, "total": total, "saved_addresses": saved_addresses},
+            {"items": items, "total": total, "saved_addresses": saved_addresses, "error": error},
         )
 
     latitude = _coord(request.POST.get("delivery_latitude"), Decimal("-90"), Decimal("90"))
@@ -140,7 +143,12 @@ def checkout_mpesa_map(request):
         messages.error(request, "Select the exact delivery location on the map before continuing to payment.")
         return checkout_mpesa_map(_MapGetRequest(request))
 
-    response = original_checkout_mpesa(request)
+    try:
+        response = original_checkout_mpesa(request)
+    except Exception:
+        logger.exception("Unexpected checkout failure for the map checkout")
+        return checkout_mpesa_map(_MapGetRequest(request), error="Checkout could not be completed right now. Your cart and delivery details are still safe; please review them and try again.")
+
     match = re.search(r"/(?:order-success|payments/mpesa/waiting)/(\d+)/", getattr(response, "url", ""))
     if match:
         order_id = int(match.group(1))
