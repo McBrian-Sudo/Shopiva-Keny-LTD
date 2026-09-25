@@ -10,7 +10,7 @@ body{background:radial-gradient(circle at 95% 0%,rgba(22,199,132,.11),transparen
 {% block content %}
 <div class="ops">
   <nav class="center-nav">
-    <a class="active" href="{% url 'admin_operations_center' %}">🛡️ Approvals</a>
+    <a class="active" href="{% url 'shopiva_admin:approval_center' %}">🛡️ Approvals</a>
     <a href="{% url 'admin_notifications' %}">🔔 Notifications</a>
     <a href="{% url 'support_admin_center' %}">🛟 Issues</a>
     <a href="{% url 'support_admin_center' %}?source=system">⚙️ System</a>
@@ -34,7 +34,7 @@ body{background:radial-gradient(circle at 95% 0%,rgba(22,199,132,.11),transparen
   <section class="panel">
     <div class="panel-head"><div><h2>Admin centers</h2><p>Direct access to the operational workspaces you asked to see.</p></div></div>
     <div class="links">
-      <a class="link" href="{% url 'admin_operations_center' %}"><strong>🛡️ Staff Approval Center</strong><span>Verify and approve new delivery staff before they can access operations.</span></a>
+      <a class="link" href="{% url 'shopiva_admin:approval_center' %}"><strong>🛡️ Staff Approval Center</strong><span>Verify and approve new delivery staff before they can access operations.</span></a>
       <a class="link" href="{% url 'admin_notifications' %}"><strong>🔔 Notification Center</strong><span>Read and manage staff notifications.</span></a>
       <a class="link" href="{% url 'support_admin_center' %}"><strong>🛟 Raised Issues</strong><span>Customer and seller support cases.</span></a>
       <a class="link" href="{% url 'support_admin_center' %}?source=system"><strong>⚙️ System-Raised Issues</strong><span>Automatic payment/order assistance cases.</span></a>
