@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import re
-from urllib.parse import urlencode
+import secrets
 
 from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
@@ -10,9 +10,17 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.conf import settings
 
-from .models import CustomerAddress, DeliveryAgent, NiaCallSession, Order, OrderItem, Product
+from .models import (
+    CustomerAddress,
+    DeliveryAgent,
+    NiaAuditLog,
+    NiaCallSession,
+    NiaCallerVerification,
+    NiaTask,
+    Order,
+    Product,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -45,25 +53,29 @@ def _normalize_phone(value):
     return normalized
 
 
-def _caller_phone(request):
-    if not request.user.is_authenticated:
-        return ""
-    if request.user.is_staff or request.user.is_superuser:
-        return _normalize_phone(_env("NIA_ADMIN_PHONE"))
-    seller = getattr(request.user, "seller_profile", None)
+def _role_for_user(user):
+    if user.is_staff or user.is_superuser:
+        return NiaCallSession.ROLE_ADMIN
+    seller = getattr(user, "seller_profile", None)
     if seller and seller.is_active:
-        return _normalize_phone(seller.mpesa_phone)
+        return NiaCallSession.ROLE_SELLER
+    return NiaCallSession.ROLE_CUSTOMER
 
+
+def _role_for(request):
+    return _role_for_user(request.user)
+
+
+def _customer_phone(user):
     address = (
-        CustomerAddress.objects.filter(user=request.user, is_default=True)
+        CustomerAddress.objects.filter(user=user, is_default=True)
         .values_list("phone", flat=True)
         .first()
     )
     if address:
         return _normalize_phone(address)
-
     latest = (
-        Order.objects.filter(email__iexact=request.user.email)
+        Order.objects.filter(email__iexact=user.email)
         .exclude(phone="")
         .order_by("-created_at")
         .values_list("phone", flat=True)
@@ -72,13 +84,26 @@ def _caller_phone(request):
     return _normalize_phone(latest)
 
 
-def _role_for(request):
-    if request.user.is_staff or request.user.is_superuser:
-        return NiaCallSession.ROLE_ADMIN
-    seller = getattr(request.user, "seller_profile", None)
-    if seller and seller.is_active:
-        return NiaCallSession.ROLE_SELLER
-    return NiaCallSession.ROLE_CUSTOMER
+def _outbound_phone_for_user(user):
+    role = _role_for_user(user)
+    if role == NiaCallSession.ROLE_ADMIN:
+        return _normalize_phone(_env("NIA_ADMIN_PHONE"))
+
+    seller = getattr(user, "seller_profile", None)
+    if role == NiaCallSession.ROLE_SELLER and seller:
+        return _normalize_phone(seller.mpesa_phone)
+
+    return _customer_phone(user)
+
+
+def _caller_verification_phone_for_user(user):
+    role = _role_for_user(user)
+    if role == NiaCallSession.ROLE_ADMIN:
+        return _normalize_phone(_env("NIA_ADMIN_CALLER_PHONE"))
+    if role == NiaCallSession.ROLE_SELLER:
+        seller = getattr(user, "seller_profile", None)
+        return _normalize_phone(seller.mpesa_phone if seller else "")
+    return _customer_phone(user)
 
 
 def _role_context(request, role):
@@ -171,39 +196,36 @@ def _opening_text(context):
     )
 
 
+def _log_audit(user, role, action, detail=None):
+    try:
+        return NiaAuditLog.objects.create(
+            user=user,
+            role=role,
+            action=action,
+            detail=detail or {},
+        )
+    except Exception:
+        logger.exception("Nia audit logging failed action=%s role=%s", action, role)
+        return None
+
+
 def _ai_reply(session, user_text):
     api_key = _env("OPENAI_API_KEY")
     if not api_key:
         return "I'm unable to use the full Nia intelligence service right now, but your call is connected. Please use the Shopiva dashboard for live information."
 
-    context = _role_context(type("Request", (), {"user": session.user})(), session.role)
-    history = session.conversation[-12:]
-    prompt = f"""
-You are Nia, the phone assistant for Shopiva Kenya.
-This is a live phone conversation with an authenticated Shopiva user.
-Role: {context["role_name"]}.
-Use only the supplied Shopiva data. Never invent prices, order status, stock, payments, delivery status, balances or approvals.
-Keep spoken answers concise and natural, generally under 70 words.
-For M-PESA, only an exact status of paid means paid.
-Do not claim to send emails, access banks, sign contracts, change records, approve staff, initiate payouts or make external purchases.
-Those capabilities are not enabled in this phone channel yet.
-SHOPIVA CONTEXT:
-{json.dumps(context["summary"], default=str, ensure_ascii=False)}
-RECENT CONVERSATION:
-{json.dumps(history, default=str, ensure_ascii=False)}
-USER:
-{user_text}
-"""
-    try:
-        from openai import OpenAI
+    from .nia_core import call_nia
 
-        response = OpenAI(api_key=api_key).responses.create(
-            model=_env("OPENAI_MODEL", "gpt-5.6-luna"),
-            input=prompt,
-        )
-        return (response.output_text or "").strip() or "I did not get enough information to answer that."
-    except Exception:
-        return "Nia is temporarily unable to reach the intelligence service. Please use the Shopiva dashboard for live information."
+    context = _role_context(type("Request", (), {"user": session.user, "session": {}})(), session.role)
+    result = call_nia(
+        context["role_name"],
+        context["summary"],
+        user_text,
+        '{"answer": "string"}',
+    )
+    if result.get("ai"):
+        return str((result.get("data") or {}).get("answer") or "I did not get enough information to answer that.")
+    return "Nia is temporarily unable to reach the intelligence service. Please use the Shopiva dashboard for live information."
 
 
 def _twilio_webhook_valid(request):
@@ -213,6 +235,7 @@ def _twilio_webhook_valid(request):
         return False
     try:
         from twilio.request_validator import RequestValidator
+
         url = f"{_public_site_url(request)}{request.path}"
         if request.META.get("QUERY_STRING"):
             url += "?" + request.META["QUERY_STRING"]
@@ -243,8 +266,12 @@ def _twilio_client():
 
 def _twilio_ready():
     return _env("NIA_PHONE_CALLS_ENABLED", "false").lower() == "true" and bool(
-        _env("TWILIO_ACCOUNT_SID") and _env("TWILIO_FROM_NUMBER")
-        and (_env("TWILIO_AUTH_TOKEN") or (_env("TWILIO_API_KEY") and _env("TWILIO_API_SECRET")))
+        _env("TWILIO_ACCOUNT_SID")
+        and _env("TWILIO_FROM_NUMBER")
+        and (
+            _env("TWILIO_AUTH_TOKEN")
+            or (_env("TWILIO_API_KEY") and _env("TWILIO_API_SECRET"))
+        )
     )
 
 
@@ -268,42 +295,104 @@ def _twiml_gather(request, session_id, say_text):
     return HttpResponse(str(response), content_type="application/xml")
 
 
+def _twiml_pin_gather(request, session_id, prompt):
+    from twilio.twiml.voice_response import Gather, VoiceResponse
+
+    base = _public_site_url(request)
+    response = VoiceResponse()
+    gather = Gather(
+        input="dtmf",
+        action=f"{base}/ai/phone/verify/{session_id}/",
+        method="POST",
+        num_digits=4,
+        timeout=10,
+    )
+    gather.say(prompt)
+    response.append(gather)
+    response.say("I did not receive the four digit PIN. Goodbye.")
+    response.hangup()
+    return HttpResponse(str(response), content_type="application/xml")
+
+
+def issue_caller_pin(user):
+    if not user or not user.is_authenticated if hasattr(user, "is_authenticated") else not user:
+        raise RuntimeError("Authenticated Shopiva account required.")
+
+    role = _role_for_user(user)
+    phone = _caller_verification_phone_for_user(user)
+    if not KENYA_PHONE_RE.fullmatch(phone):
+        raise RuntimeError("Add a valid Kenyan phone number to your Shopiva profile before generating a Nia call PIN.")
+
+    now = timezone.now()
+    NiaCallerVerification.objects.filter(
+        user=user,
+        used_at__isnull=True,
+        expires_at__gt=now,
+    ).update(used_at=now)
+
+    for _ in range(20):
+        pin = f"{secrets.randbelow(10000):04d}"
+        if not NiaCallerVerification.objects.filter(
+            phone_e164=phone,
+            pin_code=pin,
+            used_at__isnull=True,
+            expires_at__gt=now,
+        ).exists():
+            break
+    else:
+        raise RuntimeError("Please try generating the Nia PIN again.")
+
+    verification = NiaCallerVerification.objects.create(
+        user=user,
+        role=role,
+        phone_e164=phone,
+        pin_code=pin,
+        expires_at=now + timezone.timedelta(minutes=10),
+    )
+    _log_audit(
+        user,
+        role,
+        "caller_pin_issued",
+        {"phone_e164": phone, "expires_at": verification.expires_at.isoformat()},
+    )
+    return verification
+
+
+@require_POST
+def nia_phone_pin(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Please sign in first."}, status=401)
+    try:
+        verification = issue_caller_pin(request.user)
+    except RuntimeError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "pin": verification.pin_code,
+            "expires_at": verification.expires_at.isoformat(),
+            "role": verification.role,
+        }
+    )
+
+
 def place_nia_call_for_user(user):
     if not _twilio_ready():
         raise RuntimeError("Nia phone calls are not configured yet.")
 
-    # Resolve the user's verified/saved Kenyan number without accepting an arbitrary
-    # destination from the browser.
-    seller = getattr(user, "seller_profile", None)
-    if user.is_staff or user.is_superuser:
-        phone = _normalize_phone(_env("NIA_ADMIN_PHONE"))
-    elif seller and seller.is_active:
-        phone = _normalize_phone(seller.mpesa_phone)
-    else:
-        phone = _normalize_phone(
-            CustomerAddress.objects.filter(user=user, is_default=True)
-            .values_list("phone", flat=True)
-            .first()
-            or Order.objects.filter(email__iexact=user.email)
-            .exclude(phone="")
-            .order_by("-created_at")
-            .values_list("phone", flat=True)
-            .first()
-        )
-
+    phone = _outbound_phone_for_user(user)
     if not KENYA_PHONE_RE.fullmatch(phone):
         raise RuntimeError("Add a valid Kenyan mobile number to the Shopiva profile/default address first.")
 
-    role = (
-        NiaCallSession.ROLE_ADMIN
-        if user.is_staff or user.is_superuser
-        else (
-            NiaCallSession.ROLE_SELLER
-            if getattr(getattr(user, "seller_profile", None), "is_active", False)
-            else NiaCallSession.ROLE_CUSTOMER
-        )
+    role = _role_for_user(user)
+    session = NiaCallSession.objects.create(
+        user=user,
+        role=role,
+        direction=NiaCallSession.DIRECTION_OUTBOUND,
+        caller_verified=True,
+        phone_e164=phone,
+        conversation=[],
     )
-    session = NiaCallSession.objects.create(user=user, role=role, phone_e164=phone, conversation=[])
     base = _public_site_url()
     client = _twilio_client()
     try:
@@ -323,15 +412,32 @@ def place_nia_call_for_user(user):
         detail = getattr(exc, "msg", None) or str(exc)
         session.last_ai_text = "Twilio could not create the outbound call."
         session.save(update_fields=["status", "last_ai_text", "updated_at"])
+        _log_audit(
+            user,
+            role,
+            "phone_call_failed",
+            {"direction": "outbound", "provider_code": str(code or ""), "provider_status": str(twilio_status or "")},
+        )
         logger.exception(
             "Nia outbound call failed role=%s user_id=%s destination=%s twilio_status=%s twilio_code=%s detail=%s",
-            role, getattr(user, "pk", None), phone, twilio_status, code, detail[:500],
+            role,
+            getattr(user, "pk", None),
+            phone,
+            twilio_status,
+            code,
+            detail[:500],
         )
         raise
 
     session.provider_sid = call.sid
     session.status = NiaCallSession.STATUS_QUEUED
     session.save(update_fields=["provider_sid", "status", "updated_at"])
+    _log_audit(
+        user,
+        role,
+        "phone_call_placed",
+        {"direction": "outbound", "session_id": str(session.id), "provider_sid": call.sid},
+    )
     return session
 
 
@@ -363,6 +469,126 @@ def start_nia_call(request):
         cache.delete(lock_key)
     return JsonResponse({"ok": True, "session_id": str(session.id), "status": session.status})
 
+
+@csrf_exempt
+def nia_phone_incoming(request):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    if not _twilio_webhook_valid(request):
+        return HttpResponse("Forbidden", status=403)
+
+    phone = _normalize_phone(request.POST.get("From", ""))
+    if not KENYA_PHONE_RE.fullmatch(phone):
+        return HttpResponse(
+            '<?xml version="1.0" encoding="UTF-8"?><Response><Say>For your security, I cannot verify this caller. Goodbye.</Say><Hangup/></Response>',
+            content_type="application/xml",
+        )
+
+    verification = (
+        NiaCallerVerification.objects.select_related("user")
+        .filter(
+            phone_e164=phone,
+            used_at__isnull=True,
+            expires_at__gt=timezone.now(),
+            attempts__lt=5,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    from twilio.twiml.voice_response import VoiceResponse
+
+    if not verification or not verification.user_id:
+        response = VoiceResponse()
+        response.say("I could not find an active Nia call PIN for this number. Open your Shopiva dashboard, generate a new four digit PIN, then call Nia again.")
+        response.hangup()
+        return HttpResponse(str(response), content_type="application/xml")
+
+    session = NiaCallSession.objects.create(
+        user=verification.user,
+        role=verification.role,
+        direction=NiaCallSession.DIRECTION_INBOUND,
+        caller_verified=False,
+        verification=verification,
+        phone_e164=phone,
+        provider_sid=request.POST.get("CallSid", ""),
+        status=NiaCallSession.STATUS_IN_PROGRESS,
+        conversation=[],
+    )
+    _log_audit(
+        verification.user,
+        verification.role,
+        "phone_inbound_challenge",
+        {"session_id": str(session.id), "provider_sid": session.provider_sid},
+    )
+    return _twiml_pin_gather(
+        request,
+        session.id,
+        "For your security, please enter the four digit Nia PIN shown in your Shopiva dashboard.",
+    )
+
+
+@csrf_exempt
+def nia_phone_verify(request, session_id):
+    session = get_object_or_404(NiaCallSession.objects.select_related("user", "verification"), id=session_id)
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    if not _twilio_webhook_valid(request):
+        return HttpResponse("Forbidden", status=403)
+    if session.direction != NiaCallSession.DIRECTION_INBOUND or session.caller_verified:
+        return HttpResponse("Forbidden", status=403)
+
+    verification = session.verification
+    digits = re.sub(r"\D", "", str(request.POST.get("Digits", "")))
+    if not verification or verification.used_at or verification.expires_at <= timezone.now() or verification.attempts >= 5:
+        from twilio.twiml.voice_response import VoiceResponse
+        response = VoiceResponse()
+        response.say("This Nia verification has expired. Please generate a new PIN from your Shopiva dashboard.")
+        response.hangup()
+        return HttpResponse(str(response), content_type="application/xml")
+
+    if len(digits) != 4 or not secrets.compare_digest(digits, verification.pin_code):
+        verification.attempts += 1
+        if verification.attempts >= 5:
+            verification.used_at = timezone.now()
+        verification.save(update_fields=["attempts", "used_at", "updated_at"])
+        _log_audit(
+            session.user,
+            session.role,
+            "phone_pin_failed",
+            {"session_id": str(session.id), "attempts": verification.attempts},
+        )
+        if verification.attempts >= 5:
+            from twilio.twiml.voice_response import VoiceResponse
+            response = VoiceResponse()
+            response.say("Too many incorrect PIN attempts. For your security, please generate a new PIN from Shopiva.")
+            response.hangup()
+            return HttpResponse(str(response), content_type="application/xml")
+        return _twiml_pin_gather(
+            request,
+            session.id,
+            "That PIN is not correct. Please enter the four digit Nia PIN from your Shopiva dashboard.",
+        )
+
+    verification.verified_at = timezone.now()
+    verification.used_at = timezone.now()
+    verification.save(update_fields=["verified_at", "used_at", "updated_at"])
+    session.caller_verified = True
+    session.save(update_fields=["caller_verified", "updated_at"])
+    _log_audit(
+        session.user,
+        session.role,
+        "phone_caller_verified",
+        {"session_id": str(session.id)},
+    )
+
+    context = _role_context(type("Request", (), {"user": session.user, "session": {}})(), session.role)
+    text = _opening_text(context)
+    session.conversation.append({"role": "assistant", "text": text, "at": timezone.now().isoformat()})
+    session.last_ai_text = text
+    session.save(update_fields=["conversation", "last_ai_text", "updated_at"])
+    return _twiml_gather(request, session.id, text)
+
+
 @csrf_exempt
 def nia_phone_answer(request, session_id):
     session = get_object_or_404(NiaCallSession, id=session_id)
@@ -370,7 +596,10 @@ def nia_phone_answer(request, session_id):
         return HttpResponse(status=405)
     if request.method == "POST" and not _twilio_webhook_valid(request):
         return HttpResponse("Forbidden", status=403)
-    context = _role_context(type("Request", (), {"user": session.user})(), session.role)
+    if session.direction == NiaCallSession.DIRECTION_INBOUND and not session.caller_verified:
+        return HttpResponse("Forbidden", status=403)
+
+    context = _role_context(type("Request", (), {"user": session.user, "session": {}})(), session.role)
     text = _opening_text(context)
     session.conversation.append({"role": "assistant", "text": text, "at": timezone.now().isoformat()})
     session.last_ai_text = text
@@ -386,16 +615,20 @@ def nia_phone_respond(request, session_id):
         return HttpResponse(status=405)
     if not _twilio_webhook_valid(request):
         return HttpResponse("Forbidden", status=403)
+    if session.direction == NiaCallSession.DIRECTION_INBOUND and not session.caller_verified:
+        return HttpResponse("Forbidden", status=403)
     user_text = str(request.POST.get("SpeechResult", "")).strip()
     if not user_text:
         return _twiml_gather(request, session.id, "I didn't catch that. Please tell me what you need.")
     reply = _ai_reply(session, user_text)
     session.last_user_text = user_text
     session.last_ai_text = reply
-    session.conversation.extend([
-        {"role": "user", "text": user_text, "at": timezone.now().isoformat()},
-        {"role": "assistant", "text": reply, "at": timezone.now().isoformat()},
-    ])
+    session.conversation.extend(
+        [
+            {"role": "user", "text": user_text, "at": timezone.now().isoformat()},
+            {"role": "assistant", "text": reply, "at": timezone.now().isoformat()},
+        ]
+    )
     session.save(update_fields=["last_user_text", "last_ai_text", "conversation", "updated_at"])
     return _twiml_gather(request, session.id, reply)
 
@@ -403,6 +636,10 @@ def nia_phone_respond(request, session_id):
 @csrf_exempt
 def nia_phone_status(request, session_id):
     session = get_object_or_404(NiaCallSession, id=session_id)
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    if not _twilio_webhook_valid(request):
+        return HttpResponse("Forbidden", status=403)
     status = request.POST.get("CallStatus", "").strip().lower()
     mapping = {
         "queued": NiaCallSession.STATUS_QUEUED,
@@ -419,4 +656,10 @@ def nia_phone_status(request, session_id):
     if new_status:
         session.status = new_status
         session.save(update_fields=["status", "updated_at"])
+        _log_audit(
+            session.user,
+            session.role,
+            "phone_call_status",
+            {"session_id": str(session.id), "direction": session.direction, "status": new_status},
+        )
     return HttpResponse("OK")
