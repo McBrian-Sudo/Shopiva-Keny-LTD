@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import os       
 import urllib.error
 import urllib.request
@@ -16,6 +17,8 @@ from .commission import get_platform_commission_percent
 from .delivery_pricing import calculate_order_quote
 from .models import DeliveryTariff, DeliveryPickupPoint, Order, OrderEvent, OrderItem, PaymentTransaction, Product, SellerSettlement, SellerWallet
 from .notifications import notify_user
+
+logger = logging.getLogger(__name__)
 
 
 def _env(name, default=""):
@@ -409,6 +412,21 @@ def pesapal_cancel(request):
     return redirect("order_success", order_id=payment.order_id) if payment else redirect("checkout")
 
 
+def _safe_order_notification(user_id, order_id, tracking):
+    """Order notifications are post-commit side effects and must never block checkout."""
+    try:
+        from django.contrib.auth import get_user_model
+        user = get_user_model().objects.get(id=user_id)
+        notify_user(
+            user,
+            "Order placed",
+            f"Your Shopiva order {tracking} has been placed and is awaiting payment confirmation.",
+            "order",
+            f"/account/orders/{order_id}/",
+        )
+    except Exception:
+        logger.exception("Non-blocking order notification failed for order %s", order_id)
+
 def checkout_mpesa(request):
     cart_data = request.session.get("cart", {})
     items = []
@@ -452,6 +470,18 @@ def checkout_mpesa(request):
         return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "Please select a valid payment method."})
     if payment_method == "mpesa" and not mpesa_production_ready():
         return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "M-PESA is temporarily unavailable while Safaricom production onboarding is being finalized. Please use the available alternative payment method or Cash on Delivery."})
+    if payment_method == "mpesa":
+        normalized_payment_phone = normalize_phone(phone)
+        if not __import__("re").fullmatch(r"254[17]\d{8}", normalized_payment_phone):
+            return render(
+                request,
+                "customer_checkout_map.html",
+                {
+                    "items": items,
+                    "total": total,
+                    "error": "Enter a valid Kenyan M-PESA mobile number, for example 0712345678 or 254712345678.",
+                },
+            )
     if payment_method in {"pesapal", "card"} and not pesapal_ready():
         return render(request, "customer_checkout_map.html", {"items": items, "total": total, "error": "Online card/M-PESA checkout through the payment gateway is not configured yet. Please use Cash on Delivery until the payment provider is activated."})
 
@@ -535,12 +565,8 @@ def checkout_mpesa(request):
         OrderEvent.objects.create(order=order, event_type="placed", note="Order placed through Shopiva checkout.", actor=request.user if request.user.is_authenticated else None)
         if request.user.is_authenticated and not request.user.is_staff:
             transaction.on_commit(
-                lambda user_id=request.user.id, order_id=order.id, tracking=order.tracking_code: notify_user(
-                    __import__("django.contrib.auth", fromlist=["get_user_model"]).get_user_model().objects.get(id=user_id),
-                    "Order placed",
-                    f"Your Shopiva order {tracking} has been placed and is awaiting payment confirmation.",
-                    "order",
-                    f"/account/orders/{order_id}/",
+                lambda user_id=request.user.id, order_id=order.id, tracking=order.tracking_code: _safe_order_notification(
+                    user_id, order_id, tracking
                 )
             )
         for product, quantity, unit_price in locked_items:
