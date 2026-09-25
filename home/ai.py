@@ -1,11 +1,11 @@
 import json
-import os
 import re
 
 from django.db.models import Q
 from django.http import JsonResponse
 
 from .models import Order, Product, WishlistItem
+from .nia_core import call_nia
 
 
 def _catalog(limit=80):
@@ -46,6 +46,13 @@ def shop_assistant(request):
     question = request.POST.get("question", "").strip()
     if not question:
         return JsonResponse({"ok": False, "error": "Please ask a shopping question."}, status=400)
+
+    if request.user.is_authenticated and (
+        request.user.is_staff
+        or getattr(request.user, "seller_profile", None) is not None
+        or getattr(request.user, "delivery_agent_profile", None) is not None
+    ):
+        return JsonResponse({"ok": False, "error": "Customer Nia is only available to customer accounts."}, status=403)
 
     products = _catalog()
     fallback = _fallback(question, products)
@@ -93,66 +100,64 @@ def shop_assistant(request):
             else:
                 fallback["answer"] = "I don't see any orders in your customer account yet."
 
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        return JsonResponse({"ok": True, "ai": False, **fallback})
+    catalog = [
+        {
+            "id": p.id,
+            "name": p.name,
+            "category": p.category,
+            "description": p.description[:400],
+            "price": str(p.discounted_price),
+            "original_price": str(p.price),
+            "discount_percent": p.discount_percent,
+            "stock": p.stock_quantity,
+        }
+        for p in products
+    ]
 
-    try:
-        from openai import OpenAI
-
-        client = OpenAI(api_key=api_key)
-        catalog = [
-            {
-                "id": p.id,
-                "name": p.name,
-                "category": p.category,
-                "description": p.description[:400],
-                "price": str(p.discounted_price),
-                "original_price": str(p.price),
-                "discount_percent": p.discount_percent,
-                "stock": p.stock_quantity,
-            }
-            for p in products
-        ]
-
-        profile = "Guest shopper."
-        if request.user.is_authenticated and not request.user.is_staff:
-            wishlist_ids = list(
-                WishlistItem.objects.filter(user=request.user)
-                .values_list("product_id", flat=True)[:20]
-            )
-            recent_orders = list(
-                Order.objects.filter(email__iexact=request.user.email)
-                .order_by("-created_at")
-                .values_list("id", "status")[:5]
-            )
-            profile = f"Customer wishlist product IDs: {wishlist_ids}; recent orders: {recent_orders}; current cart: {request.session.get('cart', {})}."
-
-        prompt = f"""
-You are Nia, Shopiva Kenya's customer shopping copilot. Help the customer find products and understand their own cart and orders using the supplied data.
-Never invent a product, price, stock level, discount, delivery promise, order status, or payment result.
-Use Kenya-friendly language and KSh pricing.
-If the request is vague, ask one useful follow-up question.
-Recommend up to 5 catalog products when product recommendations are relevant.
-Return ONLY valid JSON with keys: answer (string), product_ids (array of integers).
-Customer context: {profile}
-Customer request: {question}
-Catalog: {json.dumps(catalog, ensure_ascii=False)}
-"""
-        response = client.responses.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-5.6-luna"),
-            input=prompt,
+    profile = "Guest shopper."
+    if request.user.is_authenticated:
+        wishlist_ids = list(
+            WishlistItem.objects.filter(user=request.user)
+            .values_list("product_id", flat=True)[:20]
         )
-        raw = response.output_text.strip()
-        data = json.loads(raw)
-        valid_ids = {p.id for p in products}
-        ids = [int(x) for x in data.get("product_ids", []) if int(x) in valid_ids][:5]
+        recent_orders = list(
+            Order.objects.filter(email__iexact=request.user.email)
+            .order_by("-created_at")
+            .values_list("id", "status")[:5]
+        )
+        profile = {
+            "wishlist_product_ids": wishlist_ids,
+            "recent_orders": recent_orders,
+            "current_cart": request.session.get("cart", {}),
+        }
+
+    result = call_nia(
+        "Shopping Copilot",
+        {"customer": profile, "catalog": catalog},
+        question,
+        '{"answer": "string", "product_ids": [integer]}',
+    )
+    if result.get("ai"):
+        data = result.get("data") or {}
+        try:
+            ids = []
+            for value in data.get("product_ids", []):
+                try:
+                    value = int(value)
+                except (TypeError, ValueError):
+                    continue
+                if value in {p.id for p in products} and value not in ids:
+                    ids.append(value)
+                if len(ids) >= 5:
+                    break
+        except (TypeError, ValueError):
+            ids = []
         selected = {p.id: p for p in products}
         return JsonResponse(
             {
                 "ok": True,
                 "ai": True,
-                "answer": str(data.get("answer", fallback["answer"])),
+                "answer": str(data.get("answer") or fallback["answer"]),
                 "products": [
                     {
                         "id": p.id,
@@ -164,7 +169,5 @@ Catalog: {json.dumps(catalog, ensure_ascii=False)}
                 ],
             }
         )
-    except Exception:
-        # AI is an enhancement; shopping must remain usable if the provider is
-        # unavailable, misconfigured, or temporarily rate-limited.
-        return JsonResponse({"ok": True, "ai": False, **fallback})
+
+    return JsonResponse({"ok": True, "ai": False, **fallback})
