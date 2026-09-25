@@ -3,75 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M-PESA Payment | Shopiva</title>
+    <meta name="theme-color" content="#087f5b">
+    <title>M-PESA Payment | Shopiva Kenya</title>
+    <style>
+        :root{
+            --ink:#15231d;--muted:#697a73;--line:#e2ece7;--bg:#f4f8f6;
+            --brand:#087f5b;--brand2:#0aa66f;--soft:#eaf8f2;--white:#fff;
+            --warn:#9a5a00;--warn-bg:#fff7e8;--shadow:0 20px 55px rgba(11,57,43,.11)
+        }
+        *{box-sizing:border-box}
+        body{
+            margin:0;
+            min-height:100vh;
+            font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+            background:linear-gradient(180deg,#f9fbfa 0%,var(--bg) 100%);
+            color:var(--ink)
+        }
+        a{text-decoration:none}
+        .shell{min-height:100vh;padding:30px 16px 48px}
+        .topbar{max-width:900px;margin:0 auto 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .brand{display:flex;align-items:center;gap:10px;color:var(--ink);font-weight:950;letter-spacing:-.02em}
+        .mark{
+            width:40px;height:40px;border-radius:13px;display:grid;place-items:center;
+            color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand2));
+            box-shadow:0 9px 20px rgba(8,127,91,.2)
+        }
+        .toplink{
+            color:var(--brand);background:#fff;border:1px solid #cfe5dc;border-radius:12px;
+            padding:10px 13px;font-size:12px;font-weight:900
+        }
+        .card{
+            max-width:900px;margin:0 auto;background:var(--white);border:1px solid var(--line);
+            border-radius:26px;box-shadow:var(--shadow);overflow:hidden
+        }
+        .hero{
+            padding:34px 34px 28px;
+            background:linear-gradient(135deg,#effaf5 0%,#fff 74%);
+            border-bottom:1px solid var(--line)
+        }
+        .hero-flex{display:flex;align-items:flex-start;gap:18px}
+        .icon{
+            width:66px;height:66px;border-radius:21px;display:grid;place-items:center;flex:none;
+            background:#dff5ea;color:var(--brand);font-size:31px;font-weight:950
+        }
+        .eyebrow{font-size:10px;font-weight:950;letter-spacing:.14em;color:var(--brand);text-transform:uppercase}
+        h1{font-size:clamp(28px,5vw,42px);line-height:1.02;letter-spacing:-.045em;margin:6px 0 10px}
+        .hero p{margin:0;color:var(--muted);font-size:14px;line-height:1.65;max-width:650px}
+        .body{padding:26px 34px 34px}
+        .status-card{
+            border:1px solid #d4e9df;background:#fbfefd;border-radius:18px;padding:18px
+        }
+        .status-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+        .status-head h2{margin:0;font-size:15px}
+        .pill{
+            display:inline-flex;align-items:center;gap:7px;border-radius:999px;
+            padding:7px 10px;font-size:10px;font-weight:950
+        }
+        .pill.wait{background:#fff1d3;color:var(--warn)}
+        .pulse{
+            width:8px;height:8px;border-radius:50%;background:#c97c00;
+            box-shadow:0 0 0 5px rgba(201,124,0,.10)
+        }
+        .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+        .step{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fff}
+        .step b{display:block;font-size:12px;margin-bottom:4px}
+        .step span{display:block;color:var(--muted);font-size:11px;line-height:1.45}
+        .step.active{border-color:#bfe4d5;background:#f1faf6}
+        .step.active b{color:var(--brand)}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+        .panel{border:1px solid var(--line);border-radius:18px;padding:18px;background:#fff}
+        .panel h3{margin:0 0 14px;font-size:14px}
+        .meta{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid #eef3f0}
+        .meta:last-child{border-bottom:0;padding-bottom:0}
+        .meta:first-child{padding-top:0}
+        .label{color:#8a9690;font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:900}
+        .value{font-size:13px;font-weight:850;text-align:right}
+        .notice{margin-top:16px;padding:14px;border-radius:15px;background:var(--warn-bg);border:1px solid #f0ddb6;color:#805000;font-size:12px;line-height:1.55}
+        .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+        button,.btn{
+            border:0;cursor:pointer;padding:12px 15px;border-radius:13px;font-size:12px;font-weight:900;
+            display:inline-flex;align-items:center;justify-content:center
+        }
+        .primary{background:var(--brand);color:#fff;box-shadow:0 8px 18px rgba(8,127,91,.16)}
+        .secondary{background:#fff;color:var(--brand);border:1px solid #cfe5dc}
+        button:disabled{opacity:.6;cursor:wait}
+        .footer{text-align:center;color:#8a9690;font-size:10px;margin-top:18px}
+        @media(max-width:720px){
+            .shell{padding:16px 10px 30px}.hero{padding:24px 19px}.body{padding:19px}
+            .grid,.steps{grid-template-columns:1fr}.hero-flex{gap:13px}.icon{width:54px;height:54px;border-radius:17px;font-size:25px}
+            .topbar{margin-bottom:10px}.toplink{padding:9px 10px}
+        }
+    </style>
 </head>
 <body>
-    <h1>M-PESA Payment</h1>
-    <p>Order <strong>#{{ order.id }}</strong></p>
-    <p id="intro">Shopiva submitted the M-PESA payment request.</p>
-    <p id="instruction"><strong>If Safaricom accepts the request, an official M-PESA prompt will appear on your phone.</strong></p>
-    <p id="status">Waiting for M-PESA confirmation…</p><p style="font-size:12px;color:#555">Canceling the prompt or leaving it unpaid does not confirm the order.</p>
-    <button id="verify" type="button">Check M-PESA status</button>
-    <p><a href="{% url 'order_success' order.id %}">View order</a></p>
+<div class="shell">
+    <div class="topbar">
+        <a href="{% url 'home' %}" class="brand"><span class="mark">S</span><span>Shopiva Kenya</span></a>
+        <a href="{% url 'home' %}" class="toplink">Continue shopping →</a>
+    </div>
 
-    <script>
-        const statusBox = document.getElementById("status");
-        const verifyButton = document.getElementById("verify");
-        const introBox = document.getElementById("intro");
-        const instructionBox = document.getElementById("instruction");
+    <main class="card">
+        <section class="hero">
+            <div class="hero-flex">
+                <div class="icon">₿</div>
+                <div>
+                    <div class="eyebrow">Secure M-PESA checkout</div>
+                    <h1>Complete your payment</h1>
+                    <p>Shopiva has sent the payment request to your phone. Complete the official M-PESA prompt, then Shopiva will update your order automatically.</p>
+                </div>
+            </div>
+        </section>
 
-        async function verifyPayment() {
-            verifyButton.disabled = true;
-            statusBox.textContent = "Checking Safaricom payment status…";
-            try {
-                const response = await fetch("{% url 'mpesa_payment_verify' order.id %}", {cache: "no-store"});
-                const data = await response.json();
-                statusBox.textContent = data.message || data.error || "Payment status checked.";
-                if (data.payment_status === "paid") {
-                    introBox.textContent = "M-PESA payment confirmed.";
-                    instructionBox.textContent = "Your order is now paid.";
-                    setTimeout(() => window.location.href = "{% url 'order_success' order.id %}", 800);
-                    return;
-                }
-                if (data.payment_status === "failed") {
-                    introBox.textContent = "M-PESA payment request failed.";
-                    instructionBox.textContent = "No payment prompt was sent because Safaricom rejected the request.";
-                    verifyButton.disabled = false;
-                    return;
-                }
-            } catch (error) {
-                statusBox.textContent = "Could not query Safaricom right now. Please try again.";
-            }
-            verifyButton.disabled = false;
-        }
+        <section class="body">
+            <div class="status-card">
+                <div class="status-head">
+                    <h2 id="intro">Waiting for M-PESA confirmation</h2>
+                    <span class="pill wait"><span class="pulse"></span><span id="pillText">PENDING</span></span>
+                </div>
+                <div id="status" style="font-size:13px;color:#586861;line-height:1.6">
+                    Checking for your payment confirmation…
+                </div>
 
-        verifyButton.addEventListener("click", verifyPayment);
+                <div class="steps">
+                    <div class="step active"><b>1. Prompt sent</b><span>Shopiva has submitted the payment request.</span></div>
+                    <div class="step active"><b>2. Confirm on phone</b><span>Enter your M-PESA PIN when you are ready.</span></div>
+                    <div class="step" id="step3"><b>3. Order confirmed</b><span>Shopiva confirms the payment after Safaricom responds.</span></div>
+                </div>
+            </div>
 
-        async function checkPayment() {
-            try {
-                const response = await fetch("{% url 'mpesa_payment_status' order.id %}", {cache: "no-store"});
-                const data = await response.json();
-                if (data.payment_status === "paid") {
-                    statusBox.textContent = data.message || "Payment confirmed. Your order is now paid.";
-                    introBox.textContent = "M-PESA payment confirmed.";
-                    instructionBox.textContent = "Your order is now paid.";
-                    setTimeout(() => window.location.href = "{% url 'order_success' order.id %}", 1200);
-                    return;
-                }
-                if (data.payment_status === "failed") {
-                    statusBox.textContent = data.message || "M-PESA payment was not completed.";
-                    introBox.textContent = "M-PESA payment request failed.";
-                    instructionBox.textContent = "No payment prompt was sent because Safaricom rejected the request.";
-                    verifyButton.disabled = false;
-                    return;
-                }
-                statusBox.textContent = data.message || "Still waiting for M-PESA confirmation…";
-            } catch (error) {
-                statusBox.textContent = "Still waiting for confirmation…";
-            }
-            setTimeout(checkPayment, 5000);
-        }
-        checkPayment();
-    </script>
+            <div class="grid">
+                <section class="panel">
+                    <h3>Order details</h3>
+                    <div class="meta"><span class="label">Order</span><span class="value">#{{ order.id }}</span></div>
+                    <div class="meta"><span class="label">Order status</span><span class="value">{{ order.get_status_display }}</span></div>
+                    <div class="meta"><span class="label">Payment</span><span class="value">{{ order.get_payment_status_display }}</span></div>
+                    <div class="meta"><span class="label">Total</span><span class="value">KSh {{ order.total_amount|floatformat:2 }}</span></div>
+                </section>
+
+                <section class="panel">
+                    <h3>What happens next?</h3>
+                    <p style="margin:0;color:#586861;font-size:12px;line-height:1.65">
+                        Once Safaricom confirms the payment, Shopiva updates the order automatically. You do not need to submit the order again.
+                    </p>
+                    <div class="notice">
+                        Canceling the prompt or leaving it unpaid does <strong>not</strong> confirm the order. No delivery should be released until payment is confirmed.
+                    </div>
+                </section>
+            </div>
+
+            <div class="actions">
+                <button id="verify" class="secondary" type="button">Check M-PESA status</button>
+                <a class="btn primary" href="{% url 'order_success' order.id %}">View order status →</a>
+            </div>
+
+            <div class="footer">Shopiva Kenya · Secure payment status · Tracked orders</div>
+        </section>
+    </main>
+</div>
+
+<script>
+const statusBox=document.getElementById("status");
+const verifyButton=document.getElementById("verify");
+const introBox=document.getElementById("intro");
+const pillText=document.getElementById("pillText");
+const step3=document.getElementById("step3");
+
+function showPaid(message){
+    statusBox.textContent=message||"Payment confirmed. Your order is now paid.";
+    introBox.textContent="Payment confirmed";
+    pillText.textContent="PAID";
+    step3.classList.add("active");
+    setTimeout(()=>window.location.href="{% url 'order_success' order.id %}",900);
+}
+function showFailed(message){
+    statusBox.textContent=message||"M-PESA payment was not completed.";
+    introBox.textContent="Payment not completed";
+    pillText.textContent="FAILED";
+    step3.classList.remove("active");
+    verifyButton.disabled=false;
+}
+async function verifyPayment(){
+    verifyButton.disabled=true;
+    statusBox.textContent="Checking Safaricom payment status…";
+    try{
+        const response=await fetch("{% url 'mpesa_payment_verify' order.id %}",{cache:"no-store"});
+        const data=await response.json();
+        if(data.payment_status==="paid"){showPaid(data.message);return}
+        if(data.payment_status==="failed"){showFailed(data.message);return}
+        statusBox.textContent=data.message||"Safaricom is still processing the request.";
+    }catch(error){
+        statusBox.textContent="Could not query Safaricom right now. Please try again.";
+    }
+    verifyButton.disabled=false;
+}
+verifyButton.addEventListener("click",verifyPayment);
+
+async function checkPayment(){
+    try{
+        const response=await fetch("{% url 'mpesa_payment_status' order.id %}",{cache:"no-store"});
+        const data=await response.json();
+        if(data.payment_status==="paid"){showPaid(data.message);return}
+        if(data.payment_status==="failed"){showFailed(data.message);return}
+        statusBox.textContent=data.message||"Still waiting for M-PESA confirmation…";
+    }catch(error){
+        statusBox.textContent="Still waiting for confirmation…";
+    }
+    setTimeout(checkPayment,5000);
+}
+checkPayment();
+</script>
 </body>
 </html>
