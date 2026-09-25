@@ -13,7 +13,7 @@ from django.db.models import ProtectedError, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
-from django.urls import path
+from django.urls import path, reverse
 from django.utils import timezone
 
 from .voice_ai import speak_text, transcribe_voice
@@ -550,10 +550,32 @@ class DeliveryAgentAdmin(admin.ModelAdmin):
         return "Approved / active" if obj.is_active else "Pending Shopiva approval"
 
     def save_model(self, request, obj, form, change):
+        # Delivery accounts created from the admin are applications, not
+        # pre-approved staff. The Approval Center is the single activation path.
+        if not change:
+            obj.is_active = False
+            obj.status = "offline"
+
         super().save_model(request, obj, form, change)
+
         if obj.user_id:
             obj.user.is_active = bool(obj.is_active)
             obj.user.save(update_fields=("is_active",))
+
+        if not change and obj.user_id:
+            approval_url = reverse("shopiva_admin:approval_center")
+            admins = User.objects.filter(is_staff=True, is_active=True).exclude(pk=obj.user_id)
+            for admin_user in admins:
+                notify_user(
+                    admin_user,
+                    "system",
+                    "New staff approval required",
+                    (
+                        f"{obj.display_name} was added as a delivery staff application. "
+                        "Open the Approval Center to verify the applicant before activation."
+                    ),
+                    link=approval_url,
+                )
 
 
 @admin.register(ShopivaBranch, site=shopiva_admin_site)
