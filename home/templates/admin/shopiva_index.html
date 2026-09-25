@@ -1,0 +1,402 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    :root { --shopiva-blue:#2563eb; --shopiva-dark:#111827; --shopiva-bg:#f4f7fb; --shopiva-card:#fff; --shopiva-muted:#64748b; --shopiva-border:#e2e8f0; --shopiva-green:#16a34a; --shopiva-orange:#ea580c; --shopiva-red:#dc2626; }
+    body { background:var(--shopiva-bg); }
+    #content { padding:0 24px 40px; max-width:1500px; margin:auto; }
+    .shopiva-shell { font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .shopiva-hero { margin:8px 0 22px; padding:26px 28px; border-radius:20px; background:linear-gradient(135deg,#111827,#1e3a8a); color:#fff; display:flex; justify-content:space-between; align-items:center; gap:20px; box-shadow:0 14px 35px rgba(15,23,42,.15); }
+    .shopiva-hero h1 { margin:0 0 6px; font-size:30px; color:#fff; }
+    .shopiva-hero p { margin:0; color:#dbeafe; font-size:14px; }
+    .shopiva-badge { padding:9px 13px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1); border-radius:999px; font-weight:700; white-space:nowrap; }
+    .stats { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:14px; margin-bottom:22px; }
+    .stat { background:var(--shopiva-card); border:1px solid var(--shopiva-border); border-radius:16px; padding:18px; box-shadow:0 4px 16px rgba(15,23,42,.05); }
+    .stat .icon { font-size:20px; }
+    .stat .label { margin-top:9px; color:var(--shopiva-muted); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .stat .value { margin-top:4px; font-size:25px; font-weight:850; color:var(--shopiva-dark); }
+    .layout { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(320px,.75fr); gap:20px; align-items:start; }
+    .panel { background:var(--shopiva-card); border:1px solid var(--shopiva-border); border-radius:18px; padding:20px; box-shadow:0 4px 16px rgba(15,23,42,.05); margin-bottom:20px; }
+    .panel-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:15px; }
+    .panel h2 { margin:0; font-size:18px; color:var(--shopiva-dark); }
+    .panel-sub { color:var(--shopiva-muted); font-size:13px; }
+    .quick-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; }
+    .quick { display:block; padding:15px; border:1px solid var(--shopiva-border); border-radius:13px; text-decoration:none !important; color:var(--shopiva-dark) !important; background:#f8fafc; transition:.15s ease; }
+    .quick:hover { transform:translateY(-2px); border-color:#bfdbfe; background:#eff6ff; }
+    .quick strong { display:block; font-size:14px; }
+    .quick span { display:block; margin-top:3px; color:var(--shopiva-muted); font-size:12px; }
+    .table-wrap { overflow:auto; }
+    .shop-table { width:100%; border-collapse:collapse; }
+    .shop-table th,.shop-table td { padding:12px 8px; border-bottom:1px solid #eef2f7; text-align:left; font-size:13px; }
+    .shop-table th { color:var(--shopiva-muted); font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+    .status { display:inline-flex; padding:5px 9px; border-radius:999px; background:#eff6ff; color:#1d4ed8; font-weight:700; font-size:11px; }
+    .stock-danger { color:var(--shopiva-red); font-weight:800; }
+    .stock-ok { color:var(--shopiva-green); font-weight:800; }
+    .nia-phone-panel { background:linear-gradient(135deg,#ffffff,#f0fdf4); border-color:#bbf7d0; }
+    .ai-panel { background:linear-gradient(180deg,#ffffff,#f8fbff); }
+    .ai-title { display:flex; align-items:center; gap:10px; }
+    .ai-orb { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; background:#eef2ff; font-size:21px; }
+    #ai-answer { min-height:78px; white-space:pre-line; padding:13px; border-radius:12px; background:#f8fafc; border:1px solid var(--shopiva-border); color:#334155; font-size:13px; line-height:1.55; margin-bottom:12px; }
+    .ai-form { display:flex; gap:8px; }
+    .ai-form input { flex:1; min-width:0; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; }
+    .ai-form button { border:0; border-radius:10px; padding:11px 15px; background:var(--shopiva-blue); color:#fff; font-weight:800; cursor:pointer; }
+    .ai-suggestions { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .ai-suggestions button { border:1px solid var(--shopiva-border); background:#fff; border-radius:999px; padding:6px 9px; cursor:pointer; font-size:11px; }
+    .notice { padding:12px 14px; border-radius:12px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:13px; }
+    .delivery-link { margin-top:12px; display:block; text-decoration:none !important; }
+    @media(max-width:1200px){ .stats{grid-template-columns:repeat(3,1fr)} .layout{grid-template-columns:1fr} }
+    @media(max-width:650px){ #content{padding:0 12px 30px}.shopiva-hero{padding:20px;align-items:flex-start;flex-direction:column}.stats{grid-template-columns:repeat(2,1fr)}.quick-grid{grid-template-columns:1fr}.ai-form{flex-direction:column} }
+.live-delivery-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:11px}.live-delivery-stats>div{padding:11px;border:1px solid var(--shopiva-border);border-radius:12px;background:#f8fafc}.live-delivery-stats small{display:block;color:var(--shopiva-muted);font-size:10px;text-transform:uppercase;font-weight:800}.live-delivery-stats strong{display:block;margin-top:3px;font-size:21px}.live-delivery-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.live-rider{padding:10px;border:1px solid var(--shopiva-border);border-radius:12px;background:#fff}.live-rider-head{display:flex;justify-content:space-between;gap:8px}.live-rider strong{font-size:12px}.live-rider small{display:block;color:var(--shopiva-muted);font-size:10px;line-height:1.45;margin-top:4px}.live-badge{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:900}.live-badge.on{background:#e8f8ef;color:#087448}.live-badge.off{background:#fff1f1;color:#b4232f}@media(max-width:900px){.live-delivery-stats{grid-template-columns:repeat(2,1fr)}.live-delivery-list{grid-template-columns:1fr}}@media(max-width:650px){.live-delivery-stats{grid-template-columns:1fr 1fr}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="shopiva-shell">
+    <section class="shopiva-hero">
+        <div>
+            <h1>Shopiva Control Center</h1>
+            <p>Manage your marketplace, orders, inventory and operations from one protected workspace.</p>
+        </div>
+        <div class="shopiva-badge">🛡️ Admin Workspace</div>
+    </section>
+
+    <section class="stats">
+        <div class="stat"><div class="icon">🛍️</div><div class="label">Products</div><div class="value">{{ shopiva_stats.products }}</div></div>
+        <div class="stat"><div class="icon">📦</div><div class="label">Orders</div><div class="value">{{ shopiva_stats.orders }}</div></div>
+        <div class="stat"><div class="icon">⏳</div><div class="label">Pending</div><div class="value">{{ shopiva_stats.pending_orders }}</div></div>
+        <div class="stat"><div class="icon">💰</div><div class="label">Revenue</div><div class="value">KSh {{ shopiva_stats.revenue|floatformat:0 }}</div></div>
+        <div class="stat"><div class="icon">⚠️</div><div class="label">Low Stock</div><div class="value">{{ shopiva_stats.low_stock }}</div></div>
+        <div class="stat"><div class="icon">📈</div><div class="label">Today's Orders</div><div class="value">{{ shopiva_stats.today_orders }}</div></div>
+    </section>
+
+    <section class="panel nia-phone-panel" aria-label="Nia phone calling">
+        <div class="panel-head"><div class="ai-title"><div class="ai-orb">📞</div><div><h2>Nia Phone — Hands-Free Operations</h2><div class="panel-sub">Nia can call the configured administrator phone through Twilio.</div></div></div><span class="shopiva-badge" style="background:#ecfdf5;color:#087448;border-color:#bbf7d0;">PHONE READY</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div><strong style="font-size:16px;color:var(--shopiva-dark);">Call Nia</strong><div class="panel-sub" style="margin-top:4px;">Starts a protected outbound call to the administrator number configured in Shopiva.</div></div>
+            <button type="button" id="admin-call-nia-top" style="border:0;border-radius:12px;padding:12px 18px;background:#16a34a;color:#fff;font-weight:900;cursor:pointer;">📞 Call Nia now</button>
+        </div>
+        <div id="admin-call-status-top" class="panel-sub" style="margin-top:10px;">Ready for a phone call.</div>
+    </section>
+
+    <div class="layout">
+        <main>
+            <section class="panel">
+                <div class="panel-head"><div><h2>⚡ Quick Actions</h2><div class="panel-sub">Common admin tasks, one click away.</div></div></div>
+                <div class="quick-grid">
+                    <a class="quick" href="{% url 'shopiva_admin:home_product_add' %}"><strong>➕ Add Product</strong><span>Create a new marketplace listing.</span></a>
+                    <a class="quick" href="{% url 'shopiva_admin:home_product_changelist' %}"><strong>🛍️ Manage Products</strong><span>Prices, stock, discounts and visibility.</span></a>
+                    <a class="quick" href="{% url 'shopiva_admin:home_order_changelist' %}"><strong>📦 Manage Orders</strong><span>Review and update order status.</span></a>
+                    <a class="quick" href="{% url 'shopiva_admin:home_orderitem_changelist' %}"><strong>🧾 Order Items</strong><span>Inspect items attached to orders.</span></a>
+                    <a class="quick" href="{% url 'shopiva_admin:auth_user_changelist' %}"><strong>👥 Users</strong><span>Manage staff and customer accounts.</span></a>
+                    <a class="quick" href="{% url 'shopiva_admin:auth_group_changelist' %}"><strong>🔐 Permissions</strong><span>Organize admin access with groups.</span></a>
+                    <a class="quick delivery-link" href="{% url 'shopiva_admin:delivery_map' %}"><strong>🧭 Delivery Command Map</strong><span>View Shopiva's Kenya delivery network.</span></a>
+                    <a class="quick" href="{% url 'shopiva_admin:approval_center' %}"><strong>🛡️ Operations & Approval Center</strong><span>Delivery approvals, raised issues, system issues and reports.</span></a>
+                    <a class="quick" href="{% url 'admin_notifications' %}"><strong>🔔 Admin Notification Center</strong><span>Read and manage Shopiva staff notifications.</span></a>
+                    <a class="quick" href="{% url 'support_admin_center' %}"><strong>🛟 Raised Issues & Support</strong><span>Customer and seller cases requiring attention.</span></a>
+                </div>
+            </section>
+
+            <section class="panel live-delivery-panel">
+                <div class="panel-head"><div><h2>📡 Live Delivery Network</h2><div class="panel-sub">Protected rider telemetry from the Delivery app · refreshes every 5 seconds.</div></div><a href="{% url 'shopiva_admin:delivery_map' %}">Open command center →</a></div>
+                <div class="live-delivery-stats">
+                    <div><small>Active riders</small><strong id="live-riders">—</strong></div>
+                    <div><small>On delivery</small><strong id="live-deliveries">—</strong></div>
+                    <div><small>Live GPS</small><strong id="live-gps">—</strong></div>
+                    <div><small>Stale GPS</small><strong id="live-stale">—</strong></div>
+                </div>
+                <div id="live-delivery-list" class="live-delivery-list"><div class="notice">Connecting to the protected delivery feed…</div></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head"><div><h2>📦 Recent Orders</h2><div class="panel-sub">Latest customer activity.</div></div><a href="{% url 'shopiva_admin:home_order_changelist' %}">View all</a></div>
+                {% if recent_orders %}
+                <div class="table-wrap"><table class="shop-table"><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead><tbody>
+                {% for order in recent_orders %}<tr><td>#{{ order.id }}</td><td>{{ order.customer_name }}</td><td>KSh {{ order.total_amount|floatformat:2 }}</td><td><span class="status">{{ order.get_status_display }}</span></td><td>{{ order.created_at|date:"M d, H:i" }}</td></tr>{% endfor %}
+                </tbody></table></div>
+                {% else %}<div class="notice">No orders yet. Orders will appear here automatically when customers complete checkout.</div>{% endif %}
+            </section>
+
+            <section class="panel">
+                <div class="panel-head"><div><h2>⚠️ Inventory Watch</h2><div class="panel-sub">Active products with 5 units or fewer.</div></div><a href="{% url 'shopiva_admin:home_product_changelist' %}">Manage stock</a></div>
+                {% if low_stock_products %}
+                <div class="table-wrap"><table class="shop-table"><thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Action</th></tr></thead><tbody>
+                {% for product in low_stock_products %}<tr><td>{{ product.name }}</td><td>{{ product.category }}</td><td class="stock-danger">{{ product.stock_quantity }}</td><td><a href="{% url 'shopiva_admin:home_product_change' product.id %}">Edit</a></td></tr>{% endfor %}
+                </tbody></table></div>
+                {% else %}<div class="notice">Inventory is clear right now. Add products and the assistant will monitor low stock automatically.</div>{% endif %}
+            </section>
+        </main>
+
+        <aside>
+            <section class="panel ai-panel">
+                <div class="panel-head"><div class="ai-title"><div class="ai-orb">🤖</div><div><h2>Nia — Operations Copilot</h2><div class="panel-sub">Admin-only live operations assistant</div></div></div></div>
+                <div id="ai-answer">Hello! I'm Nia, your Admin Operations Copilot. Ask me about orders, payments, delivery, staff approvals, stock or revenue.</div>
+                <form id="ai-form" class="ai-form" method="post" action="{% url 'shopiva_admin:ai_assistant' %}">
+                    {% csrf_token %}
+                    <input id="ai-question" name="question" type="text" autocomplete="off" placeholder="Ask Nia about Shopiva operations…">
+                    <button type="submit">Ask Nia</button>
+                    <button id="ai-voice-button" type="button" title="Record an admin voice question">🎙️ Voice</button>
+                    <button id="ai-live-button" type="button" title="Start a natural admin voice conversation">🗣️ Talk Live</button>
+                </form>
+                <audio id="ai-audio" controls style="width:100%;margin-top:10px;display:none;"></audio>
+                <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button type="button" id="admin-call-nia" class="ai-suggestions" style="border:1px solid var(--shopiva-border);background:#e8fff4;color:#08784f;border-radius:10px;padding:8px 11px;font-weight:850;cursor:pointer">📞 Call Nia</button><span id="admin-call-status" class="panel-sub">Nia can call the configured admin number for a hands-free operations briefing.</span></div>
+                <div class="ai-suggestions">
+                    <button type="button" data-q="How many products do we have?">Products</button>
+                    <button type="button" data-q="Which products are low stock?">Low stock</button>
+                    <button type="button" data-q="How many pending orders?">Pending orders</button>
+                    <button type="button" data-q="What is our revenue?">Revenue</button>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head"><div><h2>🧭 Admin Navigation</h2><div class="panel-sub">Safe paths into the management system.</div></div></div>
+                <div class="quick-grid">
+                    <a class="quick" href="{% url 'shopiva_admin:home_product_changelist' %}"><strong>🛍️ Catalog</strong><span>Products & inventory</span></a>
+                    <a class="quick" href="{% url 'shopiva_admin:home_order_changelist' %}"><strong>📦 Orders</strong><span>Fulfilment workflow</span></a>
+                    <a class="quick" href="{% url 'shopiva_admin:auth_user_changelist' %}"><strong>👥 Accounts</strong><span>Users & staff</span></a>
+                    <a class="quick" href="{% url 'shopiva_admin:delivery_map' %}"><strong>🧭 Delivery Map</strong><span>Kenya delivery network</span></a>
+                    <a class="quick" href="/">🏪 <strong>Open Market</strong><span>Return to Shopiva storefront</span></a>
+                </div>
+            </section>
+        </aside>
+    </div>
+</div>
+
+<script>
+(function () {
+    const form = document.getElementById("ai-form");
+    const input = document.getElementById("ai-question");
+    const answer = document.getElementById("ai-answer");
+    const voiceButton = document.getElementById("ai-voice-button");
+    const audio = document.getElementById("ai-audio");
+    let recorder = null;
+    let chunks = [];
+
+    async function speak(text) {
+        const body = new URLSearchParams();
+        body.append("text", text);
+        const csrf = form.querySelector("[name=csrfmiddlewaretoken]").value;
+        body.append("csrfmiddlewaretoken", csrf);
+        const response = await fetch("{% url 'voice_speak' %}", {
+            method: "POST",
+            headers: {"X-Requested-With": "XMLHttpRequest"},
+            body: body
+        });
+        if (!response.ok) return;
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        audio.src = url;
+        audio.style.display = "block";
+        audio.play().catch(() => {});
+    }
+
+    async function ask(question) {
+        if (!question.trim()) return;
+        answer.textContent = "Thinking…";
+        const csrf = form.querySelector("[name=csrfmiddlewaretoken]").value;
+        const body = new URLSearchParams();
+        body.append("question", question);
+        body.append("csrfmiddlewaretoken", csrf);
+        try {
+            const response = await fetch(form.action, {
+                method: "POST",
+                headers: {"X-Requested-With": "XMLHttpRequest"},
+                body: body
+            });
+            const data = await response.json();
+            answer.textContent = data.answer || "I couldn't generate an answer.";
+            if (data.answer) speak(data.answer);
+        } catch (error) {
+            answer.textContent = "The AI assistant could not connect. Please try again.";
+        }
+    }
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        const question = input.value;
+        input.value = "";
+        ask(question);
+    });
+
+    document.querySelectorAll(".ai-suggestions button").forEach(function (button) {
+        button.addEventListener("click", function () { ask(button.dataset.q); });
+    });
+    const liveButton = document.getElementById("ai-live-button");
+    let livePc = null, liveDc = null, liveStream = null, liveActive = false;
+
+    function liveStatus(text) {
+        answer.textContent = text;
+    }
+
+    async function liveAction(name, args) {
+        const response = await fetch("{% url 'realtime_action' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value
+            },
+            body: JSON.stringify(Object.assign({action: name}, args))
+        });
+        return response.json();
+    }
+
+    function sendLiveEvent(event) {
+        if (liveDc && liveDc.readyState === "open") liveDc.send(JSON.stringify(event));
+    }
+
+    async function handleLiveEvent(event) {
+        if (event.type === "error") {
+            liveStatus(event.error && event.error.message ? event.error.message : "Voice AI error.");
+            return;
+        }
+        if (event.type === "response.audio_transcript.done") {
+            liveStatus(event.transcript || "Shopiva Voice answered.");
+        }
+        if (event.type === "response.function_call_arguments.done") {
+            try {
+                const args = JSON.parse(event.arguments || "{}");
+                const result = await liveAction(event.name, args);
+                sendLiveEvent({
+                    type: "conversation.item.create",
+                    item: {
+                        type: "function_call_output",
+                        call_id: event.call_id,
+                        output: JSON.stringify(result)
+                    }
+                });
+                sendLiveEvent({type: "response.create"});
+            } catch (error) {
+                sendLiveEvent({
+                    type: "conversation.item.create",
+                    item: {
+                        type: "function_call_output",
+                        call_id: event.call_id,
+                        output: JSON.stringify({ok:false, error:error.message})
+                    }
+                });
+                sendLiveEvent({type: "response.create"});
+            }
+        }
+    }
+
+    async function startLive() {
+        if (liveActive) {
+            stopLive();
+            return;
+        }
+        if (!window.RTCPeerConnection || !navigator.mediaDevices?.getUserMedia) {
+            liveStatus("This browser does not support realtime voice.");
+            return;
+        }
+        try {
+            liveStatus("Starting Shopiva Admin Voice…");
+            liveStream = await navigator.mediaDevices.getUserMedia({audio:true});
+            livePc = new RTCPeerConnection();
+            const audioElement = document.createElement("audio");
+            audioElement.autoplay = true;
+            audioElement.style.display = "none";
+            document.body.appendChild(audioElement);
+            livePc.ontrack = event => { audioElement.srcObject = event.streams[0]; };
+            liveStream.getTracks().forEach(track => livePc.addTrack(track, liveStream));
+            liveDc = livePc.createDataChannel("oai-events");
+            liveDc.onopen = () => {
+                liveActive = true;
+                liveButton.textContent = "⏹️ End Voice";
+                liveStatus("🟢 Admin Voice is listening. Ask about Shopiva operations naturally.");
+            };
+            liveDc.onclose = () => { if (liveActive) stopLive(); };
+            liveDc.onmessage = event => {
+                try { handleLiveEvent(JSON.parse(event.data)); } catch (_) {}
+            };
+            const offer = await livePc.createOffer();
+            await livePc.setLocalDescription(offer);
+            const response = await fetch("{% url 'realtime_call' %}", {
+                method: "POST",
+                headers: {"Content-Type":"application/sdp","X-CSRFToken":form.querySelector("[name=csrfmiddlewaretoken]").value},
+                body: offer.sdp
+            });
+            if (!response.ok) throw new Error("Could not connect to Shopiva Admin Voice.");
+            const answerSdp = await response.text();
+            await livePc.setRemoteDescription({type:"answer", sdp:answerSdp});
+        } catch (error) {
+            liveStatus(error.message || "Unable to start realtime voice.");
+            stopLive();
+        }
+    }
+
+    function stopLive() {
+        liveActive = false;
+        if (liveDc) liveDc.close();
+        if (livePc) livePc.close();
+        if (liveStream) liveStream.getTracks().forEach(track => track.stop());
+        liveDc = null;
+        livePc = null;
+        liveStream = null;
+        if (liveButton) liveButton.textContent = "🗣️ Talk Live";
+    }
+
+    liveButton?.addEventListener("click", startLive);
+
+
+    if (voiceButton && navigator.mediaDevices && window.MediaRecorder) {
+        voiceButton.addEventListener("click", async function () {
+            if (recorder && recorder.state === "recording") {
+                recorder.stop();
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+                chunks = [];
+                recorder = new MediaRecorder(stream);
+                voiceButton.textContent = "⏹️ Stop";
+                recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+                recorder.onstop = async function () {
+                    stream.getTracks().forEach(track => track.stop());
+                    voiceButton.textContent = "🎙️ Voice";
+                    const formData = new FormData();
+                    formData.append("audio", new Blob(chunks, {type: recorder.mimeType || "audio/webm"}), "admin-voice.webm");
+                    try {
+                        answer.textContent = "Listening…";
+                        const response = await fetch("{% url 'shopiva_admin:ai_voice_transcribe' %}", {
+                            method: "POST",
+                            headers: {"X-Requested-With": "XMLHttpRequest"},
+                            body: formData
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || "Voice transcription failed.");
+                        input.value = data.text || "";
+                        if (data.text) ask(data.text);
+                    } catch (error) {
+                        answer.textContent = error.message || "Voice recording failed.";
+                    }
+                };
+                recorder.start();
+            } catch (error) {
+                answer.textContent = "Microphone permission is required for voice AI.";
+            }
+        });
+    }
+})();
+</script><script>
+(function(){
+  const b=document.getElementById('admin-call-nia'),s=document.getElementById('admin-call-status');
+  if(!b||!s)return;
+  b.addEventListener('click',async()=>{
+    b.disabled=true;s.textContent='Nia is placing your call…';
+    try{
+      const r=await fetch("{% url 'nia_phone_call' %}",{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}'}});
+      const d=await r.json();
+      if(!r.ok||!d.ok)throw new Error(d.error||'Nia could not place the call.');
+      s.textContent='📞 Nia is calling the configured admin number now.';
+    }catch(e){s.textContent=e.message||'Nia could not place the call.';b.disabled=false;}
+  });
+})();
+</script><script>
+(function(){
+  const b=document.getElementById('admin-call-nia-top'),s=document.getElementById('admin-call-status-top');
+  if(!b||!s)return;
+  b.addEventListener('click',async()=>{b.disabled=true;b.setAttribute('aria-busy','true');s.textContent='Nia is placing your call…';try{const r=await fetch("{% url 'nia_phone_call' %}",{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}','X-Requested-With':'XMLHttpRequest'}});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Nia could not place the call.');s.textContent='📞 Nia is calling the configured administrator number now.';}catch(e){s.textContent=e.message||'Nia could not place the call.';b.disabled=false;b.removeAttribute('aria-busy');}});
+})();
+</script>
+{% endblock %>
