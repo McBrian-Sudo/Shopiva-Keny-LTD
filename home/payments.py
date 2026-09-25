@@ -35,6 +35,7 @@ def mpesa_production_ready():
         "MPESA_CONSUMER_SECRET",
         "MPESA_PASSKEY",
         "MPESA_CALLBACK_URL",
+        "MPESA_SHORTCODE",
     )
     if not all(_env(name) for name in required):
         return False
