@@ -1,0 +1,22 @@
+name: Nia task runner
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+jobs:
+  run-nia-tasks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Shopiva Nia task runner
+        env:
+          NIA_CRON_SECRET: ${{ secrets.NIA_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$NIA_CRON_SECRET"
+          curl --fail --silent --show-error --max-time 30 \
+            -X POST \
+            -H "X-Nia-Cron-Secret: $NIA_CRON_SECRET" \
+            -H "Accept: application/json" \
+            https://shopivakenya.top/internal/run-nia-tasks/
