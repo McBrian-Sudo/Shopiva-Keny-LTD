@@ -9,6 +9,35 @@ from .models import DeliveryHub, DeliveryPricingProfile, DeliveryRateCard, Deliv
 
 COMMISSION_LABEL = "Shopiva service fee"
 
+KENYAN_COUNTIES = (
+    "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo Marakwet", "Embu",
+    "Garissa", "Homa Bay", "Isiolo", "Kajiado", "Kakamega", "Kericho",
+    "Kiambu", "Kilifi", "Kirinyaga", "Kisii", "Kisumu", "Kitui", "Kwale",
+    "Laikipia", "Lamu", "Machakos", "Makueni", "Mandera", "Marsabit",
+    "Meru", "Migori", "Mombasa", "Murang'a", "Nairobi", "Nakuru", "Nandi",
+    "Narok", "Nyamira", "Nyandarua", "Nyeri", "Samburu", "Siaya",
+    "Taita Taveta", "Tana River", "Tharaka Nithi", "Trans Nzoia", "Turkana",
+    "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
+)
+
+def canonical_kenyan_county(value):
+    """Map geocoder/admin-area variants to one of Kenya's official county names."""
+    raw = str(value or "").strip()
+    key = _normalize_location(raw)
+    key = key.removesuffix(" county").strip()
+    if not key:
+        return ""
+    by_key = {_normalize_location(name): name for name in KENYAN_COUNTIES}
+    if key in by_key:
+        return by_key[key]
+    # Reverse geocoders sometimes return a sub-county/ward label in the county slot,
+    # e.g. "Nakuru West" or "Nairobi West". Prefer an official county prefix/suffix.
+    for county_key, county_name in sorted(by_key.items(), key=lambda item: len(item[0]), reverse=True):
+        if key.startswith(county_key + " ") or key.endswith(" " + county_key) or f" {county_key} " in f" {key} ":
+            return county_name
+    return raw
+
+
 
 def _decimal(value):
     return Decimal(str(value))
@@ -19,7 +48,7 @@ def _normalize_location(value):
 
 
 def find_delivery_tariff(county, destination, mode=DeliveryTariff.MODE_STANDARD):
-    county_text = str(county or "").strip()
+    county_text = canonical_kenyan_county(county)
     county_key = _normalize_location(county_text)
     destination_key = _normalize_location(destination)
     if mode not in {DeliveryTariff.MODE_STANDARD, DeliveryTariff.MODE_PICKUP, DeliveryTariff.MODE_EXPRESS}:
