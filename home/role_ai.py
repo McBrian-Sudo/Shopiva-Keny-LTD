@@ -2,6 +2,8 @@ import json
 from decimal import Decimal
 
 from django.db.models import Count, Sum
+from django.utils import timezone
+from datetime import timedelta
 from django.http import JsonResponse
 
 from .models import Order, OrderItem, Product, SellerProfile, SellerWallet
@@ -22,6 +24,16 @@ def _seller_snapshot(seller):
     items = OrderItem.objects.filter(seller=seller)
     orders = Order.objects.filter(items__seller=seller).distinct()
     wallet, _ = SellerWallet.objects.get_or_create(seller=seller)
+    since = timezone.now() - timedelta(days=30)
+    restock = []
+    for product in products.filter(is_active=True):
+        sold = OrderItem.objects.filter(seller=seller, product=product, order__created_at__gte=since, order__payment_status="paid").aggregate(v=Sum("quantity"))["v"] or 0
+        if sold:
+            daily_velocity = float(sold) / 30.0
+            days_left = float(product.stock_quantity) / daily_velocity if daily_velocity else 9999
+            if days_left <= 14:
+                restock.append({"product": product.name, "stock": product.stock_quantity, "sold_30d": sold, "estimated_days_left": round(days_left,1)})
+    restock.sort(key=lambda x:x["estimated_days_left"])
 
     return {
         "seller": seller.business_name or seller.user.username,
@@ -52,6 +64,21 @@ def _seller_fallback(question, seller):
     products = Product.objects.filter(seller=seller, is_active=True)
     orders = Order.objects.filter(items__seller=seller).distinct()
     wallet, _ = SellerWallet.objects.get_or_create(seller=seller)
+
+    if "restock" in q or "re-stock" in q or "running out" in q:
+        since = timezone.now() - timedelta(days=30)
+        rows = []
+        for product in products:
+            sold = OrderItem.objects.filter(seller=seller, product=product, order__created_at__gte=since, order__payment_status="paid").aggregate(v=Sum("quantity"))["v"] or 0
+            if sold:
+                velocity = float(sold) / 30.0
+                days_left = float(product.stock_quantity) / velocity if velocity else 9999
+                if days_left <= 14:
+                    rows.append((days_left, product.name, product.stock_quantity))
+        rows.sort()
+        if rows:
+            return "Restock watch:\n" + "\n".join(f"• {name}: {stock} left; about {days:.1f} days at the recent paid-order rate." for days,name,stock in rows[:10])
+        return "No active product is currently projected to reach zero stock within about 14 days from the last 30 days of paid-order velocity."
 
     if "low stock" in q or "low-stock" in q:
         rows = products.filter(stock_quantity__lte=5).order_by("stock_quantity", "name")[:10]
