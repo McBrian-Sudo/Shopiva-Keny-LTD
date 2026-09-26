@@ -81,14 +81,9 @@ def delivery_login(request):
             agent = user.delivery_agent_profile
         except DeliveryAgent.DoesNotExist:
             form.add_error(None, "This account is not registered as a Shopiva delivery partner.")
-        else:
-              if not agent.is_active:
-            # Delivery staff must be explicitly approved by an administrator.
-            # There is no self-activation fallback.
-            form.add_error(
-                None,
-                "Your staff application is registered and awaiting administrator verification.",
-            )
+           else:
+        if not agent.is_active:
+            form.add_error(None, "Your staff application is registered and awaiting administrator verification.")
         else:
             login(request, agent.user)
             agent.status = "on_delivery" if agent.orders.filter(status="out_for_delivery").exists() else "available"
