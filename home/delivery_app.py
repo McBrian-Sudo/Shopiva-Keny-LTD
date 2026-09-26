@@ -1,3 +1,47 @@
+from decimal import Decimal, InvalidOperation
+from datetime import timedelta
+import secrets
+
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.db import transaction, IntegrityError
+from django.http import JsonResponse
+from django.shortcuts import redirect, render
+from django.utils import timezone
+
+from .models import DeliveryAgent, DeliveryLocationPing, Order, OrderEvent, SellerSettlement, SellerWallet
+from .notification_service import notify_user
+from .forms import DeliveryRegistrationForm
+
+
+DELIVERY_CODE_MAX_ATTEMPTS = 5
+DELIVERY_CODE_LOCK_MINUTES = 10
+
+
+def _agent(request):
+    try:
+        agent = request.user.delivery_agent_profile
+    except DeliveryAgent.DoesNotExist:
+        return None
+    return agent if agent.is_active else None
+
+
+def _release_seller_settlements(order, now):
+    released = []
+    for settlement in SellerSettlement.objects.select_for_update().filter(order=order, status="pending"):
+        wallet, _ = SellerWallet.objects.get_or_create(seller=settlement.seller)
+        wallet = SellerWallet.objects.select_for_update().get(pk=wallet.pk)
+        wallet.pending_balance = max(Decimal("0.00"), wallet.pending_balance - settlement.seller_amount)
+        wallet.available_balance += settlement.seller_amount
+        wallet.save(update_fields=("pending_balance", "available_balance", "updated_at"))
+        settlement.status = "available"
+        settlement.released_at = now
+        settlement.save(update_fields=("status", "released_at"))
+           released.append(settlement)
+    return released
+
+
 def delivery_signup(request):
     """Create a delivery-partner application; staff approval is required before deliveries are accessible."""
     if request.user.is_authenticated:
