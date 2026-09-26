@@ -21,7 +21,8 @@ def seller_performance(limit=10):
         sales=OrderItem.objects.filter(seller=seller).aggregate(v=Sum(F("price")*F("quantity")))["v"] or Decimal("0.00")
         orders=Order.objects.filter(items__seller=seller).distinct()
         rows.append({"seller":seller.business_name or seller.user.username,"orders":orders.count(),"delivered":orders.filter(status="delivered").count(),"sales":_money(sales),"available_balance":_money(seller.wallet.available_balance if hasattr(seller,"wallet") else 0)})
-    return sorted(rows,key=lambda x:Decimal(x["sales"]),reverse=True)[:limit]
+    ordered=sorted(rows,key=lambda x:Decimal(x["sales"]),reverse=True)
+    return {"top":ordered[:limit],"bottom":list(reversed(ordered[-limit:])) if ordered else []}
 
 
 def build_admin_context():
@@ -81,7 +82,7 @@ def answer_admin_question(question):
     if "success rate" in q and "mpesa" in q:return {"answer":f"This week's M-PESA success rate is {c['payments']['success_rate_week']}% based on {c['payments']['mpesa_attempts_week']} recorded attempts.","context":c}
     if "failed" in q and ("payment" in q or "mpesa" in q):return {"answer":f"There are {c['orders']['failed_payment']} orders with failed payment status and {c['payments']['mpesa_failed']} failed M-PESA transactions.","context":c}
     if "low stock" in q:return {"answer":f"There are {c['products']['low_stock']} active low-stock products and {c['products']['out_of_stock']} active out-of-stock products.","context":c}
-    if "seller" in q and any(x in q for x in ("top","bottom","performance","sales")):return {"answer":"Here is current seller performance data, ordered by recorded sales.","sellers":c["sellers"]["performance"],"context":c}
+    if "seller" in q and any(x in q for x in ("top","bottom","performance","sales")):return {"answer":"Here is current seller performance data, with top and bottom groups by recorded sales.","sellers":c["sellers"]["performance"],"context":c}
     return {"answer":"Nia can report products, orders, M-PESA, sellers, customers, delivery, approvals, revenue, support and category data.","context":c}
 
 
