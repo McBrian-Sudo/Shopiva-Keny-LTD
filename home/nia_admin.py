@@ -101,4 +101,4 @@ def nia_dashboard_context(request):
         else:
             orders=Order.objects.filter(email__iexact=user.email)
             stats={"primary_value":orders.count(),"primary_label":"My orders","secondary_value":orders.filter(status__in=("pending","processing","shipped","out_for_delivery")).count(),"secondary_label":"Active orders","tertiary_value":user.shopiva_wishlist.count(),"tertiary_label":"Wishlist items"}
-    return JsonResponse({"ok":True,"role":"admin" if user.is_staff else ("seller" if getattr(user,"seller_profile",None) and user.seller_profile.is_active else "customer"),"stats":stats})
+    return JsonResponse({"ok":True,"role":"admin" if user.is_staff else ("seller" if getattr(user,"seller_profile",None) and user.seller_profile.is_active else "customer"),"stats":stats,"digest":daily_digest() if user.is_staff else ""})
