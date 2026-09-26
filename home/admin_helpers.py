@@ -13,6 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .models import DeliveryAgent, Order, PaymentTransaction, Product
 from .nia_admin import answer_admin_question
+from .nia_core import call_nia
 
 
 def _require_admin(request):
@@ -85,6 +86,16 @@ def admin_ai_assistant(request):
     if not question:
         return JsonResponse({"ok": False, "error": "Please ask Nia a question."}, status=400)
     result = answer_admin_question(question)
+    ai = call_nia(
+        "Admin Operations Copilot",
+        result.get("context", {}),
+        question,
+        '{"answer": "string"}',
+    )
+    if ai.get("ai"):
+        result["answer"] = str((ai.get("data") or {}).get("answer") or result["answer"])
+        result["ai"] = True
+    else:
+        result["ai"] = False
     result["ok"] = True
-    result["ai"] = False
     return JsonResponse(result)
