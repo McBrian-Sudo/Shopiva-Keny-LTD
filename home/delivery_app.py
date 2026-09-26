@@ -82,41 +82,13 @@ def delivery_login(request):
         except DeliveryAgent.DoesNotExist:
             form.add_error(None, "This account is not registered as a Shopiva delivery partner.")
         else:
-            if not agent.is_active:
-                # Normal path: an active administrator must verify and approve
-                # every new staff application. Emergency fallback: if there are
-                # no active admins at all, allow the already-registered staff
-                # member to authenticate and activate their own delivery access.
-                # This prevents the platform from becoming permanently blocked
-                # when the admin accounts are all inactive.
-                from django.contrib.auth.models import User
-                from .models import Notification
-
-                active_admin_exists = User.objects.filter(
-                    is_staff=True,
-                    is_active=True,
-                ).exists()
-
-                if active_admin_exists:
-                    form.add_error(
-                        None,
-                        "Your staff application is registered and awaiting administrator verification.",
-                    )
-                else:
-                    with transaction.atomic():
-                        agent = (
-                            DeliveryAgent.objects
-                            .select_for_update()
-                            .select_related("user")
-                            .get(pk=agent.pk)
-                        )
-                        if not agent.is_active:
-                            agent.is_active = True
-                            agent.status = "available"
-                            agent.user.is_active = True
-                            agent.user.save(update_fields=["is_active"])
-                            agent.save(update_fields=["is_active", "status"])
-
+         if not agent.is_active:
+    # Delivery staff must be explicitly approved by an administrator.
+    # There is no self-activation fallback.
+    form.add_error(
+        None,
+        "Your staff application is registered and awaiting administrator verification.",
+    )
                             Notification.objects.create(
                                 user=agent.user,
                                 notification_type="system",
