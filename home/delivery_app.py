@@ -47,3 +47,15 @@ def delivery_login(request):
                 return redirect("delivery_portal")
 
     return render(request, "delivery/login.html", {"form": form})
+
+@login_required(login_url="delivery_login")
+def delivery_logout(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+
+    agent = _agent(request)
+    if agent:
+        agent.status = "offline"
+        agent.save(update_fields=["status"])
+    logout(request)
+    return redirect("delivery_login")
